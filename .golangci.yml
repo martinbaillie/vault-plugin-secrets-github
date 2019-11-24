@@ -1,0 +1,17 @@
+---
+run:
+  tests: false
+
+linters:
+  disable:
+    - gosec
+    - gochecknoglobals
+
+issues:
+  max-same-issues: 0
+  max-per-linter: 0
+
+linters-settings:
+  funlen:
+    lines: 80
+    statements: 60

@@ -1,0 +1,27 @@
+---
+version: '3'
+# NOTE: This docker-compose is interfaced only via the Makefile.
+services:
+  golang: &golang
+    # golangci-lint v1.21.0 (debian, go 1.13)
+    image: golangci/golangci-lint@sha256:ea9dcbf656dfbe69029e3fe09f8cfe4b688176841cd130fe373a3d0b81a97908
+    network_mode: bridge
+    environment:
+      - PROJECT
+      - PACKAGE
+      - SKIP_TEST
+      - SKIP_LINT
+      - CI
+    working_dir: /go/src/${PACKAGE}
+    volumes:
+      - .:/go/src/${PACKAGE}
+      - /tmp/${PROJECT}/mod:/go/pkg/mod
+
+  make:
+    <<: *golang
+    entrypoint: make
+
+  vault: &vault
+    # vault 1.3.0 (alpine)
+    image: vault@sha256:2879f79ffccca39772b86a6e3e001c2d398b729b7b501a1d3e7abb8e80b80444
+    network_mode: bridge
