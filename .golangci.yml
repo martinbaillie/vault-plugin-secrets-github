@@ -6,6 +6,7 @@ linters:
   disable:
     - gosec
     - gochecknoglobals
+    - godox # TODO(mbaillie): remove once other TODOs are fixed!
 
 issues:
   max-same-issues: 0

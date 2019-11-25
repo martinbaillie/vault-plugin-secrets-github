@@ -1,10 +1,16 @@
 ---
 version: '3'
-# NOTE: This docker-compose is interfaced only via the Makefile.
+#########################################################################
+# NOTE: This docker-compose should be interfaced only via the Makefile. #
+#########################################################################
+volumes:
+  go-pkg:
+  go-bin:
+
 services:
   golang: &golang
-    # golangci-lint v1.21.0 (debian, go 1.13)
-    image: golangci/golangci-lint@sha256:ea9dcbf656dfbe69029e3fe09f8cfe4b688176841cd130fe373a3d0b81a97908
+    # golang 1.13.4 (debian)
+    image: golang@sha256:f9de064473fb30c66bc0d2ddf2cf9a4a9bd38cbd2c5e59ce3bdf8af7b8747a57
     network_mode: bridge
     environment:
       - PROJECT
@@ -15,7 +21,8 @@ services:
     working_dir: /go/src/${PACKAGE}
     volumes:
       - .:/go/src/${PACKAGE}
-      - /tmp/${PROJECT}/mod:/go/pkg/mod
+      - go-pkg:/go/pkg
+      - go-bin:/go/bin
 
   make:
     <<: *golang

@@ -26,12 +26,29 @@ LDFLAGS ?=-s -w -extld ld -extldflags -static \
 		  -X '$(PACKAGE)/github.projectDocs=https://$(PACKAGE)'
 FLAGS	?=-trimpath -a -installsuffix cgo -ldflags "$(LDFLAGS)"
 
+GOPATH		=$(shell go env GOPATH)
 GOVERS 		=$(shell go version)
 GOOS		=$(word 1,$(subst /, ,$(lastword $(GOVERS))))
 GOARCH		=$(word 2,$(subst /, ,$(lastword $(GOVERS))))
 GOOSES		?=darwin freebsd linux netbsd openbsd solaris windows
 GOARCHES 	?=386 amd64 arm
 NOARCHES 	?=darwin-arm solaris-386 solaris-arm windows-arm
+
+VER_GOCILINT	?=v1.21.0
+URL_GOCILINT 	:=raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
+BIN_GOCILINT	:=$(shell command -v golangci-lint || \
+					(curl -sfL "https://$(URL_GOCILINT)" | \
+					sh -s -- -b $(GOPATH)/bin $(VER_GOCILINT) && \
+					echo $(GOPATH)/bin/golangci-lint))
+VER_GOTESTSUM	?=v0.4.0
+URL_GOTESTSUM 	:=gotest.tools/gotestsum
+BIN_GOTESTSUM	:=$(shell command -v gotestsum || \
+					(go get $(URL_GOTESTSUM)@$(VER_GOTESTSUM) && \
+					echo $(GOPATH)/bin/gotestsum))
+
+ifeq ($(GITHUB_ACTIONS),true)
+CI 	?= true
+endif
 
 help: ## This help target
 	awk 'BEGIN {FS = ":.*?## "} /^[%a-zA-Z_-]+:.*?## / \
@@ -84,11 +101,11 @@ lint: ## Linting (heavyweight when `CI=true`)
 	echo >&2 "> linting"
 ifdef CI
 	mkdir -p test && \
-		golangci-lint run --enable-all --out-format=checkstyle | \
+		$(BIN_GOCILINT) run --enable-all --out-format=checkstyle | \
 		tee test/checkstyle.xml
 	! grep "error" test/checkstyle.xml &>/dev/null
 else
-	golangci-lint run --enable-all --fast
+	$(BIN_GOCILINT) run --enable-all --fast
 endif
 .PHONY: lint
 
@@ -97,10 +114,10 @@ test:
 	echo >&2 "> testing"; \
 	mkdir -p test; \
 	if [ "$(CI)" = true ]; then \
-		gotestsum --format short-verbose --junitfile test/junit.xml -- -race \
+		$(BIN_GOTESTSUM) --format short-verbose --junitfile test/junit.xml -- -race \
 		$(GOTAGS) -coverprofile=test/coverage.out -covermode=atomic ./...; \
 	else \
-		gotestsum --format short-verbose --junitfile test/junit.xml -- \
+		$(BIN_GOTESTSUM) --format short-verbose --junitfile test/junit.xml -- \
 		$(GOTAGS) ./...; \
 	fi; \
 	! grep "FAIL" test/junit.xml &>/dev/null && \
