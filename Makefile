@@ -33,6 +33,9 @@ GOOSES		?=darwin freebsd linux netbsd openbsd solaris windows
 GOARCHES 	?=386 amd64 arm
 NOARCHES 	?=darwin-arm solaris-386 solaris-arm windows-arm
 
+GOTESTSUM	:=$(shell command -v gotestsum || \
+				( go get gotest.tools/gotestsum && gotestsum ))
+
 help: ## This help target
 	awk 'BEGIN {FS = ":.*?## "} /^[%a-zA-Z_-]+:.*?## / \
 		{printf "\033[36m%-30s\033[0m	%s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -97,10 +100,10 @@ test:
 	echo >&2 "> testing"; \
 	mkdir -p test; \
 	if [ "$(CI)" = true ]; then \
-		gotestsum --format short-verbose --junitfile test/junit.xml -- -race \
+		$(GOTESTSUM) --format short-verbose --junitfile test/junit.xml -- -race \
 		$(GOTAGS) -coverprofile=test/coverage.out -covermode=atomic ./...; \
 	else \
-		gotestsum --format short-verbose --junitfile test/junit.xml -- \
+		$(GOTESTSUM) --format short-verbose --junitfile test/junit.xml -- \
 		$(GOTAGS) ./...; \
 	fi; \
 	! grep "FAIL" test/junit.xml &>/dev/null && \

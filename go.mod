@@ -9,4 +9,5 @@ require (
 	github.com/hashicorp/vault/sdk v0.1.13
 	github.com/pkg/errors v0.8.1 // indirect
 	gotest.tools v2.2.0+incompatible
+	gotest.tools/gotestsum v0.4.0 // indirect
 )

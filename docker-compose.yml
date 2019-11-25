@@ -15,7 +15,8 @@ services:
     working_dir: /go/src/${PACKAGE}
     volumes:
       - .:/go/src/${PACKAGE}
-      - /tmp/${PROJECT}/mod:/go/pkg/mod
+      - /tmp/${PROJECT}/pkg/mod:/go/pkg/mod
+      - /tmp/${PROJECT}/bin:/go/bin
 
   make:
     <<: *golang
