@@ -160,7 +160,7 @@ func TestBackend_Client(t *testing.T) {
 			AppID:   testAppID1,
 			InsID:   testInsID1,
 			PrvKey:  testPrvKeyValid,
-			BaseURL: testBaseURL,
+			BaseURL: testBaseURLValid,
 		})
 		assert.NilError(t, err)
 		assert.Assert(t, entry != nil)
@@ -194,7 +194,7 @@ func TestBackend_Client(t *testing.T) {
 			AppID:   testAppID1,
 			InsID:   testInsID1,
 			PrvKey:  testPrvKeyValid,
-			BaseURL: testBaseURL,
+			BaseURL: testBaseURLValid,
 		})
 		assert.NilError(t, err)
 		assert.Assert(t, entry != nil)

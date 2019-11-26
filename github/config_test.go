@@ -2,7 +2,6 @@ package github
 
 import (
 	"errors"
-	"net/url"
 	"strings"
 	"testing"
 
@@ -43,12 +42,8 @@ urinuwKBgQCnXeqv8R4Rc3AVYK4PPGhkJHdO603HLwyWKjZaTT5voHUr19gQs9uW
 WW+XkxRkmQ3GiAFzrwM/aI/86E2+ZNQNHvKQ+3MYh0/npuJgumszNWlmwWfxZV5o
 VLzTE2sMc4ivGY2f9WcCvOIVXwYnKbDOTDJ0GicdWPljnRsZSNBxKQ==
 -----END RSA PRIVATE KEY-----`
-	testBaseURLStr = "https://api.github.com/"
-)
-
-var (
-	testBaseURL, _        = url.Parse(testBaseURLStr)
-	testInvalidBaseURL, _ = url.Parse("not a valid url")
+	testBaseURLValid   = "https://api.github.com/"
+	testBaseURLInvalid = "not a valid url"
 )
 
 func TestConfig_Update(t *testing.T) {
@@ -103,14 +98,14 @@ func TestConfig_Update(t *testing.T) {
 				AppID:   testAppID2,
 				InsID:   testInsID1,
 				PrvKey:  testPrvKeyValid,
-				BaseURL: testBaseURL,
+				BaseURL: testBaseURLValid,
 			},
 			data: &framework.FieldData{
 				Raw: map[string]interface{}{
 					keyAppID:   testAppID2,
 					keyInsID:   testInsID1,
 					keyPrvKey:  testPrvKeyValid,
-					keyBaseURL: testBaseURLStr,
+					keyBaseURL: testBaseURLValid,
 				},
 			},
 			changed: true,
@@ -121,7 +116,7 @@ func TestConfig_Update(t *testing.T) {
 			exp:  &Config{},
 			data: &framework.FieldData{
 				Raw: map[string]interface{}{
-					keyBaseURL: "definitely not a URL",
+					keyBaseURL: testBaseURLInvalid,
 				},
 			},
 			changed: false,

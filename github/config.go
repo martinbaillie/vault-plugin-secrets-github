@@ -34,7 +34,7 @@ type Config struct {
 	PrvKey string `json:"prv_key"`
 
 	// BaseURL is the base URL for API requests.
-	BaseURL *url.URL `json:"base_url"`
+	BaseURL string `json:"base_url"`
 }
 
 // Update updates the configuration from the given field data only when the data
@@ -54,8 +54,8 @@ func (c *Config) Update(d *framework.FieldData) (bool, error) {
 			return false, fmt.Errorf("%s: %w", fmtErrUnableToParseBaseURL, err)
 		}
 
-		if c.BaseURL == nil || c.BaseURL.String() != nv.String() {
-			c.BaseURL = nv
+		if c.BaseURL != nv.String() {
+			c.BaseURL = nv.String()
 			changed = true
 		}
 	}
