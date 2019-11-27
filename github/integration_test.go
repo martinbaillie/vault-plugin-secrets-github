@@ -11,8 +11,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
-	"time"
 
 	"gotest.tools/assert"
 
@@ -109,33 +109,24 @@ func TestIntegration(t *testing.T) {
 		}
 
 		// Update the config and create tokens as quickly as possible.
-		start := make(chan struct{})
-		go func() {
-			<-start
-			for i := 0; i < racynessRequests; i++ {
-				testWriteConfig(t)
+		var (
+			wg    sync.WaitGroup
+			start = make(chan struct{})
+			race  = func(testFunc func(t *testing.T)) {
+				defer wg.Done()
+				<-start
+				for i := 0; i < racynessRequests; i++ {
+					testFunc(t)
+				}
 			}
-		}()
-		go func() {
-			<-start
-			for i := 0; i < racynessRequests; i++ {
-				testReadConfig(t)
-			}
-		}()
-		go func() {
-			<-start
-			for i := 0; i < racynessRequests; i++ {
-				testCreateToken(t)
-			}
-		}()
-		go func() {
-			<-start
-			for i := 0; i < racynessRequests; i++ {
-				testCreateTokenWithConstraints(t)
-			}
-		}()
+		)
+		wg.Add(4)
+		go race(testWriteConfig)
+		go race(testReadConfig)
+		go race(testCreateToken)
+		go race(testCreateTokenWithConstraints)
 		close(start)
-		time.Sleep(time.Second * 10)
+		wg.Wait()
 	})
 	t.Run("DeleteConfig", func(t *testing.T) {
 		// Delete.
