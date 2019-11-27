@@ -25,19 +25,16 @@ const pathTokenHelpSyn = `
 Create and return a token using the GitHub secrets plugin.
 `
 
-// TODO(mbaillie): use a map or struct
 var pathTokenHelpDesc = fmt.Sprintf(`
 Create and return a token using the GitHub secrets plugin, optionally
-constrained by the following properties:
-%s:\t%s
-%s:\t%s
+constrained by the above parameters.
 
 NOTE: '%s' should be a comma separated list of repository IDs.
 The quickest way to find a repository ID: https://stackoverflow.com/a/47223479
 
 NOTE: '%s' is a map of permission names to their access type (read or write).
 Permission names taken from: https://developer.github.com/v3/apps/permissions
-`, keyRepoIDs, descRepoIDs, keyPerms, descPerms, keyRepoIDs, keyPerms)
+`, keyRepoIDs, keyPerms)
 
 func (b *backend) pathToken() *framework.Path {
 	return &framework.Path{

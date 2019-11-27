@@ -12,7 +12,7 @@ import (
 )
 
 const backendHelp = `
-TODO
+GitHub Apps Token Backend
 `
 
 const (

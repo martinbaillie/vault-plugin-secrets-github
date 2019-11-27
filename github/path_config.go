@@ -33,16 +33,10 @@ const pathConfigHelpSyn = `
 Configure the GitHub secrets plugin.
 `
 
-// TODO(mbaillie): use a map or struct
 var pathConfigHelpDesc = fmt.Sprintf(`
-Configure the GitHub secrets plugin using the following properties:
-%s:\t%s
-%s:\t%s
-%s:\t%s
-%s:\t%s
-NOTE: '%s' must be in PEM PKCS#1 RSAPrivateKey format.`,
-	keyAppID, descAppID, keyInsID, descInsID, keyPrvKey,
-	descPrvKey, keyBaseURL, descBaseURL, keyPrvKey)
+Configure the GitHub secrets plugin using the above parameters.
+
+NOTE: '%s' must be in PEM PKCS#1 RSAPrivateKey format.`, keyPrvKey)
 
 // pathConfig defines the /github/config base path on the backend.
 func (b *backend) pathConfig() *framework.Path {

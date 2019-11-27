@@ -66,6 +66,9 @@ type statusCode int
 // Successful is true if the HTTP response code was between 200 and 300.
 func (s statusCode) Successful() bool { return s >= 200 && s < 300 }
 
+// Unsuccessful is true if the HTTP response code was not between 200 and 300.
+func (s statusCode) Unsuccessful() bool { return !s.Successful() }
+
 // TODO(mbaillie): reduce cyclomatic complexity
 func (c *Client) Token(
 	ctx context.Context,
@@ -101,7 +104,7 @@ func (c *Client) Token(
 
 	defer res.Body.Close()
 
-	if !statusCode(res.StatusCode).Successful() {
+	if statusCode(res.StatusCode).Unsuccessful() {
 		return nil, fmt.Errorf("%s: %s", fmtErrUnableToCreateAccessToken, res.Status)
 	}
 

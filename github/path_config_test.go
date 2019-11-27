@@ -44,7 +44,7 @@ func TestBackend_PathConfigRead(t *testing.T) {
 			AppID:   testAppID1,
 			InsID:   testInsID1,
 			PrvKey:  testPrvKeyValid,
-			BaseURL: testBaseURL,
+			BaseURL: testBaseURLValid,
 		})
 		assert.NilError(t, err)
 		assert.NilError(t, storage.Put(context.Background(), entry))
@@ -63,7 +63,7 @@ func TestBackend_PathConfigRead(t *testing.T) {
 		assert.Assert(t, is.Contains(resp.Data, keyPrvKey))
 		assert.Equal(t, testPrvKeyValid, resp.Data[keyPrvKey])
 		assert.Assert(t, is.Contains(resp.Data, keyBaseURL))
-		assert.DeepEqual(t, testBaseURL, resp.Data[keyBaseURL])
+		assert.DeepEqual(t, testBaseURLValid, resp.Data[keyBaseURL])
 	})
 
 	t.Run("FailedStorage", func(t *testing.T) {
@@ -102,7 +102,7 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 				keyAppID:   testAppID1,
 				keyInsID:   testInsID1,
 				keyPrvKey:  testPrvKeyValid,
-				keyBaseURL: testBaseURLStr,
+				keyBaseURL: testBaseURLValid,
 			},
 		})
 		assert.NilError(t, err)
@@ -113,7 +113,7 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 		assert.Equal(t, testAppID1, config.AppID)
 		assert.Equal(t, testInsID1, config.InsID)
 		assert.Equal(t, testPrvKeyValid, config.PrvKey)
-		assert.DeepEqual(t, testBaseURL, config.BaseURL)
+		assert.DeepEqual(t, testBaseURLValid, config.BaseURL)
 	})
 
 	t.Run("Exist", func(t *testing.T) {
@@ -138,7 +138,7 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 				keyAppID:   testAppID2,
 				keyInsID:   testInsID2,
 				keyPrvKey:  testPrvKeyValid,
-				keyBaseURL: testBaseURLStr,
+				keyBaseURL: testBaseURLValid,
 			},
 		})
 		assert.NilError(t, err)
@@ -149,7 +149,7 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 		assert.Equal(t, testAppID2, config.AppID)
 		assert.Equal(t, testInsID2, config.InsID)
 		assert.Equal(t, testPrvKeyValid, config.PrvKey)
-		assert.DeepEqual(t, testBaseURL, config.BaseURL)
+		assert.DeepEqual(t, testBaseURLValid, config.BaseURL)
 	})
 
 	t.Run("FailedStorageRetrieve", func(t *testing.T) {
@@ -179,7 +179,7 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 				keyAppID:   testAppID2,
 				keyInsID:   testInsID2,
 				keyPrvKey:  testPrvKeyValid,
-				keyBaseURL: testBaseURLStr,
+				keyBaseURL: testBaseURLValid,
 			},
 		})
 		assert.ErrorContains(t, err, fmtErrConfPersist)
@@ -249,7 +249,7 @@ func TestBackend_PathConfigDelete(t *testing.T) {
 			AppID:   testAppID1,
 			InsID:   testInsID1,
 			PrvKey:  testPrvKeyValid,
-			BaseURL: testBaseURL,
+			BaseURL: testBaseURLValid,
 		})
 		assert.NilError(t, err)
 		assert.NilError(t, storage.Put(context.Background(), entry))

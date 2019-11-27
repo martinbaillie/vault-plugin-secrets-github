@@ -27,8 +27,3 @@ services:
   make:
     <<: *golang
     entrypoint: make
-
-  vault: &vault
-    # vault 1.3.0 (alpine)
-    image: vault@sha256:2879f79ffccca39772b86a6e3e001c2d398b729b7b501a1d3e7abb8e80b80444
-    network_mode: bridge

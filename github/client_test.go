@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 	"time"
 
@@ -52,9 +51,9 @@ func TestNewClient(t *testing.T) {
 				AppID:   testAppID1,
 				InsID:   testInsID1,
 				PrvKey:  testPrvKeyValid,
-				BaseURL: testBaseURL,
+				BaseURL: testBaseURLValid,
 			},
-			url: fmt.Sprintf("%s%s", testBaseURLStr, testPath),
+			url: fmt.Sprintf("%s%s", testBaseURLValid, testPath),
 		},
 		{
 			name: "InvalidPrvKey",
@@ -71,7 +70,7 @@ func TestNewClient(t *testing.T) {
 				AppID:   testAppID1,
 				InsID:   testInsID1,
 				PrvKey:  testPrvKeyValid,
-				BaseURL: testInvalidBaseURL,
+				BaseURL: testBaseURLInvalid,
 			},
 			err: errors.New("parse"),
 		},
@@ -224,14 +223,11 @@ func TestClient_Token(t *testing.T) {
 			ts := httptest.NewServer(tc.handler)
 			defer ts.Close()
 
-			tsURL, err := url.Parse(ts.URL)
-			assert.NilError(t, err)
-
 			client, err := NewClient(&Config{
 				AppID:   testAppID1,
 				InsID:   testInsID1,
 				PrvKey:  testPrvKeyValid,
-				BaseURL: tsURL,
+				BaseURL: ts.URL,
 			})
 			assert.NilError(t, err)
 
