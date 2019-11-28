@@ -3,9 +3,12 @@ package github
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // pathPatternToken is the string used to define the base path of the token
@@ -63,7 +66,7 @@ func (b *backend) pathTokenWrite(
 	ctx context.Context,
 	req *logical.Request,
 	d *framework.FieldData,
-) (*logical.Response, error) {
+) (res *logical.Response, err error) {
 	client, done, err := b.Client(req.Storage)
 	if err != nil {
 		return nil, err
@@ -71,7 +74,27 @@ func (b *backend) pathTokenWrite(
 
 	defer done()
 
-	b.Logger().Debug("creating GitHub App installation token")
+	// Instrument and log the token API call, recording status, duration and
+	// whether any constraints (permissions, repository IDs) were requested.
+	defer func(begin time.Time) {
+		var (
+			duration = time.Since(begin)
+			_, perms = d.Raw[keyPerms]
+			_, repos = d.Raw[keyRepoIDs]
+		)
+		b.Logger().Debug("attempted to create a new installation token",
+			"took", duration.String(),
+			"err", err,
+			keyPerms, perms,
+			keyRepoIDs, repos,
+		)
+		requestDuration.With(prometheus.Labels{
+			"success":  strconv.FormatBool(err == nil),
+			keyPerms:   strconv.FormatBool(perms),
+			keyRepoIDs: strconv.FormatBool(repos),
+		}).Observe(duration.Seconds())
+	}(time.Now())
 
+	// Perform the token request.
 	return client.Token(ctx, d)
 }

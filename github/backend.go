@@ -40,10 +40,11 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 		Help:        strings.TrimSpace(backendHelp),
 		BackendType: logical.TypeLogical,
 		PathsSpecial: &logical.Paths{
-			Unauthenticated: []string{pathPatternInfo},
+			Unauthenticated: []string{pathPatternInfo, pathPatternMetrics},
 		},
 		Paths: []*framework.Path{
 			b.pathInfo(),
+			b.pathMetrics(),
 			b.pathConfig(),
 			b.pathToken(),
 		},

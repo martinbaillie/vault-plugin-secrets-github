@@ -38,10 +38,8 @@ var (
 	githubAPIStubbed bool
 )
 
-// This is an acceptance test that
-// TODO
-// - should be executed using `make integration``
-// - mention stubbed vs real
+// TestIntegration is an acceptance test that performs a series of happy path
+// operations against a real deployment of Vault and (optionally) GitHub.
 func TestIntegration(t *testing.T) {
 	// NOTE: the subtests are run sequentially as they depend on state.
 	t.Parallel()

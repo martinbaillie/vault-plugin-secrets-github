@@ -6,22 +6,24 @@ ifndef DEBUG
 endif
 .EXPORT_ALL_VARIABLES: ;
 
-WORKDIR =$(patsubst %/,%,$(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
-PROJECT =$(notdir $(WORKDIR))
-TIME 	=$(shell date '+%a %b %d %H:%m:%S %Z %Y')
-PACKAGE =$(shell awk 'NR==1{print $$2}' go.mod)
-BRANCH 	=$(shell git rev-parse --abbrev-ref HEAD)
-COMMIT 	=$(shell git rev-parse --verify --short HEAD)
-VERSION =$(shell git describe --always --tags --exact-match 2>/dev/null || \
-			echo $(COMMIT))
+WORKDIR 	=$(patsubst %/,%,$(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
+PROJECT 	=$(notdir $(WORKDIR))
+USER 		=$(if $(GITHUB_ACTOR),$(GITHUB_ACTOR),$(shell git config user.name))
+DATE 		=$(shell date '+%a %b %d %H:%m:%S %Z %Y')
+PACKAGE 	=$(shell awk 'NR==1{print $$2}' go.mod)
+BRANCH 		=$(shell git rev-parse --abbrev-ref HEAD)
+REVISION 	=$(shell git rev-parse --verify --short HEAD)
+VERSION 	=$(shell git describe --always --tags --exact-match 2>/dev/null || \
+				echo $(REVISION))
 
 LDFLAGS =-s -w -extld ld -extldflags -static \
-		  -X '$(PACKAGE)/github.buildTime=$(TIME)' \
-		  -X '$(PACKAGE)/github.buildCommit=$(COMMIT)' \
-		  -X '$(PACKAGE)/github.buildLink=https://$(PACKAGE)/releases/download/$(VERSION)' \
 		  -X '$(PACKAGE)/github.projectName=$(PROJECT)' \
-		  -X '$(PACKAGE)/github.projectVersion=$(VERSION)' \
-		  -X '$(PACKAGE)/github.projectDocs=https://$(PACKAGE)'
+		  -X '$(PACKAGE)/github.projectDocs=https://$(PACKAGE)' \
+		  -X 'github.com/prometheus/common/version.BuildDate=$(DATE)' \
+		  -X 'github.com/prometheus/common/version.Revision=$(REVISION)' \
+		  -X 'github.com/prometheus/common/version.Branch=$(BRANCH)' \
+		  -X 'github.com/prometheus/common/version.Version=$(VERSION)' \
+		  -X 'github.com/prometheus/common/version.BuildUser=$(USER)'
 FLAGS	=-trimpath -a -installsuffix cgo -ldflags "$(LDFLAGS)"
 
 GOPATH		=$(shell go env GOPATH)
@@ -81,12 +83,12 @@ todo: ## Shows TODO items per file
 # non-phony make target for each os/arch pair as well as a phony meta target
 # (build) for compiling everything.
 _build:
-	echo >&2 "> building"
+	echo >&2 "==> Building"
 .PHONY: _build
 define build-target
   $(PROJECT)-$(1)-$(2)$(3):
   ifeq (,$(findstring $(1)-$(2),$(NOARCHES)))
-		echo >&2 ">> $$@"
+		echo >&2 "===> $$@"
 		env GOOS=$(1) GOARCH=$(2) CGO_ENABLED=0 go build $(FLAGS) -o $$@
   endif
 
@@ -112,7 +114,7 @@ build: ## Build for the current OS and arch
 .PHONY: build
 
 lint: ## Linting (heavyweight when `CI=true`)
-	echo >&2 "> linting"
+	echo >&2 "==> Linting"
 ifdef CI
 	mkdir -p test && \
 		$(GOCILINT) run --enable-all --out-format=checkstyle | \
@@ -123,15 +125,16 @@ else
 endif
 .PHONY: lint
 
+test: FORMAT=$(if $(DEBUG:-=),standard-verbose,short-verbose)
 test: ## Testing (also see the 'integration' targets)
 	if [ ! "$(SKIP_LINT)" = "true" ]; then $(MAKE) lint; lint_exit=$$?; fi; \
-	echo >&2 "> testing"; \
+	echo >&2 "==> Testing"; \
 	mkdir -p test; \
 	if [ "$(CI)" = true ]; then \
-		$(GOTESTSUM) --format short-verbose --junitfile test/junit.xml -- -race \
+		$(GOTESTSUM) --format $(FORMAT) --junitfile test/junit.xml -- -race \
 		$(GOTAGS) -coverprofile=test/coverage.out -covermode=atomic ./...; \
 	else \
-		$(GOTESTSUM) --format short-verbose --junitfile test/junit.xml -- \
+		$(GOTESTSUM) --format $(FORMAT) --junitfile test/junit.xml -- \
 		$(GOTAGS) ./...; \
 	fi; \
 	! grep "FAIL" test/junit.xml &>/dev/null && \
@@ -140,7 +143,7 @@ test: ## Testing (also see the 'integration' targets)
 
 integration: LOG_LEVEL=$(if $(DEBUG:-=),trace,error)
 integration: $(PROJECT)-$(GOOS)-$(GOARCH) ## Run a local development Vault
-	echo >&2 "> integration"
+	echo >&2 "==> Integration"
 	rm -rf test/plugins && mkdir -p test/plugins
 	cp $(PROJECT)-$(GOOS)-$(GOARCH) \
 		test/plugins/$(PROJECT)
@@ -159,6 +162,13 @@ integration: $(PROJECT)-$(GOOS)-$(GOARCH) ## Run a local development Vault
 .PHONY: integration
 
 integration-test: integration test ## Run a local development Vault and the integration tests
+# To run integration tests against a real GitHub App installation:
+# $ make integration-test \
+# 	BASE_URL=https://api.github.com \
+# 	APP_ID=<your application id> \
+# 	INS_ID=<your installation id> \
+# 	PRV_KEY="$(cat /path/to/your/app/prv_key_file)"
+# NOTE: this will automatically skip racyness tests to avoid rate limiting.
 .PHONY: integration-test
 
 docker-%: ## Run any other target in Docker (where '%' = target name)

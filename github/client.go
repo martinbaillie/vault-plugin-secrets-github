@@ -24,6 +24,7 @@ const (
 
 var errClientConfigNil = errors.New("client configuration was nil")
 
+// Client encapsulates an HTTP client for talking to the configured GitHub App.
 type Client struct {
 	*Config
 
@@ -34,6 +35,9 @@ type Client struct {
 	transport http.RoundTripper
 }
 
+// NewClient returns a newly constructed client from the provided config. It
+// will error if it fails to validate necessary configuration formats like URIs
+// and PEM encoded private keys.
 func NewClient(config *Config) (*Client, error) {
 	if config == nil {
 		return nil, errClientConfigNil
@@ -69,7 +73,8 @@ func (s statusCode) Successful() bool { return s >= 200 && s < 300 }
 // Unsuccessful is true if the HTTP response code was not between 200 and 300.
 func (s statusCode) Unsuccessful() bool { return !s.Successful() }
 
-// TODO(mbaillie): reduce cyclomatic complexity
+// Token returns a valid access token. If there are any failures on the wire or
+// parsing request and response object, an error is returned.
 func (c *Client) Token(
 	ctx context.Context,
 	reqData *framework.FieldData,

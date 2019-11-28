@@ -5,16 +5,13 @@ import (
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/prometheus/common/version"
 )
 
 // Linker-provided project/build information.
 var (
-	projectName    string
-	projectDocs    string
-	projectVersion string
-	buildTime      string
-	buildCommit    string
-	buildLink      string
+	projectName string
+	projectDocs string
 )
 
 const pathPatternInfo = "info"
@@ -48,12 +45,13 @@ func (b *backend) pathInfoRead(
 ) (*logical.Response, error) {
 	return &logical.Response{
 		Data: map[string]interface{}{
-			"project_name":    projectName,
-			"project_version": projectVersion,
-			"project_docs":    projectDocs,
-			"build_commit":    buildCommit,
-			"build_time":      buildTime,
-			"build_link":      buildLink,
+			"project_name":   projectName,
+			"project_docs":   projectDocs,
+			"build_version":  version.Version,
+			"build_revision": version.Revision,
+			"build_branch":   version.Branch,
+			"build_date":     version.BuildDate,
+			"build_user":     version.BuildUser,
 		},
 	}, nil
 }
