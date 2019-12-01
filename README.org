@@ -1,0 +1,290 @@
+#+TITLE: Vault Plugin Secrets GitHub
+#+AUTHOR: Martin Baillie
+
+[[https://github.com/martinbaillie/vault-plugin-secrets-github/actions][https://github.com/martinbaillie/vault-plugin-secrets-github/workflows/build/badge.svg]]
+[[https://codecov.io/gh/martinbaillie/vault-plugin-secrets-github][https://codecov.io/gh/martinbaillie/vault-plugin-secrets-github/branch/master/graph/badge.svg]]
+[[https://godoc.org/github.com/martinbaillie/vault-plugin-secrets-github][https://godoc.org/github.com/martinbaillie/vault-plugin-secrets-github?status.svg]]
+[[https://goreportcard.com/report/github.com/martinbaillie/vault-plugin-secrets-github][https://goreportcard.com/badge/github.com/martinbaillie/vault-plugin-secrets-github?status.svg]]
+[[https://github.com/martinbaillie/vault-plugin-secrets-github/releases/latest][https://img.shields.io/github/release/martinbaillie/vault-plugin-secrets-github.svg]]
+
+#+BEGIN_QUOTE
+Create ephemeral, finely-scoped @github access tokens using @hashicorp Vault.
+#+END_QUOTE
+
+* Table of Contents                                          :TOC_3_gh:noexport:
+- [[#about][About]]
+  - [[#why][Why?]]
+  - [[#what][What?]]
+  - [[#how][How?]]
+- [[#installation][Installation]]
+  - [[#from-release][From release]]
+    - [[#verify][Verify]]
+  - [[#from-source][From source]]
+  - [[#setup-github][Setup (GitHub)]]
+  - [[#setup-vault][Setup (Vault)]]
+- [[#development][Development]]
+  - [[#tests][Tests]]
+- [[#security][Security]]
+
+* About
+Are you using Hashicorp Vault and GitHub in your organisation? Do you want
+ephemeral, finely-scoped GitHub tokens? If so, this plugin might be for you.
+
+** Why?
+Performing automation against GitHub APIs often neccessitates the creation of
+[[https://help.github.com/en/github/extending-github/git-automation-with-oauth-tokens][OAuth Tokens]]. These tokens are tied to a user account, have /very/
+[[https://developer.github.com/apps/building-oauth-apps/understanding-scopes-for-oauth-apps/#available-scopes][coarsely-scoped permissions]] and do not expire.
+
+As an organisation owner this likely means your automation-savvy users have
+created personal access tokens with powerful permissions which are being neither
+rotated nor deleted.
+
+You will also commonly have wasted at least one of your GitHub seats on a
+[[https://help.github.com/en/github/getting-started-with-github/types-of-github-accounts#personal-user-accounts][robot/machine user]] for CI/CD purposes. These users share a similar access token
+and SSH key story as your human users do, and additonally need their credentials
+managed and rotated for them (arguably made more awkward when authenticating
+through an IdP).
+
+[[https://developer.github.com/apps/building-github-apps/][GitHub Apps]] offer a better approach to this automation problem:
+
+- They do not consume a seat (license) nor need credential management
+- They have /much/ finer-grained [[https://developer.github.com/v3/apps/permissions/][permissions]] available to the access tokens
+- The tokens they issue expire after one hour
+
+However, GitHub Apps require the management of at least one private key which is
+needed to mint the JWTs used for the [[https://developer.github.com/apps/building-github-apps/authenticating-with-github-apps/#authenticating-as-an-installation][App installation authentication]] token
+request flow.
+
+** What?
+This plugin allows you to take advantage of your existing Vault deployment's
+durable storage backend to protect the GitHub App private key, and your enabled
+Vault authN/Z mechanisms and highly-available API to perform the GitHub App
+token request flow on behalf of your users.
+
+** How?
+The Vault plugin acts as an intermediary for a GitHub App that you install into
+your organisation.
+
+Users login using your existing Vault auth backend(s) and, Vault RBAC
+permitting, can request GitHub tokens from the plugin. The plugin, in turn,
+authenticates with the GitHub App and requests a token on behalf of the user.
+This flow is better explained in the sequence diagram below:
+
+#+CAPTION: Sequence Diagram
+[[https://mermaid-js.github.io/mermaid-live-editor/#/view/eyJjb2RlIjoic2VxdWVuY2VEaWFncmFtXG4gICAgcGFydGljaXBhbnQgVSBhcyBVc2VyXG4gICAgcGFydGljaXBhbnQgViBhcyBWYXVsdFxuICAgIHBhcnRpY2lwYW50IEcgYXMgR2l0SHViXG4gICAgTm90ZSBvdmVyIFU6IEh1bWFuLCBDSS9DRCBhZ2VudCBldGMuXG4gICAgVS0+PlY6IFBPU1QgeW91ci52YXVsdC5vcmcvdjEvYXV0aFxuICAgIGFjdGl2YXRlIFZcbiAgICBOb3RlIG92ZXIgVjogU1NPLCBBRCwgQ2xvdWQgSUFNIGV0Yy5cbiAgICBWLS0+PlU6IE9LXG4gICAgZGVhY3RpdmF0ZSBWXG4gICAgTm90ZSByaWdodCBvZiBVOiBSZXF1ZXN0IGEgR2l0SHViIHRva2VuXG4gICAgYWx0XG4gICAgVS0+PlY6IFBPU1QgeW91ci52YXVsdC5vcmcvdjEvZ2l0aHViL3Rva2VuXG4gICAgZWxzZSByZXBvczogWzEyMyw0NTZdLCBwZXJtczogXCJpc3N1ZXM6d3JpdGVcIlxuICAgIFUtPj5WOiBQT1NUIHlvdXIudmF1bHQub3JnL3YxL2dpdGh1Yi90b2tlblxuICAgIGVuZFxuICAgIGFjdGl2YXRlIFZcbiAgICBOb3RlIG92ZXIgVjogTWludCBKV1QgdXNpbmcgUHJpdmF0ZSBLZXlcbiAgICBWLT4+VjogR2l0SHViIEpXVCAoZXhwOiAxMG0pXG4gICAgVi0+Pkc6IFBPU1QgYXBpLmdpdGh1Yi5jb20vLi4uL2FjY2Vzc190b2tlbnNcbiAgICBHLS0+PlY6IHRva2VuOiBbIFwidjEuMTIzNDU2Nzg5Li4uXCIgZXhwOiBcIjFoXCIgXVxuICAgIFYtPj5WOiBSZWNvcmQgbWV0cmljcywgbG9nc1xuICAgIFYtLT4+VTogWyB0b2tlbjogXCJ2MS4xMjM0NTY3ODkuLi5cIiBleHA6IFwiMWhcIiBdXG4gICAgZGVhY3RpdmF0ZSBWXG4gICAgTm90ZSBvdmVyIFU6IFVzZSBhY2Nlc3MgdG9rZW4gb24gR2l0SHViXG4gICAgYWx0IE9wZXJhdGUgb24gcmVwb3N0b3JpZXMgYWNjZXNzIHRva2VuIGhhcyBwZXJtaXNzaW9ucyBvblxuICAgIFUtPj5HOiAkIGdpdCBjbG9uZSBodHRwczovL3gtYWNjZXNzLXRva2VuOnYxLjEyMzQ1Njc4OS4uLkBnaXRodWIuY29tL29yZy9yZXBvLmdpdFxuICAgIGVsc2UgUGVyZm9ybSBBUEkgcmVxdWVzdHMgYWdhaW5zdCByZXNvdXJjZXMgYWNjZXNzIHRva2VuIGhhcyBwZXJtaXNzaW9ucyBvblxuICAgIFUtPj5HOiAkIGN1cmwgLUggXCJBdXRob3JpemF0aW9uOiBCZWFyZXIgdjEuMTIzNDU2Nzg5Li4uXCIgaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXNvdXJjZVxuICAgIGVuZCIsIm1lcm1haWQiOnsidGhlbWUiOiJkZWZhdWx0Iiwic2VxdWVuY2UiOnsibWlycm9yQWN0b3JzIjpmYWxzZSwiYWN0b3JNYXJnaW4iOjEyMCwibm90ZU1hcmdpbiI6MTAsIm1lc3NhZ2VNYXJnaW4iOjMwLCJib3hUZXh0TWFyZ2luIjoxLCJoZWlnaHQiOjMwLCJ3aWR0aCI6MjAwfX19][https://mermaid.ink/img/eyJjb2RlIjoic2VxdWVuY2VEaWFncmFtXG4gICAgcGFydGljaXBhbnQgVSBhcyBVc2VyXG4gICAgcGFydGljaXBhbnQgViBhcyBWYXVsdFxuICAgIHBhcnRpY2lwYW50IEcgYXMgR2l0SHViXG4gICAgTm90ZSBvdmVyIFU6IEh1bWFuLCBDSS9DRCBhZ2VudCBldGMuXG4gICAgVS0+PlY6IFBPU1QgeW91ci52YXVsdC5vcmcvdjEvYXV0aFxuICAgIGFjdGl2YXRlIFZcbiAgICBOb3RlIG92ZXIgVjogU1NPLCBBRCwgQ2xvdWQgSUFNIGV0Yy5cbiAgICBWLS0+PlU6IE9LXG4gICAgZGVhY3RpdmF0ZSBWXG4gICAgTm90ZSByaWdodCBvZiBVOiBSZXF1ZXN0IGEgR2l0SHViIHRva2VuXG4gICAgYWx0XG4gICAgVS0+PlY6IFBPU1QgeW91ci52YXVsdC5vcmcvdjEvZ2l0aHViL3Rva2VuXG4gICAgZWxzZSByZXBvczogWzEyMyw0NTZdLCBwZXJtczogXCJpc3N1ZXM6d3JpdGVcIlxuICAgIFUtPj5WOiBQT1NUIHlvdXIudmF1bHQub3JnL3YxL2dpdGh1Yi90b2tlblxuICAgIGVuZFxuICAgIGFjdGl2YXRlIFZcbiAgICBOb3RlIG92ZXIgVjogTWludCBKV1QgdXNpbmcgUHJpdmF0ZSBLZXlcbiAgICBWLT4+VjogR2l0SHViIEpXVCAoZXhwOiAxMG0pXG4gICAgVi0+Pkc6IFBPU1QgYXBpLmdpdGh1Yi5jb20vLi4uL2FjY2Vzc190b2tlbnNcbiAgICBHLS0+PlY6IHRva2VuOiBbIFwidjEuMTIzNDU2Nzg5Li4uXCIgZXhwOiBcIjFoXCIgXVxuICAgIFYtPj5WOiBSZWNvcmQgbWV0cmljcywgbG9nc1xuICAgIFYtLT4+VTogWyB0b2tlbjogXCJ2MS4xMjM0NTY3ODkuLi5cIiBleHA6IFwiMWhcIiBdXG4gICAgZGVhY3RpdmF0ZSBWXG4gICAgTm90ZSBvdmVyIFU6IFVzZSBhY2Nlc3MgdG9rZW4gb24gR2l0SHViXG4gICAgYWx0IE9wZXJhdGUgb24gcmVwb3N0b3JpZXMgYWNjZXNzIHRva2VuIGhhcyBwZXJtaXNzaW9ucyBvblxuICAgIFUtPj5HOiAkIGdpdCBjbG9uZSBodHRwczovL3gtYWNjZXNzLXRva2VuOnYxLjEyMzQ1Njc4OS4uLkBnaXRodWIuY29tL29yZy9yZXBvLmdpdFxuICAgIGVsc2UgUGVyZm9ybSBBUEkgcmVxdWVzdHMgYWdhaW5zdCByZXNvdXJjZXMgYWNjZXNzIHRva2VuIGhhcyBwZXJtaXNzaW9ucyBvblxuICAgIFUtPj5HOiAkIGN1cmwgLUggXCJBdXRob3JpemF0aW9uOiBCZWFyZXIgdjEuMTIzNDU2Nzg5Li4uXCIgaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXNvdXJjZVxuICAgIGVuZCIsIm1lcm1haWQiOnsidGhlbWUiOiJkZWZhdWx0Iiwic2VxdWVuY2UiOnsibWlycm9yQWN0b3JzIjpmYWxzZSwiYWN0b3JNYXJnaW4iOjEyMCwibm90ZU1hcmdpbiI6MTAsIm1lc3NhZ2VNYXJnaW4iOjMwLCJib3hUZXh0TWFyZ2luIjoxLCJoZWlnaHQiOjMwLCJ3aWR0aCI6MjAwfX19?nothing.svg]]
+
+#+BEGIN_COMMENT Mermaid source
+sequenceDiagram
+    participant U as User
+    participant V as Vault
+    participant G as GitHub
+    Note over U: Human, CI/CD agent etc.
+    U->>V: POST your.vault.org/v1/auth
+    activate V
+    Note over V: SSO, AD, Cloud IAM etc.
+    V-->>U: OK
+    deactivate V
+    Note right of U: Request a GitHub token
+    alt
+    U->>V: POST your.vault.org/v1/github/token
+    else repos: [123,456], perms: "issues:write"
+    U->>V: POST your.vault.org/v1/github/token
+    end
+    activate V
+    Note over V: Mint JWT using Private Key
+    V->>V: GitHub JWT (exp: 10m)
+    V->>G: POST api.github.com/.../access_tokens
+    G-->>V: token: [ "v1.123456789..." exp: "1h" ]
+    V->>V: Record metrics, logs
+    V-->>U: [ token: "v1.123456789..." exp: "1h" ]
+    deactivate V
+    Note over U: Use access token on GitHub
+    alt Operate on repostories access token has permissions on
+    U->>G: $ git clone https://x-access-token:v1.123456789...@github.com/org/repo.git
+    else Perform API requests against resources access token has permissions on
+    U->>G: $ curl -H "Authorization: Bearer v1.123456789..." https://api.github.com/resource
+    end
+#+END_COMMENT
+#+BEGIN_COMMENT Mermaid style
+{
+  "theme": "default",
+  "sequence": {
+  "mirrorActors": false,
+  "actorMargin": 120,
+  "noteMargin": 10,
+  "messageMargin": 30,
+  "boxTextMargin": 1,
+  "height": 30,
+  "width": 200
+  }
+}
+#+END_COMMENT
+
+* Installation
+To begin plugin installation, either download a [[./releases][release]] or build
+from source for your chosen OS and architecture.
+
+** From release
+
+Always download the latest stable release from the [[./releases][releases]] section.
+
+*** Verify
+
+You can and should verify the authenticity and integrity of the plugin you
+downloaded. All released binaries are hashed and the resulting sums are signed
+by my GPG key.
+
+#+BEGIN_SRC shell
+# Import my key.
+curl -sS https://github.com/martinbaillie.gpg | gpg --import -
+
+# Verify the authenticity.
+gpg --verify SHA256SUMS.sig SHA256SUMS
+
+# Verify the integrity.
+shasum -a 256 -c SHA256SUMS
+#+END_SRC
+
+** From source
+
+#+BEGIN_QUOTE
+NOTE: You will need a [[https://golang.org/dl/][Go 1.13+ toolchain]] to build this plugin from source.
+#+END_QUOTE
+
+1. Either download the source zip/tar.gz of the latest release from the [[./releases][releases]]
+   section and uncompress, or shallow clone to the target release tag as in
+   below:
+
+    #+BEGIN_SRC shell
+    git clone --depth 1 -b <target_release_tag> \
+        https://github.com/martinbaillie/vault-plugin-secrets-github.git
+    #+END_SRC
+
+2. Build for your target OS and architecture. The [[./Makefile][Makefile]] has auto-generated
+   targets for each supported combination (see: =make help=). Examples:
+
+    #+BEGIN_SRC shell
+    # Build for Linux/AMD64.
+    make vault-plugin-secrets-github-linux-amd64
+
+    # Build for OpenBSD/ARM.
+    make vault-plugin-secrets-github-openbsd-arm
+
+    # Build every supported OS and architecture combination.
+    make build
+    #+END_SRC
+
+** Setup (GitHub)
+#+BEGIN_QUOTE
+NOTE: You will need access to admin of your GitHub or GitHub Enterprise
+organisation to continue with the one-time setup. You can of course use this
+plugin on your personal account if so desired.
+#+END_QUOTE
+
+1. Sign in as an org admin and begin creating a new [[https://github.com/settings/apps/new][GitHub App.]]
+2. Choose any unique name, and homepage / webhook URLs (these can be anything;
+   they are not required by the plugin).
+   #+BEGIN_QUOTE
+    You may wish to take advantage of having GitHub call a webhook URL you own each
+    time the App is used for auditing purposes.
+    #+END_QUOTE
+3. Carefully choose the permissions the App will have access to. This is the
+   superset of permissions. You will have the option of further restricting
+   access to all or some repositories when you install an instance of the App,
+   and users of this plugin will be able to even further restrict access in
+   their individual token requests.
+4. Decide if you want the app to be installable to other accounts. Usually
+   you just want the one you are signed into.
+5. Create the App. On the next screen GitHub will prompt you to create a *private
+   key*. Do so, and save it somewhere safe (this is the key that will be
+   ultimately lodged into the plugin configuration).
+6. Note the *App ID** at the top of this page as well.
+7. Click Install App from the LHS. You will be taken to the account installation
+   pages where you can confirm the app was installed.
+8. Note the *Installation ID* from the URL of this page (usually:
+   https://github.com/settings/installations/<installation id>).
+
+With the three key pieces of information (Private Key, App ID and Installation
+ID), you are ready to move on to setting up the Vault plugin.
+
+** Setup (Vault)
+
+1. Move the desired plugin binary into your Vault's configured
+   =plugin_directory=.
+
+    #+BEGIN_SRC shell
+    mv vault-plugin-secrets-github-<os>-<arch> <plugin_directory>/vault-plugin-secrets-github
+    #+END_SRC
+
+2. (OPTIONAL) Allow [[https://linux.die.net/man/2/mlock][ =mlock()= ]] capabilities for the plugin binary. Memory locking
+   is available to most UNIX-like OSes; the example below is for Linux.
+
+    #+BEGIN_SRC shell
+    setcap cap_ipc_lock=+ep <plugin_directory>/vault-plugin-secrets-github
+    #+END_SRC
+
+3. (OPTIONAL) Calculate the SHA256 sum of the plugin and register it in Vault's
+   plugin catalog. If you are downloading the pre-compiled binary, it is highly
+   recommended that you use the published SHA256SUMS file.
+
+    #+BEGIN_SRC shell
+    # If using a pre-compiled binary:
+    SHA256SUM=$(grep <downloaded_binary> SHA256SUMS | cut -d' ' -f1)
+    # If building from source:
+    SHA256SUM=$(shasum -a 256 <compiled_binary> | cut -d' ' -f1)
+
+    vault write sys/plugins/catalog/vault-plugin-secrets-github \
+        sha_256=${SHA256SUM} command=vault-plugin-secrets-github
+    #+END_SRC
+
+4. Mount the secrets engine, choosing a prefix path (recommendation: =github=).
+
+    #+BEGIN_SRC shell
+    vault secrets enable -path=github -plugin-name=vault-plugin-secrets-github plugin
+    #+END_SRC
+
+* Development
+
+This plugin is written using modern [[https://golang.org/dl/][Go]]. You will need a Go 1.13+ toolchain and
+some common userspace tools like GNU/BSD =make=, =curl= and =git=.
+
+The [[./Makefile][Makefile]] endeavours to install more atypical tooling when needed.
+
+#+BEGIN_QUOTE
+NOTE: It is also possible to run any target inside Docker by prefixing the
+target name, e.g. =make docker-test=.
+#+END_QUOTE
+
+** Tests
+
+This plugin is comprehensively tested by both unit and acceptance tests. Pull
+requests that do not maintain an [[https://codecov.io/gh/martinbaillie/vault-plugin-secrets-github][>90% coverage]] will *not* be accepted.
+
+#+BEGIN_SRC shell
+# Run linting and unit tests.
+make test
+
+# Run CI-grade linting and unit tests.
+make test CI=true
+
+# Run unit and acceptance tests, integrating against a local Vault and stubbed
+# GitHub API.
+make integration test
+
+# Run unit and acceptance tests, integrating against a local Vault and the real
+# GitHub API against your own GitHub App installation (you can also run these
+# tests against a GitHub Enterprise deployment).
+# NOTE: This test configuration will create real tokens.
+make integration test \
+    BASE_URL=https://api.github.com \
+    INS_ID=<installation_id> \
+    APP_ID=<app_id> \
+    PRV_KEY="$(cat <path_to_app_private_key>)"
+#+END_SRC
+
+* Security
+
+Hashicorp and GitHub take their security seriously. If you believe you have
+found a security issue with either through using this plugin, do not open an
+issue here. Responsibly disclose by getting in touch with [[mailto:security@hashicorp.com][Hashicorp]] or [[https://hackerone.com/github][GitHub]]
+security teams respectively.
