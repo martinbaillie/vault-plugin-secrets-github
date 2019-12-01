@@ -78,9 +78,12 @@ ifeq ($(GITHUB_ACTIONS),true)
 CI 	?= true
 endif
 
+help: FORMAT="\033[36m%-30s\033[0m	%s\n"
 help: ## This help target
 	awk 'BEGIN {FS = ":.*?## "} /^[%a-zA-Z_-]+:.*?## / \
-		{printf "\033[36m%-30s\033[0m	%s\n", $$1, $$2}' $(MAKEFILE_LIST)
+		{printf $(FORMAT), $$1, $$2}' $(MAKEFILE_LIST)
+	printf $(FORMAT) $(PROJECT)-%-% \
+		"Build for a specific OS and arch (where '%' = OS, arch)"
 .PHONY: help
 
 default: help
@@ -89,6 +92,12 @@ default: help
 todo: ## Shows TODO items per file
 	grep --exclude=Makefile --text -InRo -E ' TODO.*' .
 .PHONY: todo
+
+clean: ## Clean transient files
+	echo >&2 "==> Cleaning"
+	rm -f $(PROJECT)-* SHA256SUM*
+	rm -rf test
+.PHONY: clean
 
 lint: ## Linting (heavyweight when `CI=true`)
 	echo >&2 "==> Linting"
@@ -103,7 +112,7 @@ endif
 .PHONY: lint
 
 test: FORMAT=$(if $(DEBUG:-=),standard-verbose,short-verbose)
-test: ## Testing (also see the 'integration' targets)
+test: ## Test (also see the 'integration' targets)
 	if [ ! "$(SKIP_LINT)" = "true" ]; then $(MAKE) lint; lint_exit=$$?; fi; \
 	echo >&2 "==> Testing"; \
 	mkdir -p test; \
@@ -144,20 +153,14 @@ $(foreach goarch,$(GOARCHES), \
 	) \
 )
 
-$(PROJECT): ## Build for every supported OS and arch combination
-.PHONY: $(PROJECT)
-$(PROJECT)-%-%: ## Build for a specific OS and arch (where '%-%' = os-arch)
-.PHONY: $(PROJECT)-%-%
-
-build: ## Build for the current OS and arch
+build: ## Build for every supported OS and arch combination
 .PHONY: build
 
 integration: LOG_LEVEL=$(if $(DEBUG:-=),trace,error)
 integration: $(PROJECT)-$(GOOS)-$(GOARCH) ## Run a local development Vault
 	echo >&2 "==> Integration"
 	rm -rf test/plugins && mkdir -p test/plugins
-	cp $(PROJECT)-$(GOOS)-$(GOARCH) \
-		test/plugins/$(PROJECT)
+	cp $(PROJECT)-$(GOOS)-$(GOARCH) test/plugins/$(PROJECT)
 	pkill vault && sleep 2 || true
 	$(VAULT) server \
 		-dev \
@@ -165,6 +168,9 @@ integration: $(PROJECT)-$(GOOS)-$(GOARCH) ## Run a local development Vault
 		-dev-root-token-id=root \
 		-log-level=$(LOG_LEVEL) &
 	sleep 2
+	$(VAULT) write sys/plugins/catalog/$(PROJECT) \
+		sha_256=$$(shasum -a 256 test/plugins/$(PROJECT) | cut -d' ' -f1) \
+		command=$(PROJECT)
 	$(VAULT) secrets enable \
 		-path=github \
 		-plugin-name=$(PROJECT) \
@@ -181,12 +187,6 @@ integration-test: integration test ## Run a local development Vault and the inte
 # 	PRV_KEY="$(cat /path/to/your/app/prv_key_file)"
 # NOTE: this will automatically skip racyness tests to avoid rate limiting.
 .PHONY: integration-test
-
-clean: ## Clean transient files
-	echo >&2 "==> Cleaning"
-	rm -f $(PROJECT)-* SHA256SUM*
-	rm -rf test
-.PHONY: clean
 
 tag: ## Create a signed commit and tag
 	echo >&2 "==> Tagging"
