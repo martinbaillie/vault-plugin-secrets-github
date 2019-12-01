@@ -1,0 +1,7 @@
+tmp/
+vendor/
+test/
+vault-plugin-secrets-github
+vault-plugin-secrets-github-*
+SHA256SUM*
+*.org
