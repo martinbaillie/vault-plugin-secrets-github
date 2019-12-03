@@ -1,27 +1,24 @@
-#+TITLE: Vault Plugin Secrets GitHub
-#+AUTHOR: Martin Baillie
-
 [[https://github.com/martinbaillie/vault-plugin-secrets-github/actions][https://github.com/martinbaillie/vault-plugin-secrets-github/workflows/build/badge.svg]]
 [[https://codecov.io/gh/martinbaillie/vault-plugin-secrets-github][https://codecov.io/gh/martinbaillie/vault-plugin-secrets-github/branch/master/graph/badge.svg]]
 [[https://godoc.org/github.com/martinbaillie/vault-plugin-secrets-github][https://godoc.org/github.com/martinbaillie/vault-plugin-secrets-github?status.svg]]
 [[https://goreportcard.com/report/github.com/martinbaillie/vault-plugin-secrets-github][https://goreportcard.com/badge/github.com/martinbaillie/vault-plugin-secrets-github?status.svg]]
 [[https://github.com/martinbaillie/vault-plugin-secrets-github/releases/latest][https://img.shields.io/github/release/martinbaillie/vault-plugin-secrets-github.svg]]
 
-#+BEGIN_QUOTE
-Create ephemeral, finely-scoped @github access tokens using @hashicorp Vault.
-#+END_QUOTE
-
-* Table of Contents                                          :TOC_3_gh:noexport:
+* Vault Plugin Secrets GitHub                                :TOC_2_gh:noexport:
 - [[#about][About]]
   - [[#why][Why?]]
   - [[#what][What?]]
   - [[#how][How?]]
 - [[#installation][Installation]]
   - [[#from-release][From release]]
-    - [[#verify][Verify]]
   - [[#from-source][From source]]
   - [[#setup-github][Setup (GitHub)]]
   - [[#setup-vault][Setup (Vault)]]
+- [[#api][API]]
+  - [[#token][Token]]
+  - [[#config][Config]]
+  - [[#metrics][Metrics]]
+  - [[#info][Info]]
 - [[#development][Development]]
   - [[#tests][Tests]]
 - [[#security][Security]]
@@ -182,32 +179,47 @@ plugin on your personal account if so desired.
 #+END_QUOTE
 
 1. Sign in as an org admin and begin creating a new [[https://github.com/settings/apps/new][GitHub App.]]
+
 2. Choose any unique name, and homepage / webhook URLs (these can be anything;
    they are not required by the plugin).
    #+BEGIN_QUOTE
-    You may wish to take advantage of having GitHub call a webhook URL you own each
+    NOTE: You may wish to take advantage of having GitHub call a webhook URL you own each
     time the App is used for auditing purposes.
     #+END_QUOTE
+
 3. Carefully choose the permissions the App will have access to. This is the
    superset of permissions. You will have the option of further restricting
    access to all or some repositories when you install an instance of the App,
    and users of this plugin will be able to even further restrict access in
    their individual token requests.
+
 4. Decide if you want the app to be installable to other accounts. Usually
    you just want the one you are signed into.
-5. Create the App. On the next screen GitHub will prompt you to create a *private
-   key*. Do so, and save it somewhere safe (this is the key that will be
+
+5. Create the App. On the next screen GitHub will prompt you to create a *Private
+   Key*. Do so, and save it somewhere safe (this is the key that will be
    ultimately lodged into the plugin configuration).
-6. Note the *App ID** at the top of this page as well.
+
+6. Note the *App ID* at the top of this page as well.
+    #+BEGIN_QUOTE
+    NOTE: Get the App ID anytime: Settings > Developer > settings > GitHub App >
+    About item.
+    #+END_QUOTE
+
 7. Click Install App from the LHS. You will be taken to the account installation
    pages where you can confirm the app was installed.
+
 8. Note the *Installation ID* from the URL of this page (usually:
    https://github.com/settings/installations/<installation id>).
-
-With the three key pieces of information (Private Key, App ID and Installation
-ID), you are ready to move on to setting up the Vault plugin.
+    #+BEGIN_QUOTE
+    NOTE: Get the Installation ID anytime: Settings > Developer > settings >
+    GitHub Apps > Advanced > Payload in Request tab.
+    #+END_QUOTE
 
 ** Setup (Vault)
+Using the three key pieces of information from the previous step (Private Key,
+App ID and Installation ID), you are ready to move on to setting up the Vault
+plugin.
 
 1. Move the desired plugin binary into your Vault's configured
    =plugin_directory=.
@@ -227,6 +239,11 @@ ID), you are ready to move on to setting up the Vault plugin.
    plugin catalog. If you are downloading the pre-compiled binary, it is highly
    recommended that you use the published SHA256SUMS file.
 
+    #+BEGIN_QUOTE
+    NOTE: The rest of these commands assume you have a valid VAULT_TOKEN and
+    VAULT_API environment variables.
+    #+END_QUOTE
+
     #+BEGIN_SRC shell
     # If using a pre-compiled binary:
     SHA256SUM=$(grep <downloaded_binary> SHA256SUMS | cut -d' ' -f1)
@@ -243,8 +260,117 @@ ID), you are ready to move on to setting up the Vault plugin.
     vault secrets enable -path=github -plugin-name=vault-plugin-secrets-github plugin
     #+END_SRC
 
-* Development
+5. Configure the plugin with the details from the previous section.
 
+   #+BEGIN_SRC shell
+    # Write the configuration.
+    vault write /github/config app_id=<app_id> ins_id=<installation_id> prv_key=@<private_key_file>
+
+    # (OPTIONAL) Confirm the configuration landed as you expected.
+    vault read /github/config
+
+    # (OPTIONAL) Test a token creation.
+    vault write /github/token
+   #+END_SRC
+
+* API
+Each plugin path is documented using Vault's own help framework. To find out
+more information about any path, use =vault path-help=. For brevity, the API is
+also documented below.
+
+** Token
+Instruct the plugin to create an installation access token against the configured GitHub App.
+
+| Method | Path   | Produces         |
+|--------+--------+------------------|
+| POST   | /token | application/json |
+| PUT    | /token | application/json |
+
+*** Parameters
+- =repository_ids= ([]int64) — a list of the IDs of the repositories that the
+  installation token can access. See this [[https://stackoverflow.com/a/47223479][StackOverflow post]] for the quickest
+  way to find a repository ID.
+- =permissions= (map[string]string) — a key value map of permission names to
+  their access type (read or write). See [[https://developer.github.com/v3/apps/permissions][GitHub's documentation]] on permission
+  names and access types.
+
+*** Examples
+#+BEGIN_SRC shell
+# Create a token with all the superset of all permissions and repositories that
+# the GitHub App installation has access to.
+vault write /github/token
+
+# Create a token with all permissions but only on repositories 123 and 456.
+vault write /github/token repository_ids=123 repository_ids=456
+
+# Create a token with read access to metadata and write access to pull requests
+# on repositories 123 and 456 only.
+# NOTE: Uses a Vault CLI JSON heredoc to submit the complex map type.
+vault write /github/token -<<EOF
+{
+"repository_ids": [123,456],
+"permissions": {"metadata": "read", "pull_requests": "write"}
+}
+EOF
+#+END_SRC
+
+#+BEGIN_QUOTE
+NOTE: a 422 response usually indicates you have requested repositories IDs or permissions
+that your GitHub App install does not have access to.
+#+END_QUOTE
+
+** Config
+CRUD operations against the configuration of the plugin.
+
+| Method | Path    | Produces         |
+|--------+---------+------------------|
+| POST   | /config | application/json |
+| GET    | /config | application/json |
+| PUT    | /config | application/json |
+| DELETE | /config | application/json |
+
+*** Parameters
+- =app_id= (int64) — the Application ID of the GitHub App.
+- =ins_id= (int64) — the Installation ID of the GitHub App installation.
+- =private_key= (string) — a private key configured in the GitHub App. This private key must be in PEM PKCS#1 RSAPrivateKey format.
+- =base_url= (string) — the base URL for API requests (defaults to the public GitHub API).
+
+*** Examples
+#+BEGIN_SRC shell
+# Write the plugin configuration using the default base URL and reading the key from a file.
+vault write /github/config app_id=123 ins_id=456 prv_key=@key.pem
+
+# Read the plugin configuration.
+vault read /github/config
+
+# Update the plugin configuration to a GitHub Enterprise base URL.
+vault write /github/config base_url="https://api.mygithub.org"
+
+# Delete the plugin configuration.
+vault delete /github/config
+#+END_SRC
+
+** Metrics
+Prometheus/OpenMetrics formatted metrics exposition.
+
+| Method | Path     | Produces    |
+|--------+----------+-------------|
+| GET    | /metrics | text/plain  |
+
+*** Metrics
+In addition to standard Go metrics, the following custom metrics are exposed:
+- =vault_github_token_request_duration_seconds= — a summary of token request latency and status.
+- =vault_github_token_build_info= — a constant with useful build information.
+
+** Info
+Information about the GitHub secrets plugin, such as the plugin version, VCS
+detail and where to get help.
+
+| Method | Path  | Produces         |
+|--------+-------+------------------|
+| GET    | /info | application/json |
+
+* Development
 This plugin is written using modern [[https://golang.org/dl/][Go]]. You will need a Go 1.13+ toolchain and
 some common userspace tools like GNU/BSD =make=, =curl= and =git=.
 
