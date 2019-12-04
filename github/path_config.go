@@ -128,7 +128,6 @@ func (b *backend) pathConfigWrite(
 		b.Invalidate(ctx, pathPatternConfig)
 	}
 
-	// TODO(mbaillie): should we return what we wrote?
 	return nil, nil
 }
 

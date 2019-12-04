@@ -7,7 +7,6 @@ linters:
     - gosec
     - gochecknoglobals
     - gochecknoinits
-    - godox # TODO(mbaillie): remove once other TODOs are fixed!
 
 issues:
   max-same-issues: 0
