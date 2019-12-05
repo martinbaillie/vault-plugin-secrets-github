@@ -221,10 +221,11 @@ SHA256SUMS.sig: SHA256SUMS
 release: GITHUB_REPO=$(PROJECT)
 release: GITHUB_USER=$(word 2,$(subst /, ,$(PACKAGE)))
 release: GITHUB_ASSETS=$(wildcard $(PROJECT)-* SHA256SUMS*)
-release: clean tag build SHA256SUMS.sig ## Build, tag and release to GitHub
+# release: clean tag build SHA256SUMS.sig ## Build, tag and release to GitHub
+release:
 	echo >&2 "==> Releasing"
 ifndef GITHUB_TOKEN
-		echo >&2 "ERROR: GITHUB_RELEASE_ACCESS_TOKEN missing"
+		echo >&2 "ERROR: GITHUB_TOKEN missing"
 		exit 127
 endif
 	echo >&2 "===> v$(VERSION)"

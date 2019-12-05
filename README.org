@@ -44,9 +44,9 @@ through an IdP).
 
 [[https://developer.github.com/apps/building-github-apps/][GitHub Apps]] offer a better approach to this automation problem:
 
-- They do not consume a seat (license) nor need credential management
-- They have /much/ finer-grained [[https://developer.github.com/v3/apps/permissions/][permissions]] available to the access tokens
-- The tokens they issue expire after one hour
+- They do not consume a seat (license) nor need credential management.
+- They have /much/ finer-grained [[https://developer.github.com/v3/apps/permissions/][permissions]] available to the access tokens.
+- The tokens they issue expire after one hour.
 
 However, GitHub Apps require the management of at least one private key which is
 needed to mint the JWTs used for the [[https://developer.github.com/apps/building-github-apps/authenticating-with-github-apps/#authenticating-as-an-installation][App installation authentication]] token
