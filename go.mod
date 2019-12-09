@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/armon/go-radix v1.0.0 // indirect
-	github.com/bradleyfalzon/ghinstallation v1.0.0
+	github.com/bradleyfalzon/ghinstallation v1.1.0
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/frankban/quicktest v1.4.1 // indirect
 	github.com/go-test/deep v1.0.2 // indirect
@@ -18,14 +18,16 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20190923154419-df201c70410d // indirect
 	github.com/pierrec/lz4 v2.3.0+incompatible // indirect
 	github.com/prometheus/client_golang v1.2.1
+	github.com/prometheus/client_model v0.0.0-20191202183732-d1d2010b5bee // indirect
 	github.com/prometheus/common v0.7.0
 	github.com/prometheus/procfs v0.0.8 // indirect
-	golang.org/x/crypto v0.0.0-20191122220453-ac88ee75c92c // indirect
-	golang.org/x/net v0.0.0-20191126235420-ef20fe5d7933 // indirect
-	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2 // indirect
+	github.com/stretchr/testify v1.4.0 // indirect
+	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413 // indirect
+	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 // indirect
+	golang.org/x/sys v0.0.0-20191206220618-eeba5f6aabab // indirect
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
-	google.golang.org/genproto v0.0.0-20191115221424-83cc0476cb11 // indirect
+	google.golang.org/genproto v0.0.0-20191206224255-0243a4be9c8f // indirect
 	google.golang.org/grpc v1.25.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.4.0 // indirect
 	gotest.tools v2.2.0+incompatible
