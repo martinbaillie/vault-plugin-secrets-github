@@ -362,6 +362,11 @@ In addition to standard Go metrics, the following custom metrics are exposed:
 - =vault_github_token_request_duration_seconds= — a summary of token request latency and status.
 - =vault_github_token_build_info= — a constant with useful build information.
 
+*** Sample Dashboard
+A sample dashboard is [[dashboard.json][provided]].
+#+CAPTION: Sample Dashboard
+[[dashboard.png][dashboard.png]]
+
 ** Info
 Information about the GitHub secrets plugin, such as the plugin version, VCS
 detail and where to get help.
