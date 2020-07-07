@@ -250,7 +250,7 @@ plugin.
     # If building from source:
     SHA256SUM=$(shasum -a 256 <compiled_binary> | cut -d' ' -f1)
 
-    vault write sys/plugins/catalog/vault-plugin-secrets-github \
+    vault write sys/plugins/catalog/secret/vault-plugin-secrets-github \
         sha_256=${SHA256SUM} command=vault-plugin-secrets-github
     #+END_SRC
 
