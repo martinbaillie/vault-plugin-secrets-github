@@ -270,7 +270,7 @@ plugin.
     vault read /github/config
 
     # (OPTIONAL) Test a token creation.
-    vault write /github/token
+    vault write -force /github/token
    #+END_SRC
 
 * API
@@ -298,7 +298,7 @@ Instruct the plugin to create an installation access token against the configure
 #+BEGIN_SRC shell
 # Create a token with all the superset of all permissions and repositories that
 # the GitHub App installation has access to.
-vault write /github/token
+vault write -force /github/token
 
 # Create a token with all permissions but only on repositories 123 and 456.
 vault write /github/token repository_ids=123 repository_ids=456
