@@ -31,8 +31,8 @@ GOVERS 		=$(shell go version)
 GOOS		=$(word 1,$(subst /, ,$(lastword $(GOVERS))))
 GOARCH		=$(word 2,$(subst /, ,$(lastword $(GOVERS))))
 GOOSES		=darwin freebsd linux netbsd openbsd solaris windows
-GOARCHES 	=386 amd64 arm
-NOARCHES 	=darwin-arm solaris-386 solaris-arm windows-arm
+GOARCHES 	=amd64 arm
+NOARCHES 	=darwin-arm solaris-arm windows-arm
 
 UNZIP		=$(shell command -v unzip || (apt-get -qq update &>/dev/null && \
 				apt-get -yqq install unzip &>/dev/null && \
@@ -218,10 +218,11 @@ SHA256SUMS.sig: SHA256SUMS
 	echo >&2 "==> Signing"
 	$(GPG) --default-key "$(GPG_KEY)" --detach-sig SHA256SUMS
 
+# NOTE: Needs BSD xargs.
 release: GITHUB_REPO=$(PROJECT)
 release: GITHUB_USER=$(word 2,$(subst /, ,$(PACKAGE)))
 release: GITHUB_ASSETS=$(wildcard $(PROJECT)-* SHA256SUMS*)
-# release: clean tag build SHA256SUMS.sig ## Build, tag and release to GitHub
+release: clean tag build SHA256SUMS.sig ## Build, tag and release to GitHub
 release:
 	echo >&2 "==> Releasing"
 ifndef GITHUB_TOKEN
