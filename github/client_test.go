@@ -24,7 +24,7 @@ const (
 
 var (
 	testPath     = fmt.Sprintf("app/installations/%v/access_tokens", testInsID1)
-	testTokenExp = time.Now().Add(time.Minute * 10).Format("2019-11-19T11:01:54Z")
+	testTokenExp = time.Now().Add(time.Minute * 10).Format(time.RFC3339)
 	testPerms    = map[string]string{
 		"deployments":   "read",
 		"pull_requests": "write",

@@ -22,6 +22,7 @@ func withFieldValidator(f framework.OperationFunc) framework.OperationFunc {
 		if err := validateFields(req, d); err != nil {
 			return nil, logical.CodedError(400, err.Error())
 		}
+
 		return f(ctx, req, d)
 	}
 }
