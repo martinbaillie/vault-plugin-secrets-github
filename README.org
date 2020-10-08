@@ -317,6 +317,7 @@ Instruct the plugin to create an installation access token against the configure
 
 | Method | Path   | Produces         |
 |--------+--------+------------------|
+| GET    | /token | application/json |
 | POST   | /token | application/json |
 | PUT    | /token | application/json |
 
@@ -336,6 +337,9 @@ vault write -force /github/token
 
 # Create a token with all permissions but only on repositories 123 and 456.
 vault write /github/token repository_ids=123 repository_ids=456
+
+# Create a token with write access to pull requests using read / GET.
+vault read /github/token permissions=pull_requests=write
 
 # Create a token with read access to metadata and write access to pull requests
 # on repositories 123 and 456 only.
