@@ -53,6 +53,11 @@ func (b *backend) pathToken() *framework.Path {
 			},
 		},
 		Operations: map[logical.Operation]framework.OperationHandler{
+			// As per the issue request in https://git.io/JUhRk, allow Vault
+			// Reads (i.e. HTTP GET) to also write the GitHub tokens.
+			logical.ReadOperation: &framework.PathOperation{
+				Callback: withFieldValidator(b.pathTokenWrite),
+			},
 			logical.CreateOperation: &framework.PathOperation{
 				Callback: withFieldValidator(b.pathTokenWrite),
 			},
@@ -65,7 +70,7 @@ func (b *backend) pathToken() *framework.Path {
 	}
 }
 
-// pathTokenWrite corresponds to both CREATE and UPDATE on /github/token.
+// pathTokenWrite corresponds to READ, CREATE and UPDATE on /github/token.
 func (b *backend) pathTokenWrite(
 	ctx context.Context,
 	req *logical.Request,

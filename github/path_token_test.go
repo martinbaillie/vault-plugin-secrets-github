@@ -13,7 +13,7 @@ import (
 	is "gotest.tools/assert/cmp"
 )
 
-func testBackendPathTokenWriteCreateUpdate(t *testing.T, op logical.Operation) {
+func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 	t.Helper()
 
 	t.Run("FailedValidation", func(t *testing.T) {
@@ -42,7 +42,7 @@ func testBackendPathTokenWriteCreateUpdate(t *testing.T, op logical.Operation) {
 
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
-			Operation: op,
+			Operation: logical.CreateOperation,
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:   testAppID1,
@@ -116,7 +116,7 @@ func testBackendPathTokenWriteCreateUpdate(t *testing.T, op logical.Operation) {
 
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
-			Operation: op,
+			Operation: logical.CreateOperation,
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:   testAppID1,
@@ -137,12 +137,17 @@ func testBackendPathTokenWriteCreateUpdate(t *testing.T, op logical.Operation) {
 	})
 }
 
+func TestBackend_PathTokenWriteRead(t *testing.T) {
+	t.Parallel()
+	testBackendPathTokenWrite(t, logical.ReadOperation)
+}
+
 func TestBackend_PathTokenWriteCreate(t *testing.T) {
 	t.Parallel()
-	testBackendPathTokenWriteCreateUpdate(t, logical.CreateOperation)
+	testBackendPathTokenWrite(t, logical.CreateOperation)
 }
 
 func TestBackend_PathTokenWriteUpdate(t *testing.T) {
 	t.Parallel()
-	testBackendPathTokenWriteCreateUpdate(t, logical.UpdateOperation)
+	testBackendPathTokenWrite(t, logical.UpdateOperation)
 }
