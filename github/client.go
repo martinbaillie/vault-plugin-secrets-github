@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/hashicorp/vault/sdk/logical"
@@ -124,5 +125,21 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 		return nil, fmt.Errorf("%s: %w", fmtErrUnableToDecodeAccessTokenRes, err)
 	}
 
-	return &logical.Response{Data: resData}, nil
+	tokenRes := &logical.Response{Data: resData}
+
+	// As per the issue request in https://git.io/JUhRk, return a Vault "lease"
+	// aligned to the GitHub token's `expires_at` field.
+	if expiresAt, ok := resData["expires_at"]; ok {
+		if expiresAtStr, ok := expiresAt.(string); ok {
+			if expiresAtTime, err := time.Parse(time.RFC3339, expiresAtStr); err == nil {
+				tokenRes.Secret = &logical.Secret{
+					LeaseOptions: logical.LeaseOptions{
+						TTL: time.Until(expiresAtTime),
+					},
+				}
+			}
+		}
+	}
+
+	return tokenRes, nil
 }
