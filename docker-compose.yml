@@ -9,8 +9,7 @@ volumes:
 
 services:
   golang: &golang
-    # golang 1.13.4 (debian)
-    image: golang@sha256:f9de064473fb30c66bc0d2ddf2cf9a4a9bd38cbd2c5e59ce3bdf8af7b8747a57
+    image: golang
     network_mode: bridge
     environment:
       - PROJECT
