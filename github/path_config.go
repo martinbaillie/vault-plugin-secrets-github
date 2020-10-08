@@ -63,11 +63,19 @@ func (b *backend) pathConfig() *framework.Path {
 				Description: descBaseURL,
 			},
 		},
-		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.CreateOperation: withFieldValidator(b.pathConfigWrite),
-			logical.ReadOperation:   withFieldValidator(b.pathConfigRead),
-			logical.UpdateOperation: withFieldValidator(b.pathConfigWrite),
-			logical.DeleteOperation: withFieldValidator(b.pathConfigDelete),
+		Operations: map[logical.Operation]framework.OperationHandler{
+			logical.CreateOperation: &framework.PathOperation{
+				Callback: withFieldValidator(b.pathConfigWrite),
+			},
+			logical.ReadOperation: &framework.PathOperation{
+				Callback: withFieldValidator(b.pathConfigRead),
+			},
+			logical.UpdateOperation: &framework.PathOperation{
+				Callback: withFieldValidator(b.pathConfigWrite),
+			},
+			logical.DeleteOperation: &framework.PathOperation{
+				Callback: withFieldValidator(b.pathConfigDelete),
+			},
 		},
 		HelpSynopsis:    pathConfigHelpSyn,
 		HelpDescription: pathConfigHelpDesc,

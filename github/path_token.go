@@ -52,9 +52,13 @@ func (b *backend) pathToken() *framework.Path {
 				Description: descPerms,
 			},
 		},
-		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.CreateOperation: withFieldValidator(b.pathTokenWrite),
-			logical.UpdateOperation: withFieldValidator(b.pathTokenWrite),
+		Operations: map[logical.Operation]framework.OperationHandler{
+			logical.CreateOperation: &framework.PathOperation{
+				Callback: withFieldValidator(b.pathTokenWrite),
+			},
+			logical.UpdateOperation: &framework.PathOperation{
+				Callback: withFieldValidator(b.pathTokenWrite),
+			},
 		},
 		HelpSynopsis:    pathTokenHelpSyn,
 		HelpDescription: pathTokenHelpDesc,
