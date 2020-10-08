@@ -273,6 +273,40 @@ plugin.
     vault write -force /github/token
    #+END_SRC
 
+6. (OPTIONAL) Use Vault policy to constrain user capabilities on the GitHub
+   endpoints. Example:
+
+   #+BEGIN_SRC shell
+# Create a restrictive policy that only permits GitHub tokens that can write
+# pull requests to a single repository.
+vault policy write github-only-prs -<<EOF
+path "github/token" {
+  capabilities = ["update"]
+  required_parameters = ["permissions","repository_ids"]
+  allowed_parameters = {
+    "repository_ids" = ["69857131"]
+    "permissions"= ["pull_requests=write"]
+  }
+}
+EOF
+
+# Create and login as an example user with the policy attached.
+vault auth enable userpass
+vault write auth/userpass/users/martin password=baillie policies="github-only-prs"
+vault login -method=userpass username=martin password=baillie
+
+# Test the efficacy of the policy.
+# Successfully creates token:
+vault write /github/token repository_ids=69857131 permissions=pull_requests=write
+# Permission denied:
+vault write -f /github/token
+vault write /github/token permissions=pull_requests=write
+vault write /github/token repository_ids=69857131 permissions=pull_requests=read
+vault write /github/token repository_ids=69857131 permissions=metadata=read
+vault write /github/token repository_ids=123 permissions=pull_requests=write
+vault write /github/token repository_ids=69857131
+   #+END_SRC
+
 * API
 Each plugin path is documented using Vault's own help framework. To find out
 more information about any path, use =vault path-help=. For brevity, the API is
