@@ -28,12 +28,10 @@ require (
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
-	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/client_golang v1.8.0
 	github.com/prometheus/common v0.14.0
-	github.com/prometheus/procfs v0.2.0 // indirect
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0 // indirect
 	golang.org/x/net v0.0.0-20201006153459-a7d1128ccaa0 // indirect
-	golang.org/x/sys v0.0.0-20201007165808-a893ed343c85 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	google.golang.org/genproto v0.0.0-20201007142714-5c0e72c5e71e // indirect
 	google.golang.org/grpc v1.32.0 // indirect
