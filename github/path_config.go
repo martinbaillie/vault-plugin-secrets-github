@@ -97,7 +97,6 @@ func (b *backend) pathConfigRead(
 		Data: map[string]interface{}{
 			keyAppID:   c.AppID,
 			keyInsID:   c.InsID,
-			keyPrvKey:  c.PrvKey,
 			keyBaseURL: c.BaseURL,
 		},
 	}, nil
