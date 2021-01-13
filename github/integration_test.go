@@ -156,7 +156,6 @@ func TestIntegration(t *testing.T) {
 		resData := resBody["data"].(map[string]interface{})
 		assert.Equal(t, resData[keyAppID], 0.0)
 		assert.Equal(t, resData[keyInsID], 0.0)
-		assert.Equal(t, resData[keyPrvKey], "")
 		assert.Equal(t, resData[keyBaseURL], githubPublicAPI)
 	})
 }
@@ -199,7 +198,6 @@ func testReadConfig(t *testing.T) {
 	resData := resBody["data"].(map[string]interface{})
 	assert.Equal(t, resData[keyAppID], float64(appID))
 	assert.Equal(t, resData[keyInsID], float64(insID))
-	assert.Equal(t, resData[keyPrvKey], prvKey)
 	assert.Equal(t, resData[keyBaseURL], baseURL)
 }
 

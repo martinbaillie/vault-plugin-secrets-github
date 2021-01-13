@@ -31,7 +31,6 @@ func TestBackend_PathConfigRead(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Assert(t, is.Contains(resp.Data, keyAppID))
 		assert.Assert(t, is.Contains(resp.Data, keyInsID))
-		assert.Assert(t, is.Contains(resp.Data, keyPrvKey))
 		assert.Assert(t, is.Contains(resp.Data, keyBaseURL))
 	})
 
@@ -60,8 +59,6 @@ func TestBackend_PathConfigRead(t *testing.T) {
 		assert.Equal(t, testAppID1, resp.Data[keyAppID])
 		assert.Assert(t, is.Contains(resp.Data, keyInsID))
 		assert.Equal(t, testInsID1, resp.Data[keyInsID])
-		assert.Assert(t, is.Contains(resp.Data, keyPrvKey))
-		assert.Equal(t, testPrvKeyValid, resp.Data[keyPrvKey])
 		assert.Assert(t, is.Contains(resp.Data, keyBaseURL))
 		assert.DeepEqual(t, testBaseURLValid, resp.Data[keyBaseURL])
 	})
@@ -112,7 +109,6 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 		assert.Assert(t, config != nil)
 		assert.Equal(t, testAppID1, config.AppID)
 		assert.Equal(t, testInsID1, config.InsID)
-		assert.Equal(t, testPrvKeyValid, config.PrvKey)
 		assert.DeepEqual(t, testBaseURLValid, config.BaseURL)
 	})
 
@@ -148,7 +144,6 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 		assert.Assert(t, config != nil)
 		assert.Equal(t, testAppID2, config.AppID)
 		assert.Equal(t, testInsID2, config.InsID)
-		assert.Equal(t, testPrvKeyValid, config.PrvKey)
 		assert.DeepEqual(t, testBaseURLValid, config.BaseURL)
 	})
 
