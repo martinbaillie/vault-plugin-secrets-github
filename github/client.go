@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -111,13 +112,19 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 	// Perform the request, re-using the shared transport.
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", fmtErrUnableToCreateAccessToken, err)
+		return nil, fmt.Errorf("%s: RoundTrip error: %w", fmtErrUnableToCreateAccessToken, err)
 	}
 
 	defer res.Body.Close()
 
 	if statusCode(res.StatusCode).Unsuccessful() {
-		return nil, fmt.Errorf("%s: %s", fmtErrUnableToCreateAccessToken, res.Status)
+		bodyBytes, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %s: error reading error response body: %s", fmtErrUnableToCreateAccessToken, res.Status, err)
+		}
+		bodyString := string(bodyBytes)
+
+		return nil, fmt.Errorf("%s: %s: error body: %s", fmtErrUnableToCreateAccessToken, res.Status, bodyString)
 	}
 
 	var resData map[string]interface{}
