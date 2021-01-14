@@ -41,12 +41,20 @@ var requestDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 	Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 }, []string{"success", keyPerms, keyRepoIDs})
 
+// revokeDuration records useful metric data about backend token revocations.
+var revokeDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+	Name:       fmt.Sprintf("%s_revocation_request_duration_seconds", prefixMetrics),
+	Help:       "Total duration of Vault GitHub token revocation requests in seconds.",
+	Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+}, []string{"success"})
+
 func init() {
 	// Register standard and custom metric collectors globally.
 	prometheus.MustRegister(
 		version.NewCollector(prefixMetrics),
 		prometheus.NewBuildInfoCollector(),
 		requestDuration,
+		revokeDuration,
 	)
 }
 
@@ -80,6 +88,7 @@ func (b *backend) pathMetricsRead(
 	metricsFamilies, err := prometheus.DefaultGatherer.Gather()
 	if err != nil || len(metricsFamilies) == 0 {
 		res.Data[logical.HTTPRawBody] = fmt.Sprintf("%s: %s", fmtErrNoMetricsToDecode, err)
+
 		return res, fmt.Errorf("%s: %w", fmtErrNoMetricsToDecode, err)
 	}
 
@@ -90,6 +99,7 @@ func (b *backend) pathMetricsRead(
 	for _, mf := range metricsFamilies {
 		if err := expfmt.NewEncoder(buf, expfmt.FmtText).Encode(mf); err != nil {
 			res.Data[logical.HTTPRawBody] = fmt.Sprintf("%s: %s", fmtErrFailedMetricsEncoding, err)
+
 			return res, fmt.Errorf("%s: %w", fmtErrFailedMetricsEncoding, err)
 		}
 	}

@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/hashicorp/vault/sdk/framework"
@@ -60,7 +59,7 @@ func TestPathValidateFields(t *testing.T) {
 			data: map[string]interface{}{
 				"unknownField": 1989,
 			},
-			err: errors.New(fmtErrUnknownField),
+			err: errUnknownField,
 		},
 		{
 			name: "UnknownFields",
@@ -70,7 +69,7 @@ func TestPathValidateFields(t *testing.T) {
 				"unknownField1": "",
 				"unknownField2": 0.09,
 			},
-			err: errors.New(fmtErrUnknownFields),
+			err: errUnknownFields,
 		},
 	}
 

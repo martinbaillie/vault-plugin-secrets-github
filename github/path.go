@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -10,9 +11,9 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-const (
-	fmtErrUnknownField  = "unknown field"
-	fmtErrUnknownFields = "unknown fields"
+var (
+	errUnknownField  = errors.New("unknown field")
+	errUnknownFields = errors.New("unknown fields")
 )
 
 // withFieldValidator wraps an OperationFunc and validates the user-supplied
@@ -41,9 +42,10 @@ func validateFields(req *logical.Request, data *framework.FieldData) error {
 	case 0:
 		return nil
 	case 1:
-		return fmt.Errorf("%s: %s", fmtErrUnknownField, unknownFields[0])
+		return fmt.Errorf("%w: %s", errUnknownField, unknownFields[0])
 	default:
 		sort.Strings(unknownFields)
-		return fmt.Errorf("%s: %s", fmtErrUnknownFields, strings.Join(unknownFields, ", "))
+
+		return fmt.Errorf("%w: %s", errUnknownFields, strings.Join(unknownFields, ", "))
 	}
 }

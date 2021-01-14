@@ -177,7 +177,7 @@ func TestClient_Token(t *testing.T) {
 			// All Token() requests should be part of an existing RPC against
 			// the configured Vault path.
 			name: "NilContext",
-			err:  errors.New(fmtErrUnableToBuildAccessTokenReq),
+			err:  errUnableToBuildAccessTokenReq,
 		},
 		{
 			name: "EOFResponse",
@@ -186,7 +186,7 @@ func TestClient_Token(t *testing.T) {
 				t.Helper()
 				// Simulate an empty response.
 			}),
-			err: errors.New(fmtErrUnableToDecodeAccessTokenRes),
+			err: errUnableToDecodeAccessTokenRes,
 		},
 		{
 			name: "EmptyResponse",
@@ -195,7 +195,7 @@ func TestClient_Token(t *testing.T) {
 				t.Helper()
 				w.WriteHeader(http.StatusOK)
 			}),
-			err: errors.New(fmtErrUnableToDecodeAccessTokenRes),
+			err: errUnableToDecodeAccessTokenRes,
 		},
 		{
 			name: "4xxResponse",
@@ -208,7 +208,7 @@ func TestClient_Token(t *testing.T) {
 				// does not have scope over.
 				w.WriteHeader(http.StatusUnprocessableEntity)
 			}),
-			err: errors.New(fmtErrUnableToCreateAccessToken),
+			err: errUnableToCreateAccessToken,
 		},
 	}
 
@@ -253,6 +253,81 @@ func TestClient_Token(t *testing.T) {
 				}
 				assert.Equal(t, res.Data["token"], tc.res.Data["token"])
 			}
+		})
+	}
+}
+
+func TestClient_RevokeToken(t *testing.T) {
+	t.Parallel()
+
+	var cases = []struct {
+		name    string
+		token   string
+		handler http.HandlerFunc
+		res     *logical.Response
+		ctx     context.Context
+		err     error
+	}{
+		{
+			name:  "HappyPath",
+			token: testToken,
+			ctx:   context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+
+				assert.Equal(t, r.Method, http.MethodDelete)
+				assert.Equal(t, r.URL.Path, "/installation/token")
+				assert.Equal(t, r.Header.Get("Authorization"), fmt.Sprintf("Bearer %s", testToken))
+
+				w.WriteHeader(http.StatusNoContent)
+			}),
+			res: &logical.Response{},
+		},
+		{
+			// All RevokeToken() requests should be part of an existing RPC
+			// against the configured Vault path.
+			name: "NilContext",
+			err:  errUnableToBuildAccessTokenRevReq,
+		},
+		{
+			name: "4xxResponse",
+			ctx:  context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+				// 401 is the most likely GitHub API 4xx response when trying
+				// to revoke and it occurs when the token is already expired
+				// or revoked.
+				w.WriteHeader(http.StatusUnauthorized)
+			}),
+			err: errUnableToRevokeAccessToken,
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ts := httptest.NewServer(tc.handler)
+			defer ts.Close()
+
+			client, err := NewClient(&Config{
+				AppID:   testAppID1,
+				InsID:   testInsID1,
+				PrvKey:  testPrvKeyValid,
+				BaseURL: ts.URL,
+			})
+			assert.NilError(t, err)
+
+			res, err := client.RevokeToken(tc.ctx, tc.token)
+
+			if tc.err != nil {
+				assert.ErrorContains(t, err, tc.err.Error())
+			} else {
+				assert.NilError(t, err)
+			}
+
+			assert.DeepEqual(t, res, tc.res)
 		})
 	}
 }
