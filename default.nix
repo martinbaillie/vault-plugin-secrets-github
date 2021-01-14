@@ -15,5 +15,5 @@ buildGoModule rec {
     )
   '';
   dontStrip = true;
-  vendorSha256 = "1spswhcl5n4kv6xm2l8bxcs9iyhh48h15hwp5y2ydynxqvkb3dkf";
+  vendorSha256 = "16sdaqj02173xcksh8ysmj2s0lz1jz53ddaqn0nxq7qmpcyajfnc";
 }
