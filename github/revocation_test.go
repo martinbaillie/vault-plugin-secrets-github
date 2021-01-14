@@ -2,25 +2,19 @@ package github
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/hashicorp/vault/sdk/logical"
 	"gotest.tools/assert"
-
 	is "gotest.tools/assert/cmp"
 )
 
-func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
-	t.Helper()
-
-	t.Run("FailedValidation", func(t *testing.T) {
-		t.Parallel()
-		testFieldValidation(t, op, pathPatternConfig)
-	})
+func TestBackend_Revoke(t *testing.T) {
+	t.Parallel()
 
 	t.Run("HappyPath", func(t *testing.T) {
 		t.Parallel()
@@ -31,12 +25,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
 
-				body, _ := json.Marshal(map[string]interface{}{
-					"token":      testToken,
-					"expires_at": testTokenExp,
-				})
-				w.WriteHeader(http.StatusCreated)
-				w.Write(body)
+				w.WriteHeader(http.StatusNoContent)
 			}),
 		)
 		defer ts.Close()
@@ -56,18 +45,16 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 
 		r, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
-			Operation: op,
-			Path:      pathPatternToken,
+			Operation: logical.RevokeOperation,
+			Secret: &logical.Secret{
+				InternalData: map[string]interface{}{"secret_type": backendSecretType},
+			},
 			Data: map[string]interface{}{
-				keyRepoIDs: []int{testRepoID1, testRepoID2},
-				keyPerms:   testPerms,
+				"token": testToken,
 			},
 		})
 		assert.NilError(t, err)
-
-		assert.Assert(t, r != nil)
-		assert.Equal(t, r.Data["expires_at"].(string), testTokenExp)
-		assert.Equal(t, r.Data["token"].(string), testToken)
+		assert.DeepEqual(t, r, &logical.Response{})
 	})
 
 	t.Run("FailedClient", func(t *testing.T) {
@@ -77,8 +64,10 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 
 		r, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
-			Operation: op,
-			Path:      pathPatternToken,
+			Operation: logical.RevokeOperation,
+			Secret: &logical.Secret{
+				InternalData: map[string]interface{}{"secret_type": backendSecretType},
+			},
 		})
 		assert.Assert(t, is.Nil(r))
 		assert.ErrorContains(t, err, fmtErrConfRetrieval)
@@ -91,18 +80,19 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 
 		r, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
-			Operation: op,
-			Path:      pathPatternToken,
+			Operation: logical.RevokeOperation,
+			Secret: &logical.Secret{
+				InternalData: map[string]interface{}{"secret_type": backendSecretType},
+			},
 			Data: map[string]interface{}{
-				keyRepoIDs: "not an int slice",
-				keyPerms:   "not a map of string to string",
+				"token": struct{}{},
 			},
 		})
 		assert.Assert(t, is.Nil(r))
 		assert.Assert(t, err != nil)
 	})
 
-	t.Run("FailedCreate", func(t *testing.T) {
+	t.Run("FailedRevoke", func(t *testing.T) {
 		t.Parallel()
 
 		b, storage := testBackend(t)
@@ -110,7 +100,8 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 		ts := httptest.NewServer(http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
-				w.WriteHeader(http.StatusUnprocessableEntity)
+
+				w.WriteHeader(http.StatusUnauthorized)
 			}),
 		)
 		defer ts.Close()
@@ -130,25 +121,16 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 
 		r, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
-			Operation: op,
-			Path:      pathPatternToken,
+			Operation: logical.RevokeOperation,
+			Secret: &logical.Secret{
+				InternalData: map[string]interface{}{"secret_type": backendSecretType},
+			},
+			Data: map[string]interface{}{
+				"token": testToken,
+			},
 		})
 		assert.Assert(t, is.Nil(r))
-		assert.Assert(t, errors.Is(err, errUnableToCreateAccessToken))
+		fmt.Println(err)
+		assert.Assert(t, errors.Is(err, errUnableToRevokeAccessToken))
 	})
-}
-
-func TestBackend_PathTokenWriteRead(t *testing.T) {
-	t.Parallel()
-	testBackendPathTokenWrite(t, logical.ReadOperation)
-}
-
-func TestBackend_PathTokenWriteCreate(t *testing.T) {
-	t.Parallel()
-	testBackendPathTokenWrite(t, logical.CreateOperation)
-}
-
-func TestBackend_PathTokenWriteUpdate(t *testing.T) {
-	t.Parallel()
-	testBackendPathTokenWrite(t, logical.UpdateOperation)
 }

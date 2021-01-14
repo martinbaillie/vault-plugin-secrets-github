@@ -3,3 +3,4 @@ vault-plugin-secrets-github
 vault-plugin-secrets-github-*
 SHA256SUM*
 todo.org
+*.pem

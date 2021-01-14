@@ -16,6 +16,8 @@ const backendHelp = `
 GitHub Apps Token Backend
 `
 
+const backendSecretType = "github_token"
+
 const (
 	fmtErrConfRetrieval = "failed to get configuration from storage"
 	fmtErrConfUnmarshal = "failed to unmarshal configuration from JSON"
@@ -35,7 +37,7 @@ type backend struct {
 
 // Factory creates a configured logical.Backend for the GitHub plugin.
 func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
-	var b = new(backend)
+	b := new(backend)
 
 	b.Backend = &framework.Backend{
 		Help:        strings.TrimSpace(backendHelp),
@@ -49,6 +51,19 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 			b.pathConfig(),
 			b.pathToken(),
 		},
+		Secrets: []*framework.Secret{{
+			Type: backendSecretType,
+			Fields: map[string]*framework.FieldSchema{
+				"token": {
+					Type:        framework.TypeString,
+					Description: "GitHub token.",
+				},
+			},
+			// Allow explicit GitHub token revocation via the Vault lease API.
+			Revoke: b.Revoke,
+			// NOTE: Unfortunately GitHub has no mechanism for renewing tokens.
+			// Renew:
+		}},
 		Invalidate: b.Invalidate,
 	}
 
@@ -80,7 +95,7 @@ func (b *backend) Invalidate(_ context.Context, key string) {
 // Config parses and returns the configuration data from the storage backend. An
 // empty config is returned in the case where there is no existing in storage.
 func (b *backend) Config(ctx context.Context, s logical.Storage) (*Config, error) {
-	var c = NewConfig()
+	c := NewConfig()
 
 	entry, err := s.Get(ctx, pathPatternConfig)
 	if err != nil {
@@ -121,12 +136,14 @@ func (b *backend) Client(s logical.Storage) (*Client, func(), error) {
 	config, err := b.Config(context.Background(), s)
 	if err != nil {
 		b.clientLock.Unlock()
+
 		return nil, nil, err
 	}
 
 	client, err := NewClient(config)
 	if err != nil {
 		b.clientLock.Unlock()
+
 		return nil, nil, fmt.Errorf("%s: %w", fmtErrClientCreate, err)
 	}
 
@@ -139,5 +156,6 @@ func (b *backend) Client(s logical.Storage) (*Client, func(), error) {
 		"ins_id", strconv.Itoa(config.InsID),
 	)
 	b.clientLock.RLock()
+
 	return b.client, func() { b.clientLock.RUnlock() }, nil
 }

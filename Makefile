@@ -34,45 +34,23 @@ GOOSES		=darwin freebsd linux netbsd openbsd solaris windows
 GOARCHES 	=amd64 arm
 NOARCHES 	=darwin-arm solaris-arm windows-arm
 
-UNZIP		=$(shell command -v unzip || (apt-get -qq update &>/dev/null && \
-				apt-get -yqq install unzip &>/dev/null && \
-				command -v unzip))
+GOCILINT_VER?=v1.21.0
+GOCILINT_URL=raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
+
+GOTESTSUM_VER?=v0.4.0
+GOTESTSUM_URL=gotest.tools/gotestsum
+
+GOTHUB_VER?=v0.7.0
+GOTHUB_URL=github.com/itchio/gothub
 
 GPG_KEY 	?=$(shell git config user.signingkey)
-GPG			=$(shell command -v gpg || (apt-get -qq update &>/dev/null && \
-				apt-get -yqq install gpg &>/dev/null && \
-				command -v gpg))
 
-GOTHUB_VER		?=v0.7.0
-GOTHUB_URL 		=github.com/itchio/gothub
-GOTHUB			=$(shell command -v gothub || \
-					(go get $(GOTHUB_URL)@$(GOTHUB_VER) && \
-					command -v gothub))
-
-GOCILINT_VER	?=v1.21.0
-GOCILINT_URL 	=raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
-GOCILINT		=$(shell command -v golangci-lint || \
-					(curl -sfL "https://$(GOCILINT_URL)" | \
-					sh -s -- -b $(GOPATH)/bin $(GOCILINT_VER) && \
-					command -v golangci-lint))
-
-GOTESTSUM_VER	?=v0.4.0
-GOTESTSUM_URL 	=gotest.tools/gotestsum
-GOTESTSUM		=$(shell command -v gotestsum || \
-					(go get $(GOTESTSUM_URL)@$(GOTESTSUM_VER) && \
-					command -v gotestsum))
-
-VAULT_TOKEN 	?=root
-VAULT_ADDR		?=http://127.0.0.1:8200
-VAULT_API_ADDR	?=$(VAULT_ADDR)
-VAULT_VER		?=1.3.0
-VAULT_ZIP 		=vault_$(VAULT_VER)_$(GOOS)_$(GOARCH).zip
-VAULT_URL 		=releases.hashicorp.com/vault/$(VAULT_VER)/$(VAULT_ZIP)
-VAULT			=$(shell command -v vault || \
-					(curl -sfLO "https://$(VAULT_URL)" && \
-					$(UNZIP) -od $(GOPATH)/bin $(VAULT_ZIP) 1>/dev/null && \
-					rm vault_$(VAULT_VER)_$(GOOS)_$(GOARCH).zip && \
-					command -v vault))
+VAULT_TOKEN?=root
+VAULT_ADDR?=http://127.0.0.1:8200
+VAULT_API_ADDR?=$(VAULT_ADDR)
+VAULT_VER?=1.3.0
+VAULT_ZIP=vault_$(VAULT_VER)_$(GOOS)_$(GOARCH).zip
+VAULT_URL=releases.hashicorp.com/vault/$(VAULT_VER)/$(VAULT_ZIP)
 
 ifeq ($(GITHUB_ACTIONS),true)
 CI 	?= true
@@ -99,6 +77,10 @@ clean: ## Clean transient files
 	rm -rf test
 .PHONY: clean
 
+lint: GOCILINT=$(shell command -v golangci-lint || \
+					(curl -sfL "https://$(GOCILINT_URL)" | \
+					sh -s -- -b $(GOPATH)/bin $(GOCILINT_VER) && \
+					command -v golangci-lint))
 lint: ## Linting (heavyweight when `CI=true`)
 	echo >&2 "==> Linting"
 ifdef CI
@@ -111,6 +93,9 @@ else
 endif
 .PHONY: lint
 
+test: GOTESTSUM=$(shell command -v gotestsum || \
+					(go get $(GOTESTSUM_URL)@$(GOTESTSUM_VER) && \
+					command -v gotestsum))
 test: FORMAT=$(if $(DEBUG:-=),standard-verbose,short-verbose)
 test: ## Test (also see the 'integration' targets)
 	if [ ! "$(SKIP_LINT)" = "true" ]; then $(MAKE) lint; lint_exit=$$?; fi; \
@@ -156,6 +141,15 @@ $(foreach goarch,$(GOARCHES), \
 build: ## Build for every supported OS and arch combination
 .PHONY: build
 
+integration: UNZIP=$(shell command -v unzip || \
+				(apt-get -qq update &>/dev/null && \
+				apt-get -yqq install unzip &>/dev/null && \
+				command -v unzip))
+integration: VAULT=$(shell command -v vault || \
+					(curl -sfLO "https://$(VAULT_URL)" && \
+					$(UNZIP) -od $(GOPATH)/bin $(VAULT_ZIP) 1>/dev/null && \
+					rm vault_$(VAULT_VER)_$(GOOS)_$(GOARCH).zip && \
+					command -v vault))
 integration: LOG_LEVEL=$(if $(DEBUG:-=),trace,error)
 integration: $(PROJECT)-$(GOOS)-$(GOARCH) ## Run a local development Vault
 	echo >&2 "==> Integration"
@@ -214,11 +208,19 @@ SHA256SUMS:
 	echo >&2 "==> Summing"
 	shasum --algorithm 256 $(PROJECT)-* > $@
 
+
+SHA256SUMS.sig: GPG=$(shell command -v gpg || \
+				(apt-get -qq update &>/dev/null && \
+				apt-get -yqq install gpg &>/dev/null && \
+				command -v gpg))
 SHA256SUMS.sig: SHA256SUMS
 	echo >&2 "==> Signing"
 	$(GPG) --default-key "$(GPG_KEY)" --detach-sig SHA256SUMS
 
 # NOTE: Needs BSD xargs.
+release: GOTHUB=$(shell command -v gothub || \
+					(go get $(GOTHUB_URL)@$(GOTHUB_VER) && \
+					command -v gothub))
 release: GITHUB_REPO=$(PROJECT)
 release: GITHUB_USER=$(word 2,$(subst /, ,$(PACKAGE)))
 release: GITHUB_ASSETS=$(wildcard $(PROJECT)-* SHA256SUMS*)
@@ -245,3 +247,7 @@ else
 	docker-compose run make $*
 endif
 .PHONY: docker-%
+
+env-%: ## Echo any make variable (where '%' = variable name)
+	echo "$($*)"
+.PHONY: env-%

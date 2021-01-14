@@ -17,13 +17,15 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-const (
-	fmtErrUnableToBuildAccessTokenReq  = "unable to build access token request"
-	fmtErrUnableToCreateAccessToken    = "unable to create access token"
-	fmtErrUnableToDecodeAccessTokenRes = "unable to decode access token response"
+var (
+	errUnableToBuildAccessTokenReq    = errors.New("unable to build access token request")
+	errUnableToBuildAccessTokenRevReq = errors.New("unable to build access token revocation request")
+	errUnableToCreateAccessToken      = errors.New("unable to create access token")
+	errUnableToRevokeAccessToken      = errors.New("unable to revoke access token")
+	errUnableToDecodeAccessTokenRes   = errors.New("unable to decode access token response")
+	errBody                           = errors.New("error body")
+	errClientConfigNil                = errors.New("client configuration was nil")
 )
-
-var errClientConfigNil = errors.New("client configuration was nil")
 
 // Client encapsulates an HTTP client for talking to the configured GitHub App.
 type Client struct {
@@ -32,37 +34,52 @@ type Client struct {
 	// URL is the access token URL for this client.
 	url *url.URL
 
-	// Transport is the HTTP transport used for this client.
+	// Transport is the HTTP transport used for token requests.
 	transport http.RoundTripper
+
+	// RevocationURL is the access token revocation URL for this client.
+	revocationURL *url.URL
+
+	// RevocationTransport is the HTTP transport used for revocation requests.
+	revocationTransport http.RoundTripper
 }
 
 // NewClient returns a newly constructed client from the provided config. It
 // will error if it fails to validate necessary configuration formats like URIs
 // and PEM encoded private keys.
-func NewClient(config *Config) (*Client, error) {
+func NewClient(config *Config) (c *Client, err error) {
 	if config == nil {
 		return nil, errClientConfigNil
 	}
 
-	transport, err := ghinstallation.NewAppsTransport(
+	c = &Client{
+		revocationTransport: http.DefaultTransport,
+	}
+
+	if c.transport, err = ghinstallation.NewAppsTransport(
 		http.DefaultTransport,
 		int64(config.AppID),
 		[]byte(config.PrvKey),
-	)
-	if err != nil {
+	); err != nil {
 		return nil, err
 	}
 
-	url, err := url.ParseRequestURI(fmt.Sprintf(
+	if c.url, err = url.ParseRequestURI(fmt.Sprintf(
 		"%s/app/installations/%v/access_tokens",
 		strings.TrimSuffix(fmt.Sprint(config.BaseURL), "/"),
 		config.InsID,
-	))
-	if err != nil {
+	)); err != nil {
 		return nil, err
 	}
 
-	return &Client{config, url, transport}, nil
+	if c.revocationURL, err = url.ParseRequestURI(fmt.Sprintf(
+		"%s/installation/token",
+		strings.TrimSuffix(fmt.Sprint(config.BaseURL), "/"),
+	)); err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
 // tokenOptions allows for constraining the access scope of a token to specific
@@ -100,7 +117,7 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 	// Build the token request.
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url.String(), body)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", fmtErrUnableToBuildAccessTokenReq, err)
+		return nil, fmt.Errorf("%w: %v", errUnableToBuildAccessTokenReq, err)
 	}
 
 	req.Header.Set("User-Agent", projectName)
@@ -112,7 +129,7 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 	// Perform the request, re-using the shared transport.
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {
-		return nil, fmt.Errorf("%s: RoundTrip error: %w", fmtErrUnableToCreateAccessToken, err)
+		return nil, fmt.Errorf("%w: RoundTrip error: %v", errUnableToCreateAccessToken, err)
 	}
 
 	defer res.Body.Close()
@@ -120,16 +137,19 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 	if statusCode(res.StatusCode).Unsuccessful() {
 		bodyBytes, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %s: error reading error response body: %s", fmtErrUnableToCreateAccessToken, res.Status, err)
+			return nil, fmt.Errorf("%w: %s: error reading error response body: %v",
+				errUnableToCreateAccessToken, res.Status, err)
 		}
-		bodyString := string(bodyBytes)
 
-		return nil, fmt.Errorf("%s: %s: error body: %s", fmtErrUnableToCreateAccessToken, res.Status, bodyString)
+		bodyErr := fmt.Errorf("%w: %v", errBody, string(bodyBytes))
+
+		return nil, fmt.Errorf("%w: %s: %v", errUnableToCreateAccessToken,
+			res.Status, bodyErr)
 	}
 
 	var resData map[string]interface{}
 	if err := json.NewDecoder(res.Body).Decode(&resData); err != nil {
-		return nil, fmt.Errorf("%s: %w", fmtErrUnableToDecodeAccessTokenRes, err)
+		return nil, fmt.Errorf("%w: %v", errUnableToDecodeAccessTokenRes, err)
 	}
 
 	tokenRes := &logical.Response{Data: resData}
@@ -140,6 +160,7 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 		if expiresAtStr, ok := expiresAt.(string); ok {
 			if expiresAtTime, err := time.Parse(time.RFC3339, expiresAtStr); err == nil {
 				tokenRes.Secret = &logical.Secret{
+					InternalData: map[string]interface{}{"secret_type": backendSecretType},
 					LeaseOptions: logical.LeaseOptions{
 						TTL: time.Until(expiresAtTime),
 					},
@@ -149,4 +170,41 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 	}
 
 	return tokenRes, nil
+}
+
+// RevokeToken takes a valid access token and performs a revocation against
+// GitHub's APIs. If there are any failures on the wire or parsing request
+// and response object, an error is returned.
+func (c *Client) RevokeToken(ctx context.Context, token string) (*logical.Response, error) {
+	// Build the revocation request.
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.revocationURL.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", errUnableToBuildAccessTokenRevReq, err)
+	}
+
+	req.Header.Set("User-Agent", projectName)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+
+	// Perform the request, re-using the shared transport.
+	res, err := c.revocationTransport.RoundTrip(req)
+	if err != nil {
+		return nil, fmt.Errorf("%w: RoundTrip error: %v", errUnableToRevokeAccessToken, err)
+	}
+
+	defer res.Body.Close()
+
+	if statusCode(res.StatusCode).Unsuccessful() {
+		bodyBytes, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s: error reading error response body: %v",
+				errUnableToRevokeAccessToken, res.Status, err)
+		}
+
+		bodyErr := fmt.Errorf("%w: %v", errBody, string(bodyBytes))
+
+		return nil, fmt.Errorf("%w: %s: %v", errUnableToRevokeAccessToken,
+			res.Status, bodyErr)
+	}
+
+	return &logical.Response{}, nil
 }

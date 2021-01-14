@@ -84,7 +84,7 @@ func (b *backend) pathTokenWrite(
 	defer done()
 
 	// Safely parse any options from interface types.
-	var opts = new(tokenOptions)
+	opts := new(tokenOptions)
 
 	if perms, ok := d.GetOk(keyPerms); ok {
 		opts.Permissions = perms.(map[string]string)

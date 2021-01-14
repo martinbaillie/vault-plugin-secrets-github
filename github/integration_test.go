@@ -55,6 +55,14 @@ func TestIntegration(t *testing.T) {
 				// Always ensure auth details are being passed to GitHub.
 				assert.Assert(t, r.Header.Get("Authorization") != "")
 
+				// Handle revocation requests.
+				if r.URL.Path == "/installation/token" {
+					w.WriteHeader(http.StatusNoContent)
+					return
+				}
+
+				// Otherwise handle creation requests.
+
 				// If there's body content then the request has been constrained
 				// by repository IDs and permissions.
 				var reqBody map[string]interface{}
@@ -98,6 +106,7 @@ func TestIntegration(t *testing.T) {
 	t.Run("WriteConfig", testWriteConfig)
 	t.Run("ReadConfig", testReadConfig)
 	t.Run("CreateToken", testCreateToken)
+	t.Run("RevokeTokens", testRevokeTokens)
 	t.Run("CreateTokenWithConstraints", testCreateTokenWithConstraints)
 	t.Run("WriteReadConfigCreateTokenWithRacyness", func(t *testing.T) {
 		if !githubAPIStubbed || testing.Short() {
@@ -226,6 +235,19 @@ func testCreateToken(t *testing.T) {
 		assert.Assert(t, resData["token"] != "")
 		assert.Assert(t, resData["expires_at"] != "")
 	}
+}
+
+func testRevokeTokens(t *testing.T) {
+	t.Helper()
+
+	res, err := vaultDo(
+		http.MethodPut,
+		fmt.Sprintf("/v1/sys/leases/revoke-prefix/github/%s", pathPatternToken),
+		nil,
+	)
+	assert.NilError(t, err)
+	defer res.Body.Close()
+	assert.Assert(t, statusCode(res.StatusCode).Successful())
 }
 
 func testCreateTokenWithConstraints(t *testing.T) {

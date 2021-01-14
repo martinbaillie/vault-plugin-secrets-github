@@ -122,7 +122,6 @@ To begin plugin installation, either download a [[./releases][release]] or build
 from source for your chosen OS and architecture.
 
 ** From release
-
 Always download the latest stable release from the [[./releases][releases]] section.
 
 *** Verify
@@ -143,7 +142,6 @@ shasum -a 256 -c SHA256SUMS
 #+END_SRC
 
 ** From source
-
 #+BEGIN_QUOTE
 NOTE: You will need a [[https://golang.org/dl/][Go 1.13+ toolchain]] to build this plugin from source.
 #+END_QUOTE
@@ -356,7 +354,26 @@ EOF
 NOTE: a 422 response usually indicates you have requested repositories IDs or permissions
 that your GitHub App install does not have access to.
 #+END_QUOTE
+*** Revocation
+It is possible to revoke tokens in your configured GitHub using Vault constructs. For example:
+#+begin_src shell
+# Revoke an individual token with just the lease ID.
+vault lease revoke <lease_id previously received from token endpoint>
+# List currently active lease IDs.
+vault list sys/leases/lookup/github/token
+# Revoke all tokens currently leased by Vault.
+vault lease revoke -prefix github/token
+#+end_src
 
+#+begin_quote
+NOTE: the previous commands presume your plugin is mounted at =/github=.
+#+end_quote
+
+Alternatively, you can go directly to your GitHub with the token in hand:
+#+begin_src shell
+curl -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+	-X DELETE https://api.mygithub.com/installation/token
+#+end_src
 ** Config
 CRUD operations against the configuration of the plugin.
 
@@ -370,7 +387,7 @@ CRUD operations against the configuration of the plugin.
 *** Parameters
 - =app_id= (int64) — the Application ID of the GitHub App.
 - =ins_id= (int64) — the Installation ID of the GitHub App installation.
-- =private_key= (string) — a private key configured in the GitHub App. This private key must be in PEM PKCS#1 RSAPrivateKey format.
+- =private_key= (string) — a private key configured in the GitHub App. This private key must be in PEM PKCS#1 RSAPrivateKey format. It is not returned with read requests for security reasons.
 - =base_url= (string) — the base URL for API requests (defaults to the public GitHub API).
 
 *** Examples
@@ -398,6 +415,7 @@ Prometheus/OpenMetrics formatted metrics exposition.
 *** Metrics
 In addition to standard Go metrics, the following custom metrics are exposed:
 - =vault_github_token_request_duration_seconds= — a summary of token request latency and status.
+- =vault_github_token_revocation_request_duration_seconds= — a summary of token revocation request latency and status.
 - =vault_github_token_build_info= — a constant with useful build information.
 
 *** Sample Dashboard
@@ -424,8 +442,8 @@ NOTE: It is also possible to run any target inside Docker by prefixing the
 target name, e.g. =make docker-test=.
 #+END_QUOTE
 
+There is also a =shell.nix= if Nix is more your bag.
 ** Tests
-
 This plugin is comprehensively tested by both unit and acceptance tests. Pull
 requests that do not maintain an [[https://codecov.io/gh/martinbaillie/vault-plugin-secrets-github][>90% coverage]] will *not* be accepted.
 
@@ -452,7 +470,6 @@ make integration test \
 #+END_SRC
 
 * Security
-
 Hashicorp and GitHub take their security seriously. If you believe you have
 found a security issue with either through using this plugin, do not open an
 issue here. Responsibly disclose by getting in touch with [[mailto:security@hashicorp.com][Hashicorp]] or [[https://hackerone.com/github][GitHub]]
