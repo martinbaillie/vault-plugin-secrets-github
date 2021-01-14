@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -76,7 +75,19 @@ func TestBackend_Revoke(t *testing.T) {
 	t.Run("FailedOptionsParsing", func(t *testing.T) {
 		t.Parallel()
 
-		b, storage := testBackend(t, failVerbRead)
+		b, storage := testBackend(t)
+
+		_, err := b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: logical.CreateOperation,
+			Path:      pathPatternConfig,
+			Data: map[string]interface{}{
+				keyAppID:  testAppID1,
+				keyInsID:  testInsID1,
+				keyPrvKey: testPrvKeyValid,
+			},
+		})
+		assert.NilError(t, err)
 
 		r, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
@@ -130,7 +141,6 @@ func TestBackend_Revoke(t *testing.T) {
 			},
 		})
 		assert.Assert(t, is.Nil(r))
-		fmt.Println(err)
 		assert.Assert(t, errors.Is(err, errUnableToRevokeAccessToken))
 	})
 }

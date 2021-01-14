@@ -22,17 +22,14 @@ func (b *backend) Revoke(
 
 	defer done()
 
-	// Safely parse the token from interface types.
+	// Safely parse the token from interface type.
 	var token string
 	{
-		tokenIface, ok := d.GetOk("token")
-		if !ok {
+		tokenIface, _, err := d.GetOkErr("token")
+		if err != nil {
 			return nil, err
 		}
-		token, ok = tokenIface.(string)
-		if !ok {
-			return nil, err
-		}
+		token = tokenIface.(string)
 	}
 
 	// Instrument and log the token API call, recording status and duration.
