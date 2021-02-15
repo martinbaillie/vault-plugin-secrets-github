@@ -33,6 +33,8 @@ type backend struct {
 	// for safe rotation if the mounted configuration changes.
 	client     *Client
 	clientLock sync.RWMutex
+
+	permissionsetLock sync.Mutex
 }
 
 // Factory creates a configured logical.Backend for the GitHub plugin.
