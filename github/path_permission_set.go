@@ -73,13 +73,13 @@ func (b *backend) pathPermissionSet() *framework.Path {
 	}
 }
 
-func pathPermissionSetList(b *backend) *framework.Path {
+func (b *backend) pathPermissionSetList() *framework.Path {
 	// Paths for listing permission sets
 	return &framework.Path{
 		Pattern: "permissionsets?/?",
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.ListOperation: &framework.PathOperation{
-				Callback: b.pathPermissionSetList,
+				Callback: b.pathPermissionSetListRead,
 			},
 		},
 		HelpSynopsis:    pathListPermissionSetHelpSyn,
@@ -198,7 +198,7 @@ func (b *backend) pathPermissionSetCreateUpdate(ctx context.Context, req *logica
 	return nil, nil
 }
 
-func (b *backend) pathPermissionSetList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathPermissionSetListRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	permissionsets, err := req.Storage.List(ctx, "permissionset/")
 	if err != nil {
 		return nil, err
