@@ -2,8 +2,6 @@ package github
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/base64"
 	"errors"
 	"fmt"
 
@@ -19,8 +17,7 @@ const (
 type PermissionSet struct {
 	Name string
 
-	RawTokenOptions string
-	TokenOptions    *tokenOptions
+	TokenOptions *tokenOptions
 }
 
 func (ps *PermissionSet) validate() error {
@@ -28,15 +25,6 @@ func (ps *PermissionSet) validate() error {
 		return errors.New("permission set name is empty")
 	}
 	return nil
-}
-
-func (ps *PermissionSet) tokenOptionHash() string {
-	return getStringHash(ps.RawTokenOptions)
-}
-
-func getStringHash(tokenOptionsRaw string) string {
-	ssum := sha256.Sum256([]byte(tokenOptionsRaw)[:])
-	return base64.StdEncoding.EncodeToString(ssum[:])
 }
 
 func (ps *PermissionSet) save(ctx context.Context, s logical.Storage) error {
