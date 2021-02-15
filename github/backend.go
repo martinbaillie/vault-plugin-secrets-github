@@ -52,6 +52,7 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 			b.pathMetrics(),
 			b.pathConfig(),
 			b.pathToken(),
+			b.pathPermissionSet(),
 		},
 		Secrets: []*framework.Secret{{
 			Type: backendSecretType,

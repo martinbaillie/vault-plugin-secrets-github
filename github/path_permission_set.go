@@ -52,7 +52,7 @@ func (ps *PermissionSet) save(ctx context.Context, s logical.Storage) error {
 	return s.Put(ctx, entry)
 }
 
-func pathPermissionSet(b *backend) *framework.Path {
+func (b *backend) pathPermissionSet() *framework.Path {
 	return &framework.Path{
 		Pattern: fmt.Sprintf("permissionset/%s", framework.GenericNameRegex("name")),
 		Fields: map[string]*framework.FieldSchema{
@@ -130,14 +130,13 @@ func (b *backend) pathPermissionSetRead(ctx context.Context, req *logical.Reques
 		return nil, nil
 	}
 
-	client, done, err := b.Client(req.Storage)
-	if err != nil {
-		return nil, err
+	data := map[string]interface{}{
+		"options": ps.TokenOptions,
 	}
 
-	defer done()
-
-	return client.Token(ctx, ps.TokenOptions)
+	return &logical.Response{
+		Data: data,
+	}, nil
 }
 
 func (b *backend) pathPermissionSetDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
