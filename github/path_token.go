@@ -41,17 +41,14 @@ Permission names taken from: https://developer.github.com/v3/apps/permissions
 
 func (b *backend) pathToken() *framework.Path {
 	return &framework.Path{
-		Pattern: pathPatternToken,
+		Pattern: fmt.Sprintf("%s/%s", pathPatternToken, framework.GenericNameRegex("permissionset")),
 		Fields: map[string]*framework.FieldSchema{
-			keyRepoIDs: {
-				Type:        framework.TypeCommaIntSlice,
-				Description: descRepoIDs,
-			},
-			keyPerms: {
-				Type:        framework.TypeKVPairs,
-				Description: descPerms,
+			"permissionset": {
+				Type:        framework.TypeString,
+				Description: "Required. Name of the permission set.",
 			},
 		},
+		ExistenceCheck: b.pathPermissionSetExistenceCheck("permissionset"),
 		Operations: map[logical.Operation]framework.OperationHandler{
 			// As per the issue request in https://git.io/JUhRk, allow Vault
 			// Reads (i.e. HTTP GET) to also write the GitHub tokens.
@@ -83,16 +80,15 @@ func (b *backend) pathTokenWrite(
 
 	defer done()
 
-	// Safely parse any options from interface types.
-	opts := new(tokenOptions)
-
-	if perms, ok := d.GetOk(keyPerms); ok {
-		opts.Permissions = perms.(map[string]string)
+	psName := d.Get("permissionset").(string)
+	ps, err := getPermissionSet(psName, ctx, req.Storage)
+	if err != nil {
+		return nil, err
 	}
-
-	if repoIDs, ok := d.GetOk(keyRepoIDs); ok {
-		opts.RepositoryIDs = repoIDs.([]int)
+	if ps == nil {
+		return logical.ErrorResponse("permission set '%s' does not exist", psName), nil
 	}
+	opts := ps.TokenOptions
 
 	// Instrument and log the token API call, recording status, duration and
 	// whether any constraints (permissions, repository IDs) were requested.
