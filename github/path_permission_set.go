@@ -2,10 +2,8 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -22,7 +20,7 @@ type PermissionSet struct {
 
 func (ps *PermissionSet) validate() error {
 	if ps.Name == "" {
-		return errors.New("permission set name is empty")
+		return fmt.Errorf("permission set name is empty")
 	}
 	return nil
 }
@@ -96,7 +94,7 @@ func (b *backend) pathPermissionSetExistenceCheck(permissionsetFieldName string)
 		// check for either name or permissionset
 		nameRaw, ok := d.GetOk(permissionsetFieldName)
 		if !ok {
-			return false, errors.New("permissionset name is required")
+			return false, fmt.Errorf("permissionset name is required")
 		}
 
 		ps, err := getPermissionSet(nameRaw.(string), ctx, req.Storage)
@@ -141,7 +139,7 @@ func (b *backend) pathPermissionSetDelete(ctx context.Context, req *logical.Requ
 
 	ps, err := getPermissionSet(psName, ctx, req.Storage)
 	if err != nil {
-		return nil, errwrap.Wrapf(fmt.Sprintf("unable to get permission set %s: {{err}}", psName), err)
+		return nil, fmt.Errorf("unable to get permission set %s: %w", psName, err)
 	}
 	if ps == nil {
 		return nil, nil
@@ -159,7 +157,6 @@ func (b *backend) pathPermissionSetDelete(ctx context.Context, req *logical.Requ
 }
 
 func (b *backend) pathPermissionSetCreateUpdate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	//var warnings []string
 	nameRaw, ok := d.GetOk("name")
 	if !ok {
 		return logical.ErrorResponse("name is required"), nil
@@ -186,7 +183,7 @@ func (b *backend) pathPermissionSetCreateUpdate(ctx context.Context, req *logica
 		ps.TokenOptions.RepositoryIDs = repoIDs.([]int)
 	}
 
-	//Save permissions set
+	// Save permissions set
 	if err := ps.save(ctx, req.Storage); err != nil {
 		return logical.ErrorResponse(err.Error()), nil
 	}
