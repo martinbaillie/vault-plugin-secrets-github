@@ -48,9 +48,13 @@ func (b *backend) pathPermissionSet() *framework.Path {
 				Type:        framework.TypeString,
 				Description: "Required. Name of the permission set.",
 			},
-			"options": {
-				Type:        framework.TypeString,
-				Description: "Token options configuration string.",
+			keyRepoIDs: {
+				Type:        framework.TypeCommaIntSlice,
+				Description: descRepoIDs,
+			},
+			keyPerms: {
+				Type:        framework.TypeKVPairs,
+				Description: descPerms,
 			},
 		},
 		ExistenceCheck: b.pathPermissionSetExistenceCheck("name"),
@@ -119,7 +123,8 @@ func (b *backend) pathPermissionSetRead(ctx context.Context, req *logical.Reques
 	}
 
 	data := map[string]interface{}{
-		"options": ps.TokenOptions,
+		keyRepoIDs: ps.TokenOptions.RepositoryIDs,
+		keyPerms:   ps.TokenOptions.Permissions,
 	}
 
 	return &logical.Response{
@@ -168,26 +173,17 @@ func (b *backend) pathPermissionSetCreateUpdate(ctx context.Context, req *logica
 
 	if ps == nil {
 		ps = &PermissionSet{
-			Name: name,
+			Name:         name,
+			TokenOptions: new(tokenOptions),
 		}
 	}
 
-	isCreate := req.Operation == logical.CreateOperation
-	// Bindings
-	bRaw, newTokenOptions := d.GetOk("options")
-
-	if newTokenOptions {
-		tokenopts, ok := bRaw.(string)
-		if !ok {
-			return logical.ErrorResponse("tokenOptions are not a string"), nil
-		}
-		if tokenopts == "" {
-			return logical.ErrorResponse("tokenOptions are empty"), nil
-		}
+	if perms, ok := d.GetOk(keyPerms); ok {
+		ps.TokenOptions.Permissions = perms.(map[string]string)
 	}
 
-	if isCreate && !newTokenOptions {
-		return logical.ErrorResponse("tokenOption are required for new permission set"), nil
+	if repoIDs, ok := d.GetOk(keyRepoIDs); ok {
+		ps.TokenOptions.RepositoryIDs = repoIDs.([]int)
 	}
 
 	//Save permissions set

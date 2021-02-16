@@ -39,4 +39,5 @@ require (
 	google.golang.org/grpc v1.35.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gotest.tools v2.2.0+incompatible
+	gotest.tools/gotestsum v0.4.0 // indirect
 )
