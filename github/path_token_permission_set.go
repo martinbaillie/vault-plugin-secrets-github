@@ -13,22 +13,11 @@ import (
 
 // pathPatternToken is the string used to define the base path of the token
 // endpoint.
-const pathPatternToken = "token"
-
-const (
-	// NOTE: keys match GitHub installation permissions for ease of marshalling.
-	// https://godoc.org/github.com/google/go-github/github#InstallationPermissions
-	keyRepoIDs  = "repository_ids"
-	descRepoIDs = "The IDs of the repositories that the token can access."
-	keyPerms    = "permissions"
-	descPerms   = "The permissions granted to the token."
-)
-
-const pathTokenHelpSyn = `
+const pathTokenPermissionSetHelpSyn = `
 Create and return a token using the GitHub secrets plugin.
 `
 
-var pathTokenHelpDesc = fmt.Sprintf(`
+var pathTokenPermissinonSetHelpDesc = fmt.Sprintf(`
 Create and return a token using the GitHub secrets plugin, optionally
 constrained by the above parameters.
 
@@ -39,39 +28,36 @@ NOTE: '%s' is a map of permission names to their access type (read or write).
 Permission names taken from: https://developer.github.com/v3/apps/permissions
 `, keyRepoIDs, keyPerms)
 
-func (b *backend) pathToken() *framework.Path {
+func (b *backend) pathTokenPermissionSet() *framework.Path {
 	return &framework.Path{
-		Pattern: pathPatternToken,
+		Pattern: fmt.Sprintf("%s/%s", pathPatternToken, framework.GenericNameRegex("permissionset")),
 		Fields: map[string]*framework.FieldSchema{
-			keyRepoIDs: {
-				Type:        framework.TypeCommaIntSlice,
-				Description: descRepoIDs,
-			},
-			keyPerms: {
-				Type:        framework.TypeKVPairs,
-				Description: descPerms,
+			"permissionset": {
+				Type:        framework.TypeString,
+				Description: "Required. Name of the permission set.",
 			},
 		},
+		ExistenceCheck: b.pathPermissionSetExistenceCheck("permissionset"),
 		Operations: map[logical.Operation]framework.OperationHandler{
 			// As per the issue request in https://git.io/JUhRk, allow Vault
 			// Reads (i.e. HTTP GET) to also write the GitHub tokens.
 			logical.ReadOperation: &framework.PathOperation{
-				Callback: withFieldValidator(b.pathTokenWrite),
+				Callback: withFieldValidator(b.pathTokenPermissionSetWrite),
 			},
 			logical.CreateOperation: &framework.PathOperation{
-				Callback: withFieldValidator(b.pathTokenWrite),
+				Callback: withFieldValidator(b.pathTokenPermissionSetWrite),
 			},
 			logical.UpdateOperation: &framework.PathOperation{
-				Callback: withFieldValidator(b.pathTokenWrite),
+				Callback: withFieldValidator(b.pathTokenPermissionSetWrite),
 			},
 		},
-		HelpSynopsis:    pathTokenHelpSyn,
-		HelpDescription: pathTokenHelpDesc,
+		HelpSynopsis:    pathTokenPermissionSetHelpSyn,
+		HelpDescription: pathTokenPermissinonSetHelpDesc,
 	}
 }
 
 // pathTokenWrite corresponds to READ, CREATE and UPDATE on /github/token.
-func (b *backend) pathTokenWrite(
+func (b *backend) pathTokenPermissionSetWrite(
 	ctx context.Context,
 	req *logical.Request,
 	d *framework.FieldData,
@@ -83,16 +69,15 @@ func (b *backend) pathTokenWrite(
 
 	defer done()
 
-	// Safely parse any options from interface types.
-	opts := new(tokenOptions)
-
-	if perms, ok := d.GetOk(keyPerms); ok {
-		opts.Permissions = perms.(map[string]string)
+	psName := d.Get("permissionset").(string)
+	ps, err := getPermissionSet(psName, ctx, req.Storage)
+	if err != nil {
+		return nil, err
 	}
-
-	if repoIDs, ok := d.GetOk(keyRepoIDs); ok {
-		opts.RepositoryIDs = repoIDs.([]int)
+	if ps == nil {
+		return logical.ErrorResponse("permission set '%s' does not exist", psName), nil
 	}
+	opts := ps.TokenOptions
 
 	// Instrument and log the token API call, recording status, duration and
 	// whether any constraints (permissions, repository IDs) were requested.
