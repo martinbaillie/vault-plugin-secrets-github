@@ -10,6 +10,13 @@ import (
 
 const (
 	permissionsetStoragePrefix = "permissionset"
+
+	pathPermissionSetHelpSyn  = `Read/write GitHub permission sets for tokens.`
+	pathPermissionSetHelpDesc = `
+TODO
+`
+	pathListPermissionSetHelpSyn  = `List existing permission sets.`
+	pathListPermissionSetHelpDesc = `List created permission sets.`
 )
 
 type PermissionSet struct {
@@ -21,6 +28,9 @@ type PermissionSet struct {
 func (ps *PermissionSet) validate() error {
 	if ps.Name == "" {
 		return fmt.Errorf("permission set name is empty")
+	}
+	if ps.TokenOptions == nil {
+		return fmt.Errorf("permission set options can't be nil")
 	}
 	return nil
 }
@@ -152,7 +162,6 @@ func (b *backend) pathPermissionSetDelete(ctx context.Context, req *logical.Requ
 		return nil, err
 	}
 
-	// Clean up resources:
 	return nil, nil
 }
 
@@ -212,13 +221,6 @@ func getPermissionSet(name string, ctx context.Context, s logical.Storage) (*Per
 	if err := entry.DecodeJSON(ps); err != nil {
 		return nil, err
 	}
+
 	return ps, nil
 }
-
-const pathPermissionSetHelpSyn = `Read/write GitHub permission sets for tokens.`
-const pathPermissionSetHelpDesc = `
-TODO
-`
-
-const pathListPermissionSetHelpSyn = `List existing permission sets.`
-const pathListPermissionSetHelpDesc = `List created permission sets.`
