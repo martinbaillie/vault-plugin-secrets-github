@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/vault/sdk/framework"
@@ -19,6 +20,11 @@ TODO
 	pathListPermissionSetHelpDesc = `List created permission sets.`
 )
 
+var (
+	errPermissionSetNameEmpty        = errors.New("permission set name is empty")
+	errPermissionSetTokenOptionEmpty = errors.New("permission set option is empty")
+)
+
 type PermissionSet struct {
 	Name string
 
@@ -27,10 +33,10 @@ type PermissionSet struct {
 
 func (ps *PermissionSet) validate() error {
 	if ps.Name == "" {
-		return fmt.Errorf("permission set name is empty")
+		return errPermissionSetNameEmpty
 	}
 	if ps.TokenOptions == nil {
-		return fmt.Errorf("permission set options can't be nil")
+		return errPermissionSetTokenOptionEmpty
 	}
 	return nil
 }
@@ -46,6 +52,23 @@ func (ps *PermissionSet) save(ctx context.Context, s logical.Storage) error {
 	}
 
 	return s.Put(ctx, entry)
+}
+
+func getPermissionSet(name string, ctx context.Context, s logical.Storage) (*PermissionSet, error) {
+	entry, err := s.Get(ctx, fmt.Sprintf("%s/%s", permissionsetStoragePrefix, name))
+	if err != nil {
+		return nil, err
+	}
+	if entry == nil {
+		return nil, nil
+	}
+
+	ps := &PermissionSet{}
+	if err := entry.DecodeJSON(ps); err != nil {
+		return nil, err
+	}
+
+	return ps, nil
 }
 
 func (b *backend) pathPermissionSet() *framework.Path {
@@ -65,7 +88,6 @@ func (b *backend) pathPermissionSet() *framework.Path {
 				Description: descPerms,
 			},
 		},
-		ExistenceCheck: b.pathPermissionSetExistenceCheck("name"),
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.DeleteOperation: &framework.PathOperation{
 				Callback: b.pathPermissionSetDelete,
@@ -96,23 +118,6 @@ func (b *backend) pathPermissionSetList() *framework.Path {
 		},
 		HelpSynopsis:    pathListPermissionSetHelpSyn,
 		HelpDescription: pathListPermissionSetHelpDesc,
-	}
-}
-
-func (b *backend) pathPermissionSetExistenceCheck(permissionsetFieldName string) framework.ExistenceFunc {
-	return func(ctx context.Context, req *logical.Request, d *framework.FieldData) (bool, error) {
-		// check for either name or permissionset
-		nameRaw, ok := d.GetOk(permissionsetFieldName)
-		if !ok {
-			return false, fmt.Errorf("permissionset name is required")
-		}
-
-		ps, err := getPermissionSet(nameRaw.(string), ctx, req.Storage)
-		if err != nil {
-			return false, err
-		}
-
-		return ps != nil, nil
 	}
 }
 
@@ -206,21 +211,4 @@ func (b *backend) pathPermissionSetListRead(ctx context.Context, req *logical.Re
 		return nil, err
 	}
 	return logical.ListResponse(permissionsets), nil
-}
-
-func getPermissionSet(name string, ctx context.Context, s logical.Storage) (*PermissionSet, error) {
-	entry, err := s.Get(ctx, fmt.Sprintf("%s/%s", permissionsetStoragePrefix, name))
-	if err != nil {
-		return nil, err
-	}
-	if entry == nil {
-		return nil, nil
-	}
-
-	ps := &PermissionSet{}
-	if err := entry.DecodeJSON(ps); err != nil {
-		return nil, err
-	}
-
-	return ps, nil
 }

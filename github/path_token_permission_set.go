@@ -37,7 +37,6 @@ func (b *backend) pathTokenPermissionSet() *framework.Path {
 				Description: "Required. Name of the permission set.",
 			},
 		},
-		ExistenceCheck: b.pathPermissionSetExistenceCheck("permissionset"),
 		Operations: map[logical.Operation]framework.OperationHandler{
 			// As per the issue request in https://git.io/JUhRk, allow Vault
 			// Reads (i.e. HTTP GET) to also write the GitHub tokens.
