@@ -35,6 +35,23 @@ func testBackendPermissionSet(t *testing.T) {
 		err := ps.save(context.Background(), storage)
 		assert.Assert(t, errors.Is(err, errPermissionSetTokenOptionEmpty))
 	})
+	t.Run("FailSave", func(t *testing.T) {
+		t.Parallel()
+
+		_, storage := testBackend(t, failVerbPut)
+
+		ps := &PermissionSet{Name: "foo", TokenOptions: new(tokenOptions)}
+		err := ps.save(context.Background(), storage)
+		assert.Assert(t, err != nil)
+	})
+	t.Run("ValidateGetPermissionSet", func(t *testing.T) {
+		t.Parallel()
+
+		_, storage := testBackend(t, failVerbRead)
+		_, err := getPermissionSet("foo", context.Background(), storage)
+		assert.Assert(t, err != nil)
+
+	})
 }
 
 func testBackendPathPermissionSetWrite(t *testing.T, op logical.Operation) {
@@ -45,32 +62,33 @@ func testBackendPathPermissionSetWrite(t *testing.T, op logical.Operation) {
 
 		b, storage := testBackend(t)
 
-		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
-				t.Helper()
-
-				body, _ := json.Marshal(map[string]interface{}{
-					"token":      testToken,
-					"expires_at": testTokenExp,
-				})
-				w.WriteHeader(http.StatusCreated)
-				w.Write(body)
-			}),
-		)
-		defer ts.Close()
-
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
-			Operation: logical.CreateOperation,
-			Path:      pathPatternConfig,
+			Operation: op,
+			Path:      fmt.Sprintf("permissionset/foo"),
 			Data: map[string]interface{}{
-				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
-				keyPrvKey:  testPrvKeyValid,
-				keyBaseURL: ts.URL,
+				keyRepoIDs: []int{testRepoID1, testRepoID2},
+				keyPerms:   testPerms,
 			},
 		})
 		assert.NilError(t, err)
+	})
+	t.Run("CreateFail", func(t *testing.T) {
+		t.Parallel()
+
+		b, storage := testBackend(t, failVerbRead)
+
+		_, err := b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: op,
+			Path:      fmt.Sprintf("permissionset/foo"),
+			Data: map[string]interface{}{
+				keyRepoIDs: []int{testRepoID1, testRepoID2},
+				keyPerms:   testPerms,
+			},
+		})
+		assert.Assert(t, err != nil)
+		b, storage = testBackend(t, failVerbPut)
 
 		_, err = b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
@@ -145,40 +163,36 @@ func testBackendPathPermissionSetDelete(t *testing.T, op logical.Operation) {
 
 		b, storage := testBackend(t)
 
-		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
-				t.Helper()
-
-				body, _ := json.Marshal(map[string]interface{}{
-					"token":      testToken,
-					"expires_at": testTokenExp,
-				})
-				w.WriteHeader(http.StatusCreated)
-				w.Write(body)
-			}),
-		)
-		defer ts.Close()
-
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
-			Storage:   storage,
-			Operation: logical.CreateOperation,
-			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
-				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
-				keyPrvKey:  testPrvKeyValid,
-				keyBaseURL: ts.URL,
-			},
-		})
-		assert.NilError(t, err)
-
-		_, err = b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
 			Path:      fmt.Sprintf("permissionset/doensnt-exist"),
 			Data:      map[string]interface{}{},
 		})
 		assert.NilError(t, err)
+	})
+	t.Run("DeleteFail", func(t *testing.T) {
+		t.Parallel()
+
+		b, storage := testBackend(t, failVerbRead)
+
+		_, err := b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: op,
+			Path:      fmt.Sprintf("permissionset/foo"),
+			Data:      map[string]interface{}{},
+		})
+		assert.Assert(t, err != nil)
+
+		b, storage = testBackend(t, failVerbDelete)
+
+		_, err = b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: op,
+			Path:      fmt.Sprintf("permissionset/foo"),
+			Data:      map[string]interface{}{},
+		})
+		assert.Assert(t, err != nil)
 	})
 }
 
@@ -190,34 +204,7 @@ func testBackendPathPermissionSetRead(t *testing.T, op logical.Operation) {
 
 		b, storage := testBackend(t)
 
-		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
-				t.Helper()
-
-				body, _ := json.Marshal(map[string]interface{}{
-					"token":      testToken,
-					"expires_at": testTokenExp,
-				})
-				w.WriteHeader(http.StatusCreated)
-				w.Write(body)
-			}),
-		)
-		defer ts.Close()
-
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
-			Storage:   storage,
-			Operation: logical.CreateOperation,
-			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
-				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
-				keyPrvKey:  testPrvKeyValid,
-				keyBaseURL: ts.URL,
-			},
-		})
-		assert.NilError(t, err)
-
-		_, err = b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      fmt.Sprintf("permissionset/foo"),
@@ -246,33 +233,6 @@ func testBackendPathPermissionSetRead(t *testing.T, op logical.Operation) {
 
 		b, storage := testBackend(t)
 
-		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
-				t.Helper()
-
-				body, _ := json.Marshal(map[string]interface{}{
-					"token":      testToken,
-					"expires_at": testTokenExp,
-				})
-				w.WriteHeader(http.StatusCreated)
-				w.Write(body)
-			}),
-		)
-		defer ts.Close()
-
-		_, err := b.HandleRequest(context.Background(), &logical.Request{
-			Storage:   storage,
-			Operation: logical.CreateOperation,
-			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
-				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
-				keyPrvKey:  testPrvKeyValid,
-				keyBaseURL: ts.URL,
-			},
-		})
-		assert.NilError(t, err)
-
 		r, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
@@ -281,6 +241,20 @@ func testBackendPathPermissionSetRead(t *testing.T, op logical.Operation) {
 		})
 		assert.NilError(t, err)
 		assert.Assert(t, r == nil)
+	})
+
+	t.Run("ReadFail", func(t *testing.T) {
+		t.Parallel()
+
+		b, storage := testBackend(t, failVerbRead)
+
+		_, err := b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: op,
+			Path:      fmt.Sprintf("permissionset/bar"),
+			Data:      map[string]interface{}{},
+		})
+		assert.Assert(t, err != nil)
 	})
 }
 
@@ -338,6 +312,30 @@ func testBackendPathPermissionSetList(t *testing.T, op logical.Operation) {
 		})
 		assert.NilError(t, err)
 		assert.Assert(t, r.Data != nil)
+	})
+	t.Run("ListFail", func(t *testing.T) {
+		t.Parallel()
+
+		b, storage := testBackend(t, failVerbList)
+
+		_, err := b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: logical.CreateOperation,
+			Path:      fmt.Sprintf("permissionset/foo"),
+			Data: map[string]interface{}{
+				keyRepoIDs: []int{testRepoID1, testRepoID2},
+				keyPerms:   testPerms,
+			},
+		})
+		assert.NilError(t, err)
+
+		_, err = b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: op,
+			Path:      fmt.Sprintf("permissionsets/"),
+			Data:      map[string]interface{}{},
+		})
+		assert.Assert(t, err != nil)
 	})
 }
 func TestBackend_PermissionSet(t *testing.T) {

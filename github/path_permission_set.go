@@ -122,10 +122,7 @@ func (b *backend) pathPermissionSetList() *framework.Path {
 }
 
 func (b *backend) pathPermissionSetRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	nameRaw, ok := d.GetOk("name")
-	if !ok {
-		return logical.ErrorResponse("name is required"), nil
-	}
+	nameRaw := d.Get("name")
 
 	ps, err := getPermissionSet(nameRaw.(string), ctx, req.Storage)
 	if err != nil {
@@ -146,18 +143,12 @@ func (b *backend) pathPermissionSetRead(ctx context.Context, req *logical.Reques
 }
 
 func (b *backend) pathPermissionSetDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	nameRaw, ok := d.GetOk("name")
-	if !ok {
-		return logical.ErrorResponse("name is required"), nil
-	}
+	nameRaw := d.Get("name")
 	psName := nameRaw.(string)
 
-	ps, err := getPermissionSet(psName, ctx, req.Storage)
+	_, err := getPermissionSet(psName, ctx, req.Storage)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get permission set %s: %w", psName, err)
-	}
-	if ps == nil {
-		return nil, nil
 	}
 
 	b.permissionsetLock.Lock()
@@ -171,10 +162,7 @@ func (b *backend) pathPermissionSetDelete(ctx context.Context, req *logical.Requ
 }
 
 func (b *backend) pathPermissionSetCreateUpdate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	nameRaw, ok := d.GetOk("name")
-	if !ok {
-		return logical.ErrorResponse("name is required"), nil
-	}
+	nameRaw := d.Get("name")
 	name := nameRaw.(string)
 
 	ps, err := getPermissionSet(name, ctx, req.Storage)

@@ -69,10 +69,7 @@ func (b *backend) pathTokenPermissionSetWrite(
 	defer done()
 
 	psName := d.Get("permissionset").(string)
-	ps, err := getPermissionSet(psName, ctx, req.Storage)
-	if err != nil {
-		return nil, err
-	}
+	ps, _ := getPermissionSet(psName, ctx, req.Storage)
 	if ps == nil {
 		return logical.ErrorResponse("permission set '%s' does not exist", psName), nil
 	}
