@@ -2,16 +2,12 @@ package github
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/hashicorp/vault/sdk/logical"
 	"gotest.tools/assert"
-	// is "gotest.tools/assert/cmp"
 )
 
 func testBackendPermissionSet(t *testing.T) {
@@ -111,34 +107,7 @@ func testBackendPathPermissionSetDelete(t *testing.T, op logical.Operation) {
 
 		b, storage := testBackend(t)
 
-		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
-				t.Helper()
-
-				body, _ := json.Marshal(map[string]interface{}{
-					"token":      testToken,
-					"expires_at": testTokenExp,
-				})
-				w.WriteHeader(http.StatusCreated)
-				w.Write(body)
-			}),
-		)
-		defer ts.Close()
-
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
-			Storage:   storage,
-			Operation: logical.CreateOperation,
-			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
-				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
-				keyPrvKey:  testPrvKeyValid,
-				keyBaseURL: ts.URL,
-			},
-		})
-		assert.NilError(t, err)
-
-		_, err = b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      fmt.Sprintf("permissionset/foo"),
@@ -266,34 +235,7 @@ func testBackendPathPermissionSetList(t *testing.T, op logical.Operation) {
 
 		b, storage := testBackend(t)
 
-		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
-				t.Helper()
-
-				body, _ := json.Marshal(map[string]interface{}{
-					"token":      testToken,
-					"expires_at": testTokenExp,
-				})
-				w.WriteHeader(http.StatusCreated)
-				w.Write(body)
-			}),
-		)
-		defer ts.Close()
-
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
-			Storage:   storage,
-			Operation: logical.CreateOperation,
-			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
-				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
-				keyPrvKey:  testPrvKeyValid,
-				keyBaseURL: ts.URL,
-			},
-		})
-		assert.NilError(t, err)
-
-		_, err = b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      fmt.Sprintf("permissionset/foo"),

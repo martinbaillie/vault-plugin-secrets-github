@@ -12,9 +12,25 @@ import (
 const (
 	permissionsetStoragePrefix = "permissionset"
 
-	pathPermissionSetHelpSyn  = `Read/write GitHub permission sets for tokens.`
+	pathPermissionSetHelpSyn  = `Read/write GitHub permission sets for Github access tokens.`
 	pathPermissionSetHelpDesc = `
-TODO
+This path allows you create permission sets, which bind sets of permissions
+to specific GitHub access token. Secrets (access tokens) are generated
+under a permission set and will have the given set of permission on GitHub.
+The specified binding file accepts JSON string with the following format:
+{
+	"repository_ids": [
+		123,
+		456,
+		789,
+		...
+	]
+	"permissions": {
+		"pull_requests": "read",
+		"contents": "read",
+		...
+	}
+}
 `
 	pathListPermissionSetHelpSyn  = `List existing permission sets.`
 	pathListPermissionSetHelpDesc = `List created permission sets.`
