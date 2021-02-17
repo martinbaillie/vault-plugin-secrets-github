@@ -197,7 +197,7 @@ func testBackendPathPermissionSetRead(t *testing.T, op logical.Operation) {
 		assert.DeepEqual(t, repoData, []int{testRepoID1, testRepoID2})
 	})
 
-	t.Run("NonExistanseCheck", func(t *testing.T) {
+	t.Run("NonExistenceCheck", func(t *testing.T) {
 		t.Parallel()
 
 		b, storage := testBackend(t)
