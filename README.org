@@ -16,6 +16,7 @@
   - [[#setup-vault][Setup (Vault)]]
 - [[#api][API]]
   - [[#token][Token]]
+  - [[#permissionset][Permission set]]
   - [[#config][Config]]
   - [[#metrics][Metrics]]
   - [[#info][Info]]
@@ -374,6 +375,37 @@ Alternatively, you can go directly to your GitHub with the token in hand:
 curl -H "Authorization: Bearer ${GITHUB_TOKEN}" \
 	-X DELETE https://api.mygithub.com/installation/token
 #+end_src
+
+** Permission set
+Instruct the plugin to create an permission set.
+
+| Method | Path                  | Produces         |
+|--------+-----------------------+------------------|
+| GET    | /permissionset/<name> | application/json |
+| POST   | /permissionset/<name> | application/json |
+| PUT    | /permissionset/<name> | application/json |
+| DELETE | /permissionset/<name> | application/json |
+| GET    | /permissionsets/      | application/json |
+
+*** Parameters
+- =repository_ids= ([]int64) — a list of the IDs of the repositories that the
+  installation token can access. See this [[https://stackoverflow.com/a/47223479][StackOverflow post]] for the quickest
+  way to find a repository ID.
+- =permissions= (map[string]string) — a key value map of permission names to
+  their access type (read or write). See [[https://developer.github.com/v3/apps/permissions][GitHub's documentation]] on permission
+  names and access types.
+
+*** Request a token from a permission set
+
+Instruct the plugin to create an installation access token against the configured GitHub App from the given permission set.
+
+| Method | Path          | Produces         |
+|--------+---------------+------------------|
+| GET    | /token/<name> | application/json |
+| POST   | /token/<name> | application/json |
+| PUT    | /token/<name> | application/json |
+
+
 ** Config
 CRUD operations against the configuration of the plugin.
 

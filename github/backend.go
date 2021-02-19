@@ -33,6 +33,8 @@ type backend struct {
 	// for safe rotation if the mounted configuration changes.
 	client     *Client
 	clientLock sync.RWMutex
+
+	permissionsetLock sync.Mutex
 }
 
 // Factory creates a configured logical.Backend for the GitHub plugin.
@@ -50,6 +52,9 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 			b.pathMetrics(),
 			b.pathConfig(),
 			b.pathToken(),
+			b.pathTokenPermissionSet(),
+			b.pathPermissionSet(),
+			b.pathPermissionSetList(),
 		},
 		Secrets: []*framework.Secret{{
 			Type: backendSecretType,
