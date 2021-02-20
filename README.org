@@ -16,7 +16,7 @@
   - [[#setup-vault][Setup (Vault)]]
 - [[#api][API]]
   - [[#token][Token]]
-  - [[#permissionset][Permission set]]
+  - [[#permission-sets][Permission sets]]
   - [[#config][Config]]
   - [[#metrics][Metrics]]
   - [[#info][Info]]
@@ -269,7 +269,7 @@ plugin.
     vault read /github/config
 
     # (OPTIONAL) Test a token creation.
-    vault write -force /github/token
+    vault read /github/token
    #+END_SRC
 
 6. (OPTIONAL) Use Vault policy to constrain user capabilities on the GitHub
@@ -332,18 +332,18 @@ Instruct the plugin to create an installation access token against the configure
 #+BEGIN_SRC shell
 # Create a token with all the superset of all permissions and repositories that
 # the GitHub App installation has access to.
-vault write -force /github/token
+vault read /github/token
 
 # Create a token with all permissions but only on repositories 123 and 456.
 vault write /github/token repository_ids=123 repository_ids=456
 
 # Create a token with write access to pull requests using read / GET.
-vault read /github/token permissions=pull_requests=write
+vault write /github/token permissions=pull_requests=write
 
 # Create a token with read access to metadata and write access to pull requests
 # on repositories 123 and 456 only.
 # NOTE: Uses a Vault CLI JSON heredoc to submit the complex map type.
-vault write /github/token -<<EOF
+vault write /github/token - <<EOF
 {
 "repository_ids": [123,456],
 "permissions": {"metadata": "read", "pull_requests": "write"}
@@ -352,11 +352,12 @@ EOF
 #+END_SRC
 
 #+BEGIN_QUOTE
-NOTE: a 422 response usually indicates you have requested repositories IDs or permissions
-that your GitHub App install does not have access to.
+NOTE: a 422 response usually indicates you have requested repositories IDs or
+permissions that your GitHub App install does not have access to.
 #+END_QUOTE
 *** Revocation
-It is possible to revoke tokens in your configured GitHub using Vault constructs. For example:
+It is possible to revoke tokens in your configured GitHub using Vault
+constructs. For example:
 #+begin_src shell
 # Revoke an individual token with just the lease ID.
 vault lease revoke <lease_id previously received from token endpoint>
@@ -376,16 +377,16 @@ curl -H "Authorization: Bearer ${GITHUB_TOKEN}" \
 	-X DELETE https://api.mygithub.com/installation/token
 #+end_src
 
-** Permission set
-Instruct the plugin to create an permission set.
+** Permission sets
+Instruct the plugin to create a specific permission set.
 
-| Method | Path                  | Produces         |
-|--------+-----------------------+------------------|
-| GET    | /permissionset/<name> | application/json |
-| POST   | /permissionset/<name> | application/json |
-| PUT    | /permissionset/<name> | application/json |
-| DELETE | /permissionset/<name> | application/json |
-| GET    | /permissionsets/      | application/json |
+| Method | Path                      | Produces         |
+|--------+---------------------------+------------------|
+| GET    | /permissionset/<name>     | application/json |
+| POST   | /permissionset/<name>     | application/json |
+| PUT    | /permissionset/<name>     | application/json |
+| DELETE | /permissionset/<name>     | application/json |
+| GET    | /permissionsets?list=true | application/json |
 
 *** Parameters
 - =repository_ids= ([]int64) — a list of the IDs of the repositories that the
@@ -396,8 +397,9 @@ Instruct the plugin to create an permission set.
   names and access types.
 
 *** Request a token from a permission set
-
-Instruct the plugin to create an installation access token against the configured GitHub App from the given permission set.
+Similar to the [[#token][token]] flow in the previous section, you can instruct the plugin
+to create an installation access token by using a permission set name. The token
+returned will be constrained by that pre-configured permission set.
 
 | Method | Path          | Produces         |
 |--------+---------------+------------------|
@@ -405,9 +407,35 @@ Instruct the plugin to create an installation access token against the configure
 | POST   | /token/<name> | application/json |
 | PUT    | /token/<name> | application/json |
 
+*** Examples
+#+BEGIN_SRC shell
+# Configure a permission set that only allows metadata reads and PR writes
+# against two repositories.
+vault write /github/permissionset/demo-set - <<EOF
+{
+"repository_ids": [123,456],
+"permissions": {"metadata": "read", "pull_requests": "write"}
+}
+EOF
+# Or
+vault write /github/permissionset/demo-set repository_ids=69857131 \
+	permissions=pull_requests=read \
+	permissions=metadata=read
 
+# Read the permission set configuration.
+vault read /github/permissionset/demo-set
+
+# List all permission sets.
+vault list /github/permissionsets
+
+# Create a token automatically constrained by the permission set.
+vault read /github/token/demo-set
+
+# Delete an existing permission set.
+vault delete /github/token/demo-set
+#+END_SRC
 ** Config
-CRUD operations against the configuration of the plugin.
+General CRUD operations against the configuration of the plugin.
 
 | Method | Path    | Produces         |
 |--------+---------+------------------|

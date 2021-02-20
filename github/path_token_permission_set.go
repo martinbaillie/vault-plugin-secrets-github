@@ -69,10 +69,12 @@ func (b *backend) pathTokenPermissionSetWrite(
 	defer done()
 
 	psName := d.Get("permissionset").(string)
-	ps, _ := getPermissionSet(psName, ctx, req.Storage)
+
+	ps, _ := getPermissionSet(ctx, psName, req.Storage)
 	if ps == nil {
 		return logical.ErrorResponse("permission set '%s' does not exist", psName), nil
 	}
+
 	opts := ps.TokenOptions
 
 	// Instrument and log the token API call, recording status, duration and

@@ -105,10 +105,13 @@ func TestIntegration(t *testing.T) {
 
 	t.Run("WriteConfig", testWriteConfig)
 	t.Run("ReadConfig", testReadConfig)
+	t.Run("WritePermissionSet", testWritePermissionSet)
+	t.Run("ReadPermissionSet", testReadPermissionSet)
+	t.Run("ListPermissionSets", testListPermissionSets)
 	t.Run("CreateToken", testCreateToken)
 	t.Run("RevokeTokens", testRevokeTokens)
 	t.Run("CreateTokenWithConstraints", testCreateTokenWithConstraints)
-	t.Run("WriteReadConfigCreateTokenWithRacyness", func(t *testing.T) {
+	t.Run("WriteReadConfigPermissionSetCreateTokenWithRacyness", func(t *testing.T) {
 		if !githubAPIStubbed || testing.Short() {
 			// We do not want to smash the real GitHub API, nor do we want to
 			// delay a deliberately short test run.
@@ -127,13 +130,42 @@ func TestIntegration(t *testing.T) {
 				}
 			}
 		)
-		wg.Add(4)
+		wg.Add(8)
 		go race(testWriteConfig)
 		go race(testReadConfig)
+		go race(testWritePermissionSet)
+		go race(testReadPermissionSet)
+		go race(testListPermissionSets)
 		go race(testCreateToken)
+		go race(testCreatePermissionSetToken)
 		go race(testCreateTokenWithConstraints)
 		close(start)
 		wg.Wait()
+	})
+	t.Run("DeletePermissionSet", func(t *testing.T) {
+		// Delete permission set.
+		res, err := vaultDo(
+			http.MethodDelete,
+			fmt.Sprintf("/v1/github/%s/test-set", pathPatternPermissionSet),
+			nil,
+		)
+		assert.NilError(t, err)
+		defer res.Body.Close()
+		assert.Assert(t, statusCode(res.StatusCode).Successful())
+
+		// Confirm deleted with a read.
+		res, err = vaultDo(
+			http.MethodGet,
+			fmt.Sprintf("/v1/github/%s/test-set", pathPatternPermissionSet),
+			nil,
+		)
+		assert.NilError(t, err)
+		defer res.Body.Close()
+		assert.Equal(t, res.StatusCode, http.StatusNotFound)
+
+		var resBody map[string]interface{}
+		err = json.NewDecoder(res.Body).Decode(&resBody)
+		assert.NilError(t, err)
 	})
 	t.Run("DeleteConfig", func(t *testing.T) {
 		// Delete.
@@ -210,12 +242,109 @@ func testReadConfig(t *testing.T) {
 	assert.Equal(t, resData[keyBaseURL], baseURL)
 }
 
+func testWritePermissionSet(t *testing.T) {
+	t.Helper()
+
+	res, err := vaultDo(
+		http.MethodPost,
+		fmt.Sprintf("/v1/github/%s/test-set", pathPatternPermissionSet),
+		map[string]interface{}{
+			keyRepoIDs: []int{testRepoID1, testRepoID2},
+			keyPerms:   testPerms,
+		},
+	)
+	assert.NilError(t, err)
+	defer res.Body.Close()
+	assert.Assert(t, statusCode(res.StatusCode).Successful())
+}
+
+func testReadPermissionSet(t *testing.T) {
+	t.Helper()
+
+	res, err := vaultDo(
+		http.MethodGet,
+		fmt.Sprintf("/v1/github/%s/test-set", pathPatternPermissionSet),
+		nil,
+	)
+	assert.NilError(t, err)
+	defer res.Body.Close()
+	assert.Assert(t, statusCode(res.StatusCode).Successful())
+
+	var resBody map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&resBody)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Contains(resBody, "data"))
+
+	resData := resBody["data"].(map[string]interface{})
+
+	repoIds := resData[keyRepoIDs].([]interface{})
+	assert.Equal(t, len(repoIds), 2)
+	assert.Equal(t, repoIds[0], float64(testRepoID1))
+	assert.Equal(t, repoIds[1], float64(testRepoID2))
+
+	perms := resData[keyPerms].(map[string]interface{})
+	assert.Equal(t, len(perms), 2)
+	assert.Equal(t, perms["deployments"], testPerms["deployments"])
+	assert.Equal(t, perms["pull_requests"], testPerms["pull_requests"])
+}
+
+func testListPermissionSets(t *testing.T) {
+	t.Helper()
+
+	res, err := vaultDo(
+		http.MethodGet,
+		fmt.Sprintf("/v1/github/%s?list=true", pathPatternPermissionSets),
+		nil,
+	)
+	assert.NilError(t, err)
+	defer res.Body.Close()
+	assert.Assert(t, statusCode(res.StatusCode).Successful())
+
+	var resBody map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&resBody)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Contains(resBody, "data"))
+
+	resData := resBody["data"].(map[string]interface{})
+
+	keys := resData["keys"].([]interface{})
+	assert.Equal(t, len(keys), 1)
+	assert.Equal(t, keys[0], "test-set")
+}
+
 func testCreateToken(t *testing.T) {
 	t.Helper()
 
 	res, err := vaultDo(
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s", pathPatternToken),
+		nil,
+	)
+	assert.NilError(t, err)
+	defer res.Body.Close()
+	assert.Assert(t, statusCode(res.StatusCode).Successful())
+
+	var resBody map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&resBody)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Contains(resBody, "data"))
+
+	resData := resBody["data"].(map[string]interface{})
+	if githubAPIStubbed {
+		assert.Equal(t, resData["token"], testToken)
+		assert.Equal(t, resData["expires_at"], testTokenExp)
+	} else {
+		assert.Assert(t, resData["token"] != "")
+		assert.Assert(t, resData["expires_at"] != "")
+	}
+}
+
+func testCreatePermissionSetToken(t *testing.T) {
+	t.Helper()
+
+	res, err := vaultDo(
+		http.MethodPost,
+		fmt.Sprintf("/v1/github/%s/test-set", pathPatternToken),
 		nil,
 	)
 	assert.NilError(t, err)

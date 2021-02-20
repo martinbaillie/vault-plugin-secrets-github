@@ -9,15 +9,21 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-const (
-	permissionsetStoragePrefix = "permissionset"
+// pathPatternPermissionSet is the string used to define the base path of the permission set
+// endpoint as well as the storage path of the permission set objects.
+const pathPatternPermissionSet = "permissionset"
 
+// pathPatternPermissionSets is the string used to define the base path of the permission sets
+// endpoint.
+const pathPatternPermissionSets = "permissionsets"
+
+const (
 	pathPermissionSetHelpSyn  = `Read/write GitHub permission sets for Github access tokens.`
 	pathPermissionSetHelpDesc = `
-This path allows you create permission sets, which bind sets of permissions
-to specific GitHub access token. Secrets (access tokens) are generated
-under a permission set and will have the given set of permission on GitHub.
-The specified binding file accepts JSON string with the following format:
+This path allows you create permission sets which automatically bind sets of permissions to returned
+GitHub access tokens. Access tokens generated under a permission set subpath will have the given set
+of permission on GitHub. The specified binding file accepts JSON string with the following format:
+
 {
 	"repository_ids": [
 		123,
@@ -30,8 +36,7 @@ The specified binding file accepts JSON string with the following format:
 		"contents": "read",
 		...
 	}
-}
-`
+}`
 	pathListPermissionSetHelpSyn  = `List existing permission sets.`
 	pathListPermissionSetHelpDesc = `List created permission sets.`
 )
@@ -42,8 +47,7 @@ var (
 )
 
 type PermissionSet struct {
-	Name string
-
+	Name         string
 	TokenOptions *tokenOptions
 }
 
@@ -51,9 +55,11 @@ func (ps *PermissionSet) validate() error {
 	if ps.Name == "" {
 		return errPermissionSetNameEmpty
 	}
+
 	if ps.TokenOptions == nil {
 		return errPermissionSetTokenOptionEmpty
 	}
+
 	return nil
 }
 
@@ -62,7 +68,10 @@ func (ps *PermissionSet) save(ctx context.Context, s logical.Storage) error {
 		return err
 	}
 
-	entry, err := logical.StorageEntryJSON(fmt.Sprintf("%s/%s", permissionsetStoragePrefix, ps.Name), ps)
+	entry, err := logical.StorageEntryJSON(
+		fmt.Sprintf("%s/%s", pathPatternPermissionSet, ps.Name),
+		ps,
+	)
 	if err != nil {
 		return err
 	}
@@ -70,16 +79,18 @@ func (ps *PermissionSet) save(ctx context.Context, s logical.Storage) error {
 	return s.Put(ctx, entry)
 }
 
-func getPermissionSet(name string, ctx context.Context, s logical.Storage) (*PermissionSet, error) {
-	entry, err := s.Get(ctx, fmt.Sprintf("%s/%s", permissionsetStoragePrefix, name))
+func getPermissionSet(ctx context.Context, name string, s logical.Storage) (*PermissionSet, error) {
+	entry, err := s.Get(ctx, fmt.Sprintf("%s/%s", pathPatternPermissionSet, name))
 	if err != nil {
 		return nil, err
 	}
+
 	if entry == nil {
 		return nil, nil
 	}
 
 	ps := &PermissionSet{}
+
 	if err := entry.DecodeJSON(ps); err != nil {
 		return nil, err
 	}
@@ -124,9 +135,9 @@ func (b *backend) pathPermissionSet() *framework.Path {
 }
 
 func (b *backend) pathPermissionSetList() *framework.Path {
-	// Paths for listing permission sets
+	// Paths for listing configured permission sets.
 	return &framework.Path{
-		Pattern: "permissionsets?/?",
+		Pattern: fmt.Sprintf("%s?/?", pathPatternPermissionSets),
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.ListOperation: &framework.PathOperation{
 				Callback: b.pathPermissionSetListRead,
@@ -137,13 +148,16 @@ func (b *backend) pathPermissionSetList() *framework.Path {
 	}
 }
 
-func (b *backend) pathPermissionSetRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathPermissionSetRead(
+	ctx context.Context, req *logical.Request, d *framework.FieldData,
+) (*logical.Response, error) {
 	nameRaw := d.Get("name")
 
-	ps, err := getPermissionSet(nameRaw.(string), ctx, req.Storage)
+	ps, err := getPermissionSet(ctx, nameRaw.(string), req.Storage)
 	if err != nil {
 		return nil, err
 	}
+
 	if ps == nil {
 		return nil, nil
 	}
@@ -158,11 +172,13 @@ func (b *backend) pathPermissionSetRead(ctx context.Context, req *logical.Reques
 	}, nil
 }
 
-func (b *backend) pathPermissionSetDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathPermissionSetDelete(
+	ctx context.Context, req *logical.Request, d *framework.FieldData,
+) (*logical.Response, error) {
 	nameRaw := d.Get("name")
 	psName := nameRaw.(string)
 
-	_, err := getPermissionSet(psName, ctx, req.Storage)
+	_, err := getPermissionSet(ctx, psName, req.Storage)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get permission set %s: %w", psName, err)
 	}
@@ -177,11 +193,13 @@ func (b *backend) pathPermissionSetDelete(ctx context.Context, req *logical.Requ
 	return nil, nil
 }
 
-func (b *backend) pathPermissionSetCreateUpdate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathPermissionSetCreateUpdate(
+	ctx context.Context, req *logical.Request, d *framework.FieldData,
+) (*logical.Response, error) {
 	nameRaw := d.Get("name")
 	name := nameRaw.(string)
 
-	ps, err := getPermissionSet(name, ctx, req.Storage)
+	ps, err := getPermissionSet(ctx, name, req.Storage)
 	if err != nil {
 		return nil, err
 	}
@@ -209,10 +227,13 @@ func (b *backend) pathPermissionSetCreateUpdate(ctx context.Context, req *logica
 	return nil, nil
 }
 
-func (b *backend) pathPermissionSetListRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathPermissionSetListRead(
+	ctx context.Context, req *logical.Request, d *framework.FieldData,
+) (*logical.Response, error) {
 	permissionsets, err := req.Storage.List(ctx, "permissionset/")
 	if err != nil {
 		return nil, err
 	}
+
 	return logical.ListResponse(permissionsets), nil
 }

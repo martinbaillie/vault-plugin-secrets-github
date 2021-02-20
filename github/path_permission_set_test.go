@@ -44,7 +44,7 @@ func testBackendPermissionSet(t *testing.T) {
 		t.Parallel()
 
 		_, storage := testBackend(t, failVerbRead)
-		_, err := getPermissionSet("foo", context.Background(), storage)
+		_, err := getPermissionSet(context.Background(), "foo", storage)
 		assert.Assert(t, err != nil)
 
 	})
