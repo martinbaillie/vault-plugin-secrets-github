@@ -1,6 +1,6 @@
 module github.com/martinbaillie/vault-plugin-secrets-github
 
-go 1.13
+go 1.15
 
 require (
 	github.com/armon/go-radix v1.0.0 // indirect
@@ -11,6 +11,7 @@ require (
 	github.com/golang/snappy v0.0.2 // indirect
 	github.com/google/go-github/v29 v29.0.3 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v0.15.0
 	github.com/hashicorp/go-immutable-radix v1.3.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.0 // indirect
@@ -28,14 +29,14 @@ require (
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
 	github.com/prometheus/client_golang v1.9.0
-	github.com/prometheus/common v0.15.0
-	github.com/prometheus/procfs v0.3.0 // indirect
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
-	golang.org/x/net v0.0.0-20201224014010-6772e930b67b // indirect
-	golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78 // indirect
+	github.com/prometheus/common v0.17.0
+	github.com/prometheus/procfs v0.6.0 // indirect
+	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
+	golang.org/x/net v0.0.0-20210220033124-5f55cee0dc0d // indirect
+	golang.org/x/sys v0.0.0-20210220050731-9a76102bfb43 // indirect
 	golang.org/x/text v0.3.5 // indirect
-	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
-	google.golang.org/genproto v0.0.0-20210113195801-ae06605f4595 // indirect
+	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
+	google.golang.org/genproto v0.0.0-20210219173056-d891e3cb3b5b // indirect
 	google.golang.org/grpc v1.35.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gotest.tools v2.2.0+incompatible

@@ -34,7 +34,7 @@ GOOSES		=darwin freebsd linux netbsd openbsd solaris windows
 GOARCHES 	=amd64 arm
 NOARCHES 	=darwin-arm solaris-arm windows-arm
 
-GOCILINT_VER?=v1.21.0
+GOCILINT_VER?=v1.30.0
 GOCILINT_URL=raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
 
 GOTESTSUM_VER?=v0.4.0
