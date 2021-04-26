@@ -11,9 +11,9 @@ mkShell {
     git
     gnumake
     gnupg
-    go
     golangci-lint
     gotestsum
+    unstable.go
     unstable.vault-bin
     unzip
     which
