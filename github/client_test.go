@@ -290,14 +290,23 @@ func TestClient_RevokeToken(t *testing.T) {
 			err:  errUnableToBuildAccessTokenRevReq,
 		},
 		{
-			name: "4xxResponse",
+			name: "401Response",
 			ctx:  context.Background(),
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
-				// 401 is the most likely GitHub API 4xx response when trying
-				// to revoke and it occurs when the token is already expired
-				// or revoked.
+				// 401 is the most likely GitHub API 4xx response when trying to revoke and it
+				// occurs when the token is already expired or revoked. We treat this as a success
+				// in the case of a lease revocation.
 				w.WriteHeader(http.StatusUnauthorized)
+			}),
+			res: &logical.Response{},
+		},
+		{
+			name: "403Response",
+			ctx:  context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+				w.WriteHeader(http.StatusForbidden)
 			}),
 			err: errUnableToRevokeAccessToken,
 		},

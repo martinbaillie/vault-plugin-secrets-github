@@ -112,7 +112,7 @@ func TestBackend_Revoke(t *testing.T) {
 			func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
 
-				w.WriteHeader(http.StatusUnauthorized)
+				w.WriteHeader(http.StatusForbidden)
 			}),
 		)
 		defer ts.Close()

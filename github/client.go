@@ -101,6 +101,9 @@ func (s statusCode) Successful() bool { return s >= 200 && s < 300 }
 // Unsuccessful is true if the HTTP response code was not between 200 and 300.
 func (s statusCode) Unsuccessful() bool { return !s.Successful() }
 
+// Revoked is true if the HTTP response code was between 200 and 300, or was a 401 (Bad credentials).
+func (s statusCode) Revoked() bool { return s.Successful() || s == 401 }
+
 // Token returns a valid access token. If there are any failures on the wire or
 // parsing request and response object, an error is returned.
 func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Response, error) {
@@ -193,7 +196,7 @@ func (c *Client) RevokeToken(ctx context.Context, token string) (*logical.Respon
 
 	defer res.Body.Close()
 
-	if statusCode(res.StatusCode).Unsuccessful() {
+	if !statusCode(res.StatusCode).Revoked() {
 		bodyBytes, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s: error reading error response body: %v",
