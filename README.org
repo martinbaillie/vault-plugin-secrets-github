@@ -25,8 +25,12 @@
 - [[#security][Security]]
 
 * About
-Are you using Hashicorp Vault and GitHub in your organisation? Do you want
+Are you using HashiCorp Vault and GitHub in your organisation? Do you want
 ephemeral, finely-scoped GitHub tokens? If so, this plugin might be for you.
+
+#+begin_quote
+UPDATE: The plugin was recently demoed at HashiCorp's [[https://www.youtube.com/watch?v=JuzBolDyGdg&t=17308s][Hashitalks 2021]].
+#+end_quote
 
 ** Why?
 Performing automation against GitHub APIs often neccessitates the creation of
@@ -530,7 +534,7 @@ make integration test \
 #+END_SRC
 
 * Security
-Hashicorp and GitHub take their security seriously. If you believe you have
+HashiCorp and GitHub take their security seriously. If you believe you have
 found a security issue with either through using this plugin, do not open an
-issue here. Responsibly disclose by getting in touch with [[mailto:security@hashicorp.com][Hashicorp]] or [[https://hackerone.com/github][GitHub]]
+issue here. Responsibly disclose by getting in touch with [[mailto:security@hashicorp.com][HashiCorp]] or [[https://hackerone.com/github][GitHub]]
 security teams respectively.
