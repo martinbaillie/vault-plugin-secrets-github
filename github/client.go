@@ -90,6 +90,8 @@ type tokenOptions struct {
 	Permissions map[string]string `json:"permissions,omitempty"`
 	// RepositoryIDs are the repository IDs that the token can access.
 	RepositoryIDs []int `json:"repository_ids,omitempty"`
+	// Repositories are the repository names that the token can access.
+	Repositories []string `json:"repositories,omitempty"`
 }
 
 // statusCode models an HTTP response code.

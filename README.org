@@ -65,7 +65,11 @@ token request flow on behalf of your users.
 
 ** How?
 The Vault plugin acts as an intermediary for a GitHub App that you install into
-your organisation.
+your organisation:
+
+#+ATTR_ORG: :width 1024
+#+CAPTION: Logical Architecture
+[[file:vault_github_plugin.png]]
 
 Users login using your existing Vault auth backend(s) and, Vault RBAC
 permitting, can request GitHub tokens from the plugin. The plugin, in turn,
@@ -325,6 +329,17 @@ Instruct the plugin to create an installation access token against the configure
 | PUT    | /token | application/json |
 
 *** Parameters
+#+begin_quote
+NOTE: All parameters are optional. Omitting them results in a token that has
+access to all of the repositories and permissions that the GitHub App has.
+
+When crafting Vault policy, hyper security sensitive organisations may wish to
+favour =repository_ids= (GitHub repository IDs are immutable) instead of
+=repositories= (GitHub repository names are mutable).
+#+end_quote
+
+- =repositories= ([]string) — a list of the names of the repositories within the
+  organisation that the installation token can access.
 - =repository_ids= ([]int64) — a list of the IDs of the repositories that the
   installation token can access. See this [[https://stackoverflow.com/a/47223479][StackOverflow post]] for the quickest
   way to find a repository ID.
@@ -338,6 +353,17 @@ Instruct the plugin to create an installation access token against the configure
 # the GitHub App installation has access to.
 vault read /github/token
 
+# Create a token with read permissions on the packages and write permissions on
+# the pull requests of repositories named "demo-repo" and ID 123.
+vault write /github/token \
+	repository_ids=123 \
+	repositories=demo-repo \
+	permissions=packages=read \
+	permissions=pull_requests=write
+
+# Create a token with all permissions but only on the "demo-repo" repository.
+vault write /github/token repository_ids=123 repository_ids=456
+
 # Create a token with all permissions but only on repositories 123 and 456.
 vault write /github/token repository_ids=123 repository_ids=456
 
@@ -345,10 +371,11 @@ vault write /github/token repository_ids=123 repository_ids=456
 vault write /github/token permissions=pull_requests=write
 
 # Create a token with read access to metadata and write access to pull requests
-# on repositories 123 and 456 only.
+# on repositories "demo-repo", 123 and 456 only.
 # NOTE: Uses a Vault CLI JSON heredoc to submit the complex map type.
 vault write /github/token - <<EOF
 {
+"repositories": ["demo-repo"],
 "repository_ids": [123,456],
 "permissions": {"metadata": "read", "pull_requests": "write"}
 }
@@ -393,6 +420,17 @@ Instruct the plugin to create a specific permission set.
 | GET    | /permissionsets?list=true | application/json |
 
 *** Parameters
+#+begin_quote
+NOTE: All parameters are optional. Omitting them results in a token that has
+access to all of the repositories and permissions that the GitHub App has.
+
+When crafting Vault policy, hyper security sensitive organisations may wish to
+favour =repository_ids= (GitHub repository IDs are immutable) instead of
+=repositories= (GitHub repository names are mutable).
+#+end_quote
+
+- =repositories= ([]string) — a list of the names of the repositories within the
+  organisation that the installation token can access.
 - =repository_ids= ([]int64) — a list of the IDs of the repositories that the
   installation token can access. See this [[https://stackoverflow.com/a/47223479][StackOverflow post]] for the quickest
   way to find a repository ID.
@@ -414,15 +452,19 @@ returned will be constrained by that pre-configured permission set.
 *** Examples
 #+BEGIN_SRC shell
 # Configure a permission set that only allows metadata reads and PR writes
-# against two repositories.
+# against three repositories.
 vault write /github/permissionset/demo-set - <<EOF
 {
+"repositories": ["demo-repo"],
 "repository_ids": [123,456],
 "permissions": {"metadata": "read", "pull_requests": "write"}
 }
 EOF
 # Or
-vault write /github/permissionset/demo-set repository_ids=69857131 \
+vault write /github/permissionset/demo-set \
+	repositories=demo-repo \
+	repository_ids=123 \
+	repository_ids=456 \
 	permissions=pull_requests=read \
 	permissions=metadata=read
 
@@ -438,6 +480,7 @@ vault read /github/token/demo-set
 # Delete an existing permission set.
 vault delete /github/token/demo-set
 #+END_SRC
+
 ** Config
 General CRUD operations against the configuration of the plugin.
 
@@ -524,8 +567,9 @@ make integration test
 
 # Run unit and acceptance tests, integrating against a local Vault and the real
 # GitHub API against your own GitHub App installation (you can also run these
-# tests against a GitHub Enterprise deployment).
-# NOTE: This test configuration will create real tokens.
+# tests against a GitHub Enterprise deployment). Setting `BASE_URL` causes the
+# tests to call against a real API.
+# NOTE: Keep in mind this test configuration will create real tokens.
 make integration test \
     BASE_URL=https://api.github.com \
     INS_ID=<installation_id> \

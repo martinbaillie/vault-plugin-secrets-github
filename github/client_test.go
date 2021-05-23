@@ -17,9 +17,11 @@ import (
 )
 
 const (
-	testRepoID1 = 82455030
-	testRepoID2 = 69857131
-	testToken   = "v1.68d5ad1bb7d25ef98b6a6519a38e0ff559725827"
+	testRepo1   = "vault-plugin-secrets-github"
+	testRepo2   = "hashitalkaunz"
+	testRepoID1 = 223704264
+	testRepoID2 = 360447594
+	testToken   = "ghs_1aRGyjpfMQ98l0rnji5dstEEg10rOY3lenzG"
 )
 
 var (
@@ -133,6 +135,7 @@ func TestClient_Token(t *testing.T) {
 			name: "HappyPathWithTokenConstraints",
 			ctx:  context.Background(),
 			opts: &tokenOptions{
+				Repositories:  []string{testRepo1, testRepo2},
 				RepositoryIDs: []int{testRepoID1, testRepoID2},
 				Permissions:   testPerms,
 			},
@@ -147,6 +150,7 @@ func TestClient_Token(t *testing.T) {
 				assert.NilError(t, json.NewDecoder(r.Body).Decode(&reqBody))
 				assert.Assert(t, is.Contains(reqBody, keyPerms))
 				assert.Assert(t, is.Contains(reqBody, keyRepoIDs))
+				assert.Assert(t, is.Contains(reqBody, keyRepos))
 
 				w.Header().Set("Content-Type", "application/json")
 				body, _ := json.Marshal(map[string]interface{}{
@@ -154,8 +158,8 @@ func TestClient_Token(t *testing.T) {
 					"expires_at":  testTokenExp,
 					"permissions": testPerms,
 					"repositories": []map[string]interface{}{
-						{"id": testRepoID1},
-						{"id": testRepoID2},
+						{"id": testRepoID1, "name": testRepo1},
+						{"id": testRepoID2, "name": testRepo2},
 					},
 				})
 				w.WriteHeader(http.StatusCreated)
@@ -167,8 +171,8 @@ func TestClient_Token(t *testing.T) {
 					"expires_at":  testTokenExp,
 					"permissions": testPerms,
 					"repositories": []map[string]interface{}{
-						{"id": testRepoID1},
-						{"id": testRepoID2},
+						{"id": testRepoID1, "name": testRepo1},
+						{"id": testRepoID2, "name": testRepo2},
 					},
 				},
 			},

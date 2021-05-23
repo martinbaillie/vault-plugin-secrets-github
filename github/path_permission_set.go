@@ -18,13 +18,19 @@ const pathPatternPermissionSet = "permissionset"
 const pathPatternPermissionSets = "permissionsets"
 
 const (
-	pathPermissionSetHelpSyn  = `Read/write GitHub permission sets for Github access tokens.`
+	pathPermissionSetHelpSyn  = `Read/write GitHub permission sets for GitHub access tokens.`
 	pathPermissionSetHelpDesc = `
 This path allows you create permission sets which automatically bind sets of permissions to returned
 GitHub access tokens. Access tokens generated under a permission set subpath will have the given set
-of permission on GitHub. The specified binding file accepts JSON string with the following format:
+of permission on GitHub. The following is a sample payload:
 
 {
+	"repositories": [
+		"test-repo",
+		"demo-repo",
+		"fubar",
+		..opts.
+	]
 	"repository_ids": [
 		123,
 		456,
@@ -106,6 +112,10 @@ func (b *backend) pathPermissionSet() *framework.Path {
 				Type:        framework.TypeString,
 				Description: "Required. Name of the permission set.",
 			},
+			keyRepos: {
+				Type:        framework.TypeCommaStringSlice,
+				Description: descRepos,
+			},
 			keyRepoIDs: {
 				Type:        framework.TypeCommaIntSlice,
 				Description: descRepoIDs,
@@ -163,6 +173,7 @@ func (b *backend) pathPermissionSetRead(
 	}
 
 	data := map[string]interface{}{
+		keyRepos:   ps.TokenOptions.Repositories,
 		keyRepoIDs: ps.TokenOptions.RepositoryIDs,
 		keyPerms:   ps.TokenOptions.Permissions,
 	}
@@ -217,6 +228,10 @@ func (b *backend) pathPermissionSetCreateUpdate(
 
 	if repoIDs, ok := d.GetOk(keyRepoIDs); ok {
 		ps.TokenOptions.RepositoryIDs = repoIDs.([]int)
+	}
+
+	if repos, ok := d.GetOk(keyRepos); ok {
+		ps.TokenOptions.Repositories = repos.([]string)
 	}
 
 	// Save permissions set

@@ -68,14 +68,17 @@ func TestIntegration(t *testing.T) {
 				var reqBody map[string]interface{}
 				assert.NilError(t, json.NewDecoder(r.Body).Decode(&reqBody))
 				_, reqHasPerms := reqBody[keyPerms]
-				_, reqHasRepos := reqBody[keyRepoIDs]
-				retPermsRepos := reqHasPerms && reqHasRepos
+				_, reqHasRepoIDs := reqBody[keyRepoIDs]
+				_, reqHasRepos := reqBody[keyRepos]
+				retPermsRepos := reqHasPerms && reqHasRepoIDs && reqHasRepos
 				if retPermsRepos {
 					// Ensure GitHub would have received the constraints sent.
 					reqPerms := reqBody[keyPerms].(map[string]interface{})
 					assert.Equal(t, len(reqPerms), len(testPerms))
 					reqRepoIDs := reqBody[keyRepoIDs].([]interface{})
 					assert.Equal(t, len(reqRepoIDs), 2)
+					reqRepos := reqBody[keyRepos].([]interface{})
+					assert.Equal(t, len(reqRepos), 2)
 				}
 
 				var resBody []byte
@@ -85,8 +88,8 @@ func TestIntegration(t *testing.T) {
 						"expires_at":  testTokenExp,
 						"permissions": testPerms,
 						"repositories": []map[string]interface{}{
-							{"id": testRepoID1},
-							{"id": testRepoID2},
+							{"id": testRepoID1, "name": testRepo1},
+							{"id": testRepoID2, "name": testRepo2},
 						},
 					})
 				} else {
@@ -249,6 +252,7 @@ func testWritePermissionSet(t *testing.T) {
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s/test-set", pathPatternPermissionSet),
 		map[string]interface{}{
+			keyRepos:   []string{testRepo1, testRepo2},
 			keyRepoIDs: []int{testRepoID1, testRepoID2},
 			keyPerms:   testPerms,
 		},
@@ -276,6 +280,11 @@ func testReadPermissionSet(t *testing.T) {
 	assert.Assert(t, is.Contains(resBody, "data"))
 
 	resData := resBody["data"].(map[string]interface{})
+
+	repos := resData[keyRepos].([]interface{})
+	assert.Equal(t, len(repos), 2)
+	assert.Equal(t, repos[0], testRepo1)
+	assert.Equal(t, repos[1], testRepo2)
 
 	repoIds := resData[keyRepoIDs].([]interface{})
 	assert.Equal(t, len(repoIds), 2)
@@ -393,6 +402,7 @@ func testCreateTokenWithConstraints(t *testing.T) {
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s", pathPatternToken),
 		map[string]interface{}{
+			keyRepos:   []string{testRepo1, testRepo2},
 			keyRepoIDs: []int{testRepoID1, testRepoID2},
 			keyPerms:   testPerms,
 		},
@@ -405,6 +415,8 @@ func testCreateTokenWithConstraints(t *testing.T) {
 	err = json.NewDecoder(res.Body).Decode(&resBody)
 	assert.NilError(t, err)
 	assert.Assert(t, is.Contains(resBody, "data"))
+
+	t.Logf("HIYA %+v\n", resBody)
 
 	resData := resBody["data"].(map[string]interface{})
 	if githubAPIStubbed {

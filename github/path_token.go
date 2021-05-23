@@ -17,7 +17,9 @@ const pathPatternToken = "token"
 
 const (
 	// NOTE: keys match GitHub installation permissions for ease of marshalling.
-	// https://godoc.org/github.com/google/go-github/github#InstallationPermissions
+	// SEE: https://git.io/JsQ7n
+	keyRepos    = "repositories"
+	descRepos   = "The repository names that the token should have access to"
 	keyRepoIDs  = "repository_ids"
 	descRepoIDs = "The IDs of the repositories that the token can access."
 	keyPerms    = "permissions"
@@ -32,17 +34,24 @@ var pathTokenHelpDesc = fmt.Sprintf(`
 Create and return a token using the GitHub secrets plugin, optionally
 constrained by the above parameters.
 
+NOTE: '%s' is a slice of repository names.
+These must be the short names of repositories under the organisation.
+
 NOTE: '%s' is a slice of repository IDs.
 The quickest way to find a repository ID: https://stackoverflow.com/a/47223479
 
 NOTE: '%s' is a map of permission names to their access type (read or write).
 Permission names taken from: https://developer.github.com/v3/apps/permissions
-`, keyRepoIDs, keyPerms)
+`, keyRepos, keyRepoIDs, keyPerms)
 
 func (b *backend) pathToken() *framework.Path {
 	return &framework.Path{
 		Pattern: pathPatternToken,
 		Fields: map[string]*framework.FieldSchema{
+			keyRepos: {
+				Type:        framework.TypeCommaStringSlice,
+				Description: descRepos,
+			},
 			keyRepoIDs: {
 				Type:        framework.TypeCommaIntSlice,
 				Description: descRepoIDs,
@@ -94,6 +103,10 @@ func (b *backend) pathTokenWrite(
 		opts.RepositoryIDs = repoIDs.([]int)
 	}
 
+	if repos, ok := d.GetOk(keyRepos); ok {
+		opts.Repositories = repos.([]string)
+	}
+
 	// Instrument and log the token API call, recording status, duration and
 	// whether any constraints (permissions, repository IDs) were requested.
 	defer func(begin time.Time) {
@@ -103,11 +116,13 @@ func (b *backend) pathTokenWrite(
 			"err", err,
 			"permissions", opts.Permissions,
 			"repository_ids", fmt.Sprint(opts.RepositoryIDs),
+			"repositories", fmt.Sprint(opts.Repositories),
 		)
 		requestDuration.With(prometheus.Labels{
 			"success":  strconv.FormatBool(err == nil),
 			keyPerms:   strconv.FormatBool(len(opts.Permissions) > 0),
 			keyRepoIDs: strconv.FormatBool(len(opts.RepositoryIDs) > 0),
+			keyRepos:   strconv.FormatBool(len(opts.Repositories) > 0),
 		}).Observe(duration.Seconds())
 	}(time.Now())
 

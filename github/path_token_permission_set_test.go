@@ -54,18 +54,19 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 		})
 		assert.NilError(t, err)
 
-		r, err := b.HandleRequest(context.Background(), &logical.Request{
+		_, err = b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
-			Path:      fmt.Sprintf("permissionset/foo"),
+			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
+				keyRepos:   []string{testRepo1, testRepo2},
 				keyRepoIDs: []int{testRepoID1, testRepoID2},
 				keyPerms:   testPerms,
 			},
 		})
 		assert.NilError(t, err)
 
-		r, err = b.HandleRequest(context.Background(), &logical.Request{
+		r, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
 			Path:      fmt.Sprintf("%s/foo", pathPatternToken),

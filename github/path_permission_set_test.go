@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/vault/sdk/logical"
@@ -61,8 +60,9 @@ func testBackendPathPermissionSetWrite(t *testing.T, op logical.Operation) {
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
-			Path:      fmt.Sprintf("permissionset/foo"),
+			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
+				keyRepos:   []string{testRepo1, testRepo2},
 				keyRepoIDs: []int{testRepoID1, testRepoID2},
 				keyPerms:   testPerms,
 			},
@@ -77,8 +77,9 @@ func testBackendPathPermissionSetWrite(t *testing.T, op logical.Operation) {
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
-			Path:      fmt.Sprintf("permissionset/foo"),
+			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
+				keyRepos:   []string{testRepo1, testRepo2},
 				keyRepoIDs: []int{testRepoID1, testRepoID2},
 				keyPerms:   testPerms,
 			},
@@ -89,8 +90,9 @@ func testBackendPathPermissionSetWrite(t *testing.T, op logical.Operation) {
 		_, err = b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
-			Path:      fmt.Sprintf("permissionset/foo"),
+			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
+				keyRepos:   []string{testRepo1, testRepo2},
 				keyRepoIDs: []int{testRepoID1, testRepoID2},
 				keyPerms:   testPerms,
 			},
@@ -110,8 +112,9 @@ func testBackendPathPermissionSetDelete(t *testing.T, op logical.Operation) {
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: logical.CreateOperation,
-			Path:      fmt.Sprintf("permissionset/foo"),
+			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
+				keyRepos:   []string{testRepo1, testRepo2},
 				keyRepoIDs: []int{testRepoID1, testRepoID2},
 				keyPerms:   testPerms,
 			},
@@ -121,7 +124,7 @@ func testBackendPathPermissionSetDelete(t *testing.T, op logical.Operation) {
 		_, err = b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
-			Path:      fmt.Sprintf("permissionset/foo"),
+			Path:      "permissionset/foo",
 			Data:      map[string]interface{}{},
 		})
 		assert.NilError(t, err)
@@ -135,7 +138,7 @@ func testBackendPathPermissionSetDelete(t *testing.T, op logical.Operation) {
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
-			Path:      fmt.Sprintf("permissionset/doensnt-exist"),
+			Path:      "permissionset/doensnt-exist",
 			Data:      map[string]interface{}{},
 		})
 		assert.NilError(t, err)
@@ -148,7 +151,7 @@ func testBackendPathPermissionSetDelete(t *testing.T, op logical.Operation) {
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
-			Path:      fmt.Sprintf("permissionset/foo"),
+			Path:      "permissionset/foo",
 			Data:      map[string]interface{}{},
 		})
 		assert.Assert(t, err != nil)
@@ -158,7 +161,7 @@ func testBackendPathPermissionSetDelete(t *testing.T, op logical.Operation) {
 		_, err = b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
-			Path:      fmt.Sprintf("permissionset/foo"),
+			Path:      "permissionset/foo",
 			Data:      map[string]interface{}{},
 		})
 		assert.Assert(t, err != nil)
@@ -176,8 +179,9 @@ func testBackendPathPermissionSetRead(t *testing.T, op logical.Operation) {
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: logical.CreateOperation,
-			Path:      fmt.Sprintf("permissionset/foo"),
+			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
+				keyRepos:   []string{testRepo1, testRepo2},
 				keyRepoIDs: []int{testRepoID1, testRepoID2},
 				keyPerms:   testPerms,
 			},
@@ -187,14 +191,16 @@ func testBackendPathPermissionSetRead(t *testing.T, op logical.Operation) {
 		r, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
-			Path:      fmt.Sprintf("permissionset/foo"),
+			Path:      "permissionset/foo",
 			Data:      map[string]interface{}{},
 		})
 		assert.NilError(t, err)
 		permData := r.Data[keyPerms].(map[string]string)
-		repoData := r.Data[keyRepoIDs].([]int)
+		repoIDData := r.Data[keyRepoIDs].([]int)
+		repoData := r.Data[keyRepos].([]string)
 		assert.DeepEqual(t, permData, testPerms)
-		assert.DeepEqual(t, repoData, []int{testRepoID1, testRepoID2})
+		assert.DeepEqual(t, repoIDData, []int{testRepoID1, testRepoID2})
+		assert.DeepEqual(t, repoData, []string{testRepo1, testRepo2})
 	})
 
 	t.Run("NonExistenceCheck", func(t *testing.T) {
@@ -205,7 +211,7 @@ func testBackendPathPermissionSetRead(t *testing.T, op logical.Operation) {
 		r, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
-			Path:      fmt.Sprintf("permissionset/bar"),
+			Path:      "permissionset/bar",
 			Data:      map[string]interface{}{},
 		})
 		assert.NilError(t, err)
@@ -220,7 +226,7 @@ func testBackendPathPermissionSetRead(t *testing.T, op logical.Operation) {
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
-			Path:      fmt.Sprintf("permissionset/bar"),
+			Path:      "permissionset/bar",
 			Data:      map[string]interface{}{},
 		})
 		assert.Assert(t, err != nil)
@@ -238,8 +244,9 @@ func testBackendPathPermissionSetList(t *testing.T, op logical.Operation) {
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: logical.CreateOperation,
-			Path:      fmt.Sprintf("permissionset/foo"),
+			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
+				keyRepos:   []string{testRepo1, testRepo2},
 				keyRepoIDs: []int{testRepoID1, testRepoID2},
 				keyPerms:   testPerms,
 			},
@@ -249,7 +256,7 @@ func testBackendPathPermissionSetList(t *testing.T, op logical.Operation) {
 		r, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
-			Path:      fmt.Sprintf("permissionsets/"),
+			Path:      "permissionsets/",
 			Data:      map[string]interface{}{},
 		})
 		assert.NilError(t, err)
@@ -263,8 +270,9 @@ func testBackendPathPermissionSetList(t *testing.T, op logical.Operation) {
 		_, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: logical.CreateOperation,
-			Path:      fmt.Sprintf("permissionset/foo"),
+			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
+				keyRepos:   []string{testRepo1, testRepo2},
 				keyRepoIDs: []int{testRepoID1, testRepoID2},
 				keyPerms:   testPerms,
 			},
@@ -274,7 +282,7 @@ func testBackendPathPermissionSetList(t *testing.T, op logical.Operation) {
 		_, err = b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: op,
-			Path:      fmt.Sprintf("permissionsets/"),
+			Path:      "permissionsets/",
 			Data:      map[string]interface{}{},
 		})
 		assert.Assert(t, err != nil)

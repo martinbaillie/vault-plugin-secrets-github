@@ -39,7 +39,7 @@ var requestDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 	Name:       fmt.Sprintf("%s_request_duration_seconds", prefixMetrics),
 	Help:       "Total duration of Vault GitHub token requests in seconds.",
 	Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
-}, []string{"success", keyPerms, keyRepoIDs})
+}, []string{"success", keyPerms, keyRepoIDs, keyRepos})
 
 // revokeDuration records useful metric data about backend token revocations.
 var revokeDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{

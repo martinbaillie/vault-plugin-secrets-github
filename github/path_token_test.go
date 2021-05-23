@@ -59,6 +59,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Operation: op,
 			Path:      pathPatternToken,
 			Data: map[string]interface{}{
+				keyRepos:   []string{testRepo1, testRepo2},
 				keyRepoIDs: []int{testRepoID1, testRepoID2},
 				keyPerms:   testPerms,
 			},
@@ -106,6 +107,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Operation: op,
 			Path:      pathPatternToken,
 			Data: map[string]interface{}{
+				keyRepos:   "not a string slice",
 				keyRepoIDs: "not an int slice",
 				keyPerms:   "not a map of string to string",
 			},
