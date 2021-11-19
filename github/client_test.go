@@ -25,7 +25,7 @@ const (
 )
 
 var (
-	testPath     = fmt.Sprintf("app/installations/%v/access_tokens", testInsID1)
+	testPath     = fmt.Sprintf("app/installations/%v/access_tokens", testOrgName1)
 	testTokenExp = time.Now().Add(time.Minute * 10).Format(time.RFC3339)
 	testPerms    = map[string]string{
 		"deployments":   "read",
@@ -50,7 +50,7 @@ func TestNewClient(t *testing.T) {
 			name: "HappyPath",
 			conf: &Config{
 				AppID:   testAppID1,
-				InsID:   testInsID1,
+				OrgName: testOrgName1,
 				PrvKey:  testPrvKeyValid,
 				BaseURL: testBaseURLValid,
 			},
@@ -59,9 +59,9 @@ func TestNewClient(t *testing.T) {
 		{
 			name: "InvalidPrvKey",
 			conf: &Config{
-				AppID:  testAppID1,
-				InsID:  testInsID1,
-				PrvKey: "not a valid private key",
+				AppID:   testAppID1,
+				OrgName: testOrgName1,
+				PrvKey:  "not a valid private key",
 			},
 			err: errors.New("private key"),
 		},
@@ -69,7 +69,7 @@ func TestNewClient(t *testing.T) {
 			name: "InvalidBaseURL",
 			conf: &Config{
 				AppID:   testAppID1,
-				InsID:   testInsID1,
+				OrgName: testOrgName1,
 				PrvKey:  testPrvKeyValid,
 				BaseURL: testBaseURLInvalid,
 			},
@@ -122,7 +122,7 @@ func TestClient_Token(t *testing.T) {
 					"expires_at": testTokenExp,
 				})
 				w.WriteHeader(http.StatusCreated)
-				w.Write(body)
+				_, _ = w.Write(body)
 			}),
 			res: &logical.Response{
 				Data: map[string]interface{}{
@@ -163,7 +163,7 @@ func TestClient_Token(t *testing.T) {
 					},
 				})
 				w.WriteHeader(http.StatusCreated)
-				w.Write(body)
+				_, _ = w.Write(body)
 			}),
 			res: &logical.Response{
 				Data: map[string]interface{}{
@@ -226,7 +226,7 @@ func TestClient_Token(t *testing.T) {
 
 			client, err := NewClient(&Config{
 				AppID:   testAppID1,
-				InsID:   testInsID1,
+				OrgName: testOrgName1,
 				PrvKey:  testPrvKeyValid,
 				BaseURL: ts.URL,
 			})
@@ -326,7 +326,7 @@ func TestClient_RevokeToken(t *testing.T) {
 
 			client, err := NewClient(&Config{
 				AppID:   testAppID1,
-				InsID:   testInsID1,
+				OrgName: testOrgName1,
 				PrvKey:  testPrvKeyValid,
 				BaseURL: ts.URL,
 			})

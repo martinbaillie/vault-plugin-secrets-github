@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/golang-jwt/jwt/v4"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -53,6 +55,7 @@ func NewClient(config *Config) (c *Client, err error) {
 	}
 
 	c = &Client{
+		Config:              config,
 		revocationTransport: http.DefaultTransport,
 	}
 
@@ -65,9 +68,8 @@ func NewClient(config *Config) (c *Client, err error) {
 	}
 
 	if c.url, err = url.ParseRequestURI(fmt.Sprintf(
-		"%s/app/installations/%v/access_tokens",
+		"%s/app/installations/",
 		strings.TrimSuffix(fmt.Sprint(config.BaseURL), "/"),
-		config.InsID,
 	)); err != nil {
 		return nil, err
 	}
@@ -119,6 +121,11 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 		}
 	}
 
+	_, err := c.getInstallationID(ctx, 120)
+	if err != nil {
+		return nil, err
+	}
+
 	// Build the token request.
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url.String(), body)
 	if err != nil {
@@ -137,7 +144,9 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 		return nil, fmt.Errorf("%w: RoundTrip error: %v", errUnableToCreateAccessToken, err)
 	}
 
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
 	if statusCode(res.StatusCode).Unsuccessful() {
 		bodyBytes, err := ioutil.ReadAll(res.Body)
@@ -177,6 +186,37 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 	return tokenRes, nil
 }
 
+func (c *Client) getInstallationID(ctx context.Context, expiry int) (*http.Response, error) {
+	expires := jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(expiry)))
+	issuedAt := jwt.NewNumericDate(time.Now().Add(time.Second * -10))
+	claims := &jwt.RegisteredClaims{
+		ExpiresAt: expires,
+		IssuedAt:  issuedAt,
+		Issuer:    strconv.Itoa(c.AppID),
+	}
+	signKey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(c.PrvKey))
+	if err != nil {
+		return nil, err
+	}
+	signedToken, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(signKey)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.url.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", signedToken))
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 // RevokeToken takes a valid access token and performs a revocation against
 // GitHub's APIs. If there are any failures on the wire or parsing request
 // and response object, an error is returned.
@@ -196,7 +236,9 @@ func (c *Client) RevokeToken(ctx context.Context, token string) (*logical.Respon
 		return nil, fmt.Errorf("%w: RoundTrip error: %v", errUnableToRevokeAccessToken, err)
 	}
 
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
 	if !statusCode(res.StatusCode).Revoked() {
 		bodyBytes, err := ioutil.ReadAll(res.Body)

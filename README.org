@@ -271,7 +271,7 @@ plugin.
 
    #+BEGIN_SRC shell
     # Write the configuration.
-    vault write /github/config app_id=<app_id> ins_id=<installation_id> prv_key=@<private_key_file>
+    vault write /github/config app_id=<app_id> org_name=<organization_name> prv_key=@<private_key_file>
 
     # (OPTIONAL) Confirm the configuration landed as you expected.
     vault read /github/config
@@ -493,14 +493,14 @@ General CRUD operations against the configuration of the plugin.
 
 *** Parameters
 - =app_id= (int64) — the Application ID of the GitHub App.
-- =ins_id= (int64) — the Installation ID of the GitHub App installation.
+- =org_name= (string) — the Organization Name.
 - =private_key= (string) — a private key configured in the GitHub App. This private key must be in PEM PKCS#1 RSAPrivateKey format. It is not returned with read requests for security reasons.
 - =base_url= (string) — the base URL for API requests (defaults to the public GitHub API).
 
 *** Examples
 #+BEGIN_SRC shell
 # Write the plugin configuration using the default base URL and reading the key from a file.
-vault write /github/config app_id=123 ins_id=456 prv_key=@key.pem
+vault write /github/config app_id=123 org_name="bla-bla" prv_key=@key.pem
 
 # Read the plugin configuration.
 vault read /github/config
@@ -572,7 +572,7 @@ make integration test
 # NOTE: Keep in mind this test configuration will create real tokens.
 make integration test \
     BASE_URL=https://api.github.com \
-    INS_ID=<installation_id> \
+    ORG_NAME=<org_name> \
     APP_ID=<app_id> \
     PRV_KEY="$(cat <path_to_app_private_key>)"
 #+END_SRC

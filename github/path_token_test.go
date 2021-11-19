@@ -36,7 +36,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 					"expires_at": testTokenExp,
 				})
 				w.WriteHeader(http.StatusCreated)
-				w.Write(body)
+				_, _ = w.Write(body)
 			}),
 		)
 		defer ts.Close()
@@ -47,7 +47,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
+				keyOrgName: testOrgName1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
 			},
@@ -95,9 +95,9 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Operation: logical.CreateOperation,
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
-				keyAppID:  testAppID1,
-				keyInsID:  testInsID1,
-				keyPrvKey: testPrvKeyValid,
+				keyAppID:   testAppID1,
+				keyOrgName: testOrgName1,
+				keyPrvKey:  testPrvKeyValid,
 			},
 		})
 		assert.NilError(t, err)
@@ -135,7 +135,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
+				keyOrgName: testOrgName1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
 			},

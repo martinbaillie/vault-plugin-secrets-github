@@ -13,8 +13,8 @@ import (
 const (
 	testAppID1      = 45793
 	testAppID2      = 45794
-	testInsID1      = 5018415
-	testInsID2      = 5018416
+	testOrgName1    = "bla-bla1"
+	testOrgName2    = "bla-bla2"
 	testPrvKeyValid = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAvPdtXHe2CjNgCZbjpPGT9tkOloOvEfrqQhW5uGq2vRepdMWE
 rrV0CtcIk6kYRPfW9D8+XZfI7YBnW2uy/CqTUVWqVfnz70uOzurmOAeYOVzwQtHB
@@ -96,14 +96,14 @@ func TestConfig_Update(t *testing.T) {
 			},
 			exp: &Config{
 				AppID:   testAppID2,
-				InsID:   testInsID1,
+				OrgName: testOrgName2,
 				PrvKey:  testPrvKeyValid,
 				BaseURL: testBaseURLValid,
 			},
 			data: &framework.FieldData{
 				Raw: map[string]interface{}{
 					keyAppID:   testAppID2,
-					keyInsID:   testInsID1,
+					keyOrgName: testOrgName2,
 					keyPrvKey:  testPrvKeyValid,
 					keyBaseURL: testBaseURLValid,
 				},

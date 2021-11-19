@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 	"gotest.tools/assert"
 
-	hclog "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-hclog"
 	is "gotest.tools/assert/cmp"
 )
 
@@ -103,11 +103,11 @@ func TestBackend_Config(t *testing.T) {
 		},
 		{
 			name: "HappyPath",
-			new: []byte(fmt.Sprintf(`{"%s":%d, "%s":%d}`,
-				keyAppID, testAppID1, keyInsID, testInsID1)),
+			new: []byte(fmt.Sprintf(`{"%s":%d, "%s":%s}`,
+				keyAppID, testAppID1, keyOrgName, testOrgName1)),
 			exp: &Config{
 				AppID:   testAppID1,
-				InsID:   testInsID1,
+				OrgName: testOrgName1,
 				BaseURL: githubPublicAPI,
 			},
 		},
@@ -159,7 +159,7 @@ func TestBackend_Client(t *testing.T) {
 
 		entry, err := logical.StorageEntryJSON(pathPatternConfig, &Config{
 			AppID:   testAppID1,
-			InsID:   testInsID1,
+			OrgName: testOrgName1,
 			PrvKey:  testPrvKeyValid,
 			BaseURL: testBaseURLValid,
 		})
@@ -193,7 +193,7 @@ func TestBackend_Client(t *testing.T) {
 
 		entry, err := logical.StorageEntryJSON(pathPatternConfig, &Config{
 			AppID:   testAppID1,
-			InsID:   testInsID1,
+			OrgName: testOrgName1,
 			PrvKey:  testPrvKeyValid,
 			BaseURL: testBaseURLValid,
 		})

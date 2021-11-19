@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package github
@@ -29,7 +30,7 @@ var (
 
 	// Overridable GitHub App configuration.
 	appID   = envIntOrDefault(keyAppID, testAppID1)
-	insID   = envIntOrDefault(keyInsID, testInsID1)
+	orgName = envIntOrDefault(keyOrgName, testOrgName1)
 	prvKey  = envStrOrDefault(keyPrvKey, testPrvKeyValid)
 	baseURL = envStrOrDefault(keyBaseURL, "")
 
@@ -61,7 +62,7 @@ func TestIntegration(t *testing.T) {
 					return
 				}
 
-				// Otherwise handle creation requests.
+				// Otherwise, handle creation requests.
 
 				// If there's body content then the request has been constrained
 				// by repository IDs and permissions.
@@ -199,7 +200,7 @@ func TestIntegration(t *testing.T) {
 		// Ensure default values post-delete.
 		resData := resBody["data"].(map[string]interface{})
 		assert.Equal(t, resData[keyAppID], 0.0)
-		assert.Equal(t, resData[keyInsID], 0.0)
+		assert.Equal(t, resData[keyOrgName], 0.0)
 		assert.Equal(t, resData[keyBaseURL], githubPublicAPI)
 	})
 }
@@ -212,7 +213,7 @@ func testWriteConfig(t *testing.T) {
 		fmt.Sprintf("/v1/github/%s", pathPatternConfig),
 		map[string]interface{}{
 			keyAppID:   appID,
-			keyInsID:   insID,
+			keyOrgName: orgName,
 			keyPrvKey:  prvKey,
 			keyBaseURL: baseURL,
 		},
@@ -241,7 +242,7 @@ func testReadConfig(t *testing.T) {
 
 	resData := resBody["data"].(map[string]interface{})
 	assert.Equal(t, resData[keyAppID], float64(appID))
-	assert.Equal(t, resData[keyInsID], float64(insID))
+	assert.Equal(t, resData[keyOrgName], float64(orgName))
 	assert.Equal(t, resData[keyBaseURL], baseURL)
 }
 

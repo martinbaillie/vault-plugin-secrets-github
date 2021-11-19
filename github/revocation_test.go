@@ -35,7 +35,7 @@ func TestBackend_Revoke(t *testing.T) {
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
+				keyOrgName: testOrgName1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
 			},
@@ -82,9 +82,9 @@ func TestBackend_Revoke(t *testing.T) {
 			Operation: logical.CreateOperation,
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
-				keyAppID:  testAppID1,
-				keyInsID:  testInsID1,
-				keyPrvKey: testPrvKeyValid,
+				keyAppID:   testAppID1,
+				keyOrgName: testOrgName1,
+				keyPrvKey:  testPrvKeyValid,
 			},
 		})
 		assert.NilError(t, err)
@@ -123,7 +123,7 @@ func TestBackend_Revoke(t *testing.T) {
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
+				keyOrgName: testOrgName1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
 			},
