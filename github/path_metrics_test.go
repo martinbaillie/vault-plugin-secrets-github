@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/expfmt"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestBackend_PathMetricsRead(t *testing.T) {

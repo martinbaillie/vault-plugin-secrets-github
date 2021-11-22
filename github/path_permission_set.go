@@ -9,15 +9,18 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-// pathPatternPermissionSet is the string used to define the base path of the permission set
-// endpoint as well as the storage path of the permission set objects.
-const pathPatternPermissionSet = "permissionset"
-
-// pathPatternPermissionSets is the string used to define the base path of the permission sets
-// endpoint.
-const pathPatternPermissionSets = "permissionsets"
-
 const (
+	keyName  = "name"
+	descName = "Required. Name of the permission set."
+
+	// pathPatternPermissionSet is the string used to define the base path of the permission set
+	// endpoint as well as the storage path of the permission set objects.
+	pathPatternPermissionSet = "permissionset"
+
+	// pathPatternPermissionSets is the string used to define the base path of the permission sets
+	// endpoint.
+	pathPatternPermissionSets = "permissionsets"
+
 	pathPermissionSetHelpSyn  = `Read/write GitHub permission sets for GitHub access tokens.`
 	pathPermissionSetHelpDesc = `
 This path allows you create permission sets which automatically bind sets of permissions to returned
@@ -108,9 +111,9 @@ func (b *backend) pathPermissionSet() *framework.Path {
 	return &framework.Path{
 		Pattern: fmt.Sprintf("permissionset/%s", framework.GenericNameRegex("name")),
 		Fields: map[string]*framework.FieldSchema{
-			"name": {
+			keyName: {
 				Type:        framework.TypeString,
-				Description: "Required. Name of the permission set.",
+				Description: descName,
 			},
 			keyRepos: {
 				Type:        framework.TypeCommaStringSlice,

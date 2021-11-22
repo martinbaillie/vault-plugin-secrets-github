@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/vault/sdk/logical"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 
-	is "gotest.tools/assert/cmp"
+	is "gotest.tools/v3/assert/cmp"
 )
 
 func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) {

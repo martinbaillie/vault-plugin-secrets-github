@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/vault/sdk/logical"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 
-	hclog "github.com/hashicorp/go-hclog"
-	is "gotest.tools/assert/cmp"
+	"github.com/hashicorp/go-hclog"
+	is "gotest.tools/v3/assert/cmp"
 )
 
 func TestFactory(t *testing.T) {

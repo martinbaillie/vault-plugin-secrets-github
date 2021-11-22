@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/vault/sdk/logical"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 
-	is "gotest.tools/assert/cmp"
+	is "gotest.tools/v3/assert/cmp"
 )
 
 const (
@@ -232,7 +232,7 @@ func TestClient_Token(t *testing.T) {
 			})
 			assert.NilError(t, err)
 
-			res, err := client.Token(tc.ctx, tc.opts)
+			res, err := client.Token(tc.ctx, tc.opts, "bla-bla")
 
 			if tc.err != nil {
 				assert.ErrorContains(t, err, tc.err.Error())

@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/prometheus/common/version"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestBackend_PathInfoRead(t *testing.T) {

@@ -18,6 +18,8 @@ const pathPatternToken = "token"
 const (
 	// NOTE: keys match GitHub installation permissions for ease of marshalling.
 	// SEE: https://git.io/JsQ7n
+	keyOrg      = "organization"
+	descOrg     = "The organization name that the token should have access to"
 	keyRepos    = "repositories"
 	descRepos   = "The repository names that the token should have access to"
 	keyRepoIDs  = "repository_ids"
@@ -48,6 +50,10 @@ func (b *backend) pathToken() *framework.Path {
 	return &framework.Path{
 		Pattern: pathPatternToken,
 		Fields: map[string]*framework.FieldSchema{
+			keyOrg: {
+				Type:        framework.TypeString,
+				Description: descOrg,
+			},
 			keyRepos: {
 				Type:        framework.TypeCommaStringSlice,
 				Description: descRepos,
@@ -127,5 +133,5 @@ func (b *backend) pathTokenWrite(
 	}(time.Now())
 
 	// Perform the token request.
-	return client.Token(ctx, opts)
+	return client.Token(ctx, opts, d.Get(keyOrg).(string))
 }

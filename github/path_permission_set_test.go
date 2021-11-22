@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/vault/sdk/logical"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func testBackendPermissionSet(t *testing.T) {

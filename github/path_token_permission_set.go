@@ -17,7 +17,7 @@ const pathTokenPermissionSetHelpSyn = `
 Create and return a token using the GitHub secrets plugin.
 `
 
-var pathTokenPermissinonSetHelpDesc = fmt.Sprintf(`
+var pathTokenPermissionSetHelpDesc = fmt.Sprintf(`
 Create and return a token using the GitHub secrets plugin, optionally
 constrained by the above parameters.
 
@@ -35,6 +35,10 @@ func (b *backend) pathTokenPermissionSet() *framework.Path {
 	return &framework.Path{
 		Pattern: fmt.Sprintf("%s/%s", pathPatternToken, framework.GenericNameRegex("permissionset")),
 		Fields: map[string]*framework.FieldSchema{
+			keyOrg: {
+				Type:        framework.TypeString,
+				Description: descOrg,
+			},
 			"permissionset": {
 				Type:        framework.TypeString,
 				Description: "Required. Name of the permission set.",
@@ -54,7 +58,7 @@ func (b *backend) pathTokenPermissionSet() *framework.Path {
 			},
 		},
 		HelpSynopsis:    pathTokenPermissionSetHelpSyn,
-		HelpDescription: pathTokenPermissinonSetHelpDesc,
+		HelpDescription: pathTokenPermissionSetHelpDesc,
 	}
 }
 
@@ -101,5 +105,5 @@ func (b *backend) pathTokenPermissionSetWrite(
 	}(time.Now())
 
 	// Perform the token request.
-	return client.Token(ctx, opts)
+	return client.Token(ctx, opts, d.Get(keyOrg).(string))
 }

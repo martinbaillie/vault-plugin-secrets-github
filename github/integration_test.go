@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package github
@@ -14,9 +15,9 @@ import (
 	"sync"
 	"testing"
 
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 
-	is "gotest.tools/assert/cmp"
+	is "gotest.tools/v3/assert/cmp"
 )
 
 // The number of requests to make to Vault during race testing.

@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/vault/sdk/framework"
 
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 const (

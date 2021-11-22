@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 // testFieldValidation is a helper that verifies the operation on the given path
