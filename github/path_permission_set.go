@@ -11,7 +11,7 @@ import (
 
 const (
 	keyName  = "name"
-	descName = "Required. Name of the permission set."
+	descName = "Name of the permission set."
 
 	// pathPatternPermissionSet is the string used to define the base path of the permission set
 	// endpoint as well as the storage path of the permission set objects.
@@ -114,6 +114,7 @@ func (b *backend) pathPermissionSet() *framework.Path {
 			keyName: {
 				Type:        framework.TypeString,
 				Description: descName,
+				Required:    true,
 			},
 			keyRepos: {
 				Type:        framework.TypeCommaStringSlice,

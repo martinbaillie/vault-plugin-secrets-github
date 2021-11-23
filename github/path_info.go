@@ -14,16 +14,16 @@ var (
 	projectDocs string
 )
 
-const pathPatternInfo = "info"
-
-const pathInfoHelpSyn = `
+const (
+	pathPatternInfo = "info"
+	pathInfoHelpSyn = `
 Display information about the GitHub secrets plugin.
 `
-
-const pathInfoHelpDesc = `
+	pathInfoHelpDesc = `
 Display information about the GitHub secrets plugin, such as the plugin version,
 VCS detail and where to get help.
 `
+)
 
 func (b *backend) pathInfo() *framework.Path {
 	return &framework.Path{

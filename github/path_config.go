@@ -8,17 +8,11 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-// pathPatternConfig is the string used to define the base path of the config
-// endpoint as well as the storage path of the config object.
-const pathPatternConfig = "config"
-
 const (
-	fmtErrConfMarshal = "failed to marshal configuration to JSON"
-	fmtErrConfPersist = "failed to persist configuration to storage"
-	fmtErrConfDelete  = "failed to delete configuration from storage"
-)
+	// pathPatternConfig is the string used to define the base path of the config
+	// endpoint as well as the storage path of the config object.
+	pathPatternConfig = "config"
 
-const (
 	keyAppID    = "app_id"
 	descAppID   = "Application ID of the GitHub App."
 	keyInsID    = "ins_id"
@@ -27,11 +21,15 @@ const (
 	descPrvKey  = "Private key for signing GitHub access token requests (JWTs)."
 	keyBaseURL  = "base_url"
 	descBaseURL = "Base URL for API requests (defaults to the public GitHub API)."
-)
 
-const pathConfigHelpSyn = `
+	fmtErrConfMarshal = "failed to marshal configuration to JSON"
+	fmtErrConfPersist = "failed to persist configuration to storage"
+	fmtErrConfDelete  = "failed to delete configuration from storage"
+
+	pathConfigHelpSyn = `
 Configure the GitHub secrets plugin.
 `
+)
 
 var pathConfigHelpDesc = fmt.Sprintf(`
 Configure the GitHub secrets plugin using the above parameters.
@@ -51,7 +49,6 @@ func (b *backend) pathConfig() *framework.Path {
 			keyInsID: {
 				Type:        framework.TypeInt,
 				Description: descInsID,
-				Required:    true,
 			},
 			keyPrvKey: {
 				Type:        framework.TypeString,

@@ -11,9 +11,9 @@ import (
 	"github.com/hashicorp/vault/sdk/framework"
 )
 
-const githubPublicAPI = "https://api.github.com"
-
 const (
+	githubPublicAPI = "https://api.github.com"
+
 	fmtErrUnableToParsePrvKey  = "unable to parse private key"
 	fmtErrUnableToParseBaseURL = "unable to parse base URL"
 )

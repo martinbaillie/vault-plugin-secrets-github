@@ -13,18 +13,18 @@ import (
 	"github.com/prometheus/common/version"
 )
 
-const prefixMetrics = "vault_github_token"
-
 const (
+	pathPatternMetrics = "metrics"
+
+	prefixMetrics = "vault_github_token"
+
 	fmtErrNoMetricsToDecode     = "no prometheus metrics could be decoded"
 	fmtErrFailedMetricsEncoding = "failed to encode metrics"
-)
 
-const pathPatternMetrics = "metrics"
-
-const pathMetricsHelpSyn = `
+	pathMetricsHelpSyn = `
 Display GitHub secrets plugin metrics in a Prometheus exposition format.
 `
+)
 
 var pathMetricsHelpDesc = fmt.Sprintf(`
 Display GitHub secrets plugin metrics in a Prometheus exposition format.

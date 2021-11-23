@@ -11,11 +11,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// pathPatternToken is the string used to define the base path of the token
-// endpoint.
-const pathPatternToken = "token"
-
 const (
+	// pathPatternToken is the string used to define the base path of the token
+	// endpoint.
+	pathPatternToken = "token"
+
 	// NOTE: keys match GitHub installation permissions for ease of marshalling.
 	// SEE: https://git.io/JsQ7n
 	keyOrg      = "organization"
@@ -26,11 +26,11 @@ const (
 	descRepoIDs = "The IDs of the repositories that the token can access."
 	keyPerms    = "permissions"
 	descPerms   = "The permissions granted to the token."
-)
 
-const pathTokenHelpSyn = `
+	pathTokenHelpSyn = `
 Create and return a token using the GitHub secrets plugin.
 `
+)
 
 var pathTokenHelpDesc = fmt.Sprintf(`
 Create and return a token using the GitHub secrets plugin, optionally

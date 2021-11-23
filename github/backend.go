@@ -12,13 +12,13 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-const backendHelp = `
+const (
+	backendHelp = `
 GitHub Apps Token Backend
 `
 
-const backendSecretType = "github_token"
+	backendSecretType = "github_token"
 
-const (
 	fmtErrConfRetrieval = "failed to get configuration from storage"
 	fmtErrConfUnmarshal = "failed to unmarshal configuration from JSON"
 	fmtErrClientCreate  = "failed to create an authenticated GitHub client"
