@@ -10,8 +10,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/golang-jwt/jwt/v4"
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/hashicorp/vault/sdk/logical"
@@ -64,10 +67,18 @@ func NewClient(config *Config) (c *Client, err error) {
 		return nil, err
 	}
 
+	insID := config.InsID
+	if config.OrgName != "" && insID == 0 {
+		insID, err = c.getInstallationID(config)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if c.url, err = url.ParseRequestURI(fmt.Sprintf(
 		"%s/app/installations/%v/access_tokens",
 		strings.TrimSuffix(fmt.Sprint(config.BaseURL), "/"),
-		config.InsID,
+		insID,
 	)); err != nil {
 		return nil, err
 	}
@@ -175,6 +186,69 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 	}
 
 	return tokenRes, nil
+}
+
+func (c *Client) getInstallationID(config *Config) (int, error) {
+	expires := jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(120)))
+	issuedAt := jwt.NewNumericDate(time.Now().Add(time.Second * -10))
+	claims := &jwt.RegisteredClaims{
+		ExpiresAt: expires,
+		IssuedAt:  issuedAt,
+		Issuer:    strconv.Itoa(config.AppID),
+	}
+	signKey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(config.PrvKey))
+	if err != nil {
+		return 0, err
+	}
+
+	instURL, err := url.ParseRequestURI(fmt.Sprintf(
+		"%s/app/installations",
+		strings.TrimSuffix(config.BaseURL, "/"),
+	))
+	if err != nil {
+		return 0, err
+	}
+	signedToken, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(signKey)
+	if err != nil {
+		return 0, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, instURL.String(), nil)
+	if err != nil {
+		return 0, err
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", signedToken))
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+
+	// Perform the request, re-using the shared transport.
+	res, err := c.transport.RoundTrip(req)
+	if err != nil {
+		return 0, fmt.Errorf("%w: RoundTrip error: %v", errUnableToCreateAccessToken, err)
+	}
+
+	defer res.Body.Close()
+
+	var instResult []installation
+	if err := json.NewDecoder(res.Body).Decode(&instResult); err != nil {
+		return 0, err
+	}
+
+	for _, v := range instResult {
+		if v.Account.Login == config.OrgName {
+			return v.ID, nil
+		}
+	}
+	return 0, fmt.Errorf("application wasn't installed in the organization")
+}
+
+type account struct {
+	Login string `json:"login"`
+}
+
+type installation struct {
+	ID      int     `json:"id"`
+	Account account `json:"account"`
 }
 
 // RevokeToken takes a valid access token and performs a revocation against

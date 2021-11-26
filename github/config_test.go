@@ -15,6 +15,8 @@ const (
 	testAppID2      = 45794
 	testInsID1      = 5018415
 	testInsID2      = 5018416
+	testOrgName1    = "test-1"
+	testOrgName2    = "test-2"
 	testPrvKeyValid = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAvPdtXHe2CjNgCZbjpPGT9tkOloOvEfrqQhW5uGq2vRepdMWE
 rrV0CtcIk6kYRPfW9D8+XZfI7YBnW2uy/CqTUVWqVfnz70uOzurmOAeYOVzwQtHB
