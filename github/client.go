@@ -14,9 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
-
 	"github.com/bradleyfalzon/ghinstallation"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
@@ -28,6 +27,7 @@ var (
 	errUnableToDecodeAccessTokenRes   = errors.New("unable to decode access token response")
 	errBody                           = errors.New("error body")
 	errClientConfigNil                = errors.New("client configuration was nil")
+	errNoAppInstalled                 = errors.New("application wasn't installed in the organization")
 )
 
 // Client encapsulates an HTTP client for talking to the configured GitHub App.
@@ -196,6 +196,7 @@ func (c *Client) getInstallationID(config *Config) (int, error) {
 		IssuedAt:  issuedAt,
 		Issuer:    strconv.Itoa(config.AppID),
 	}
+
 	signKey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(config.PrvKey))
 	if err != nil {
 		return 0, err
@@ -208,12 +209,13 @@ func (c *Client) getInstallationID(config *Config) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	signedToken, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(signKey)
 	if err != nil {
 		return 0, err
 	}
 
-	req, err := http.NewRequest(http.MethodGet, instURL.String(), nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, instURL.String(), nil)
 	if err != nil {
 		return 0, err
 	}
@@ -239,7 +241,8 @@ func (c *Client) getInstallationID(config *Config) (int, error) {
 			return v.ID, nil
 		}
 	}
-	return 0, fmt.Errorf("application wasn't installed in the organization")
+
+	return 0, errNoAppInstalled
 }
 
 type account struct {
