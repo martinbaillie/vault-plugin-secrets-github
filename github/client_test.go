@@ -75,6 +75,16 @@ func TestNewClient(t *testing.T) {
 			},
 			err: errors.New("parse"),
 		},
+		{
+			name: "OrgName",
+			conf: &Config{
+				AppID:   testAppID1,
+				OrgName: testOrgName1,
+				PrvKey:  testPrvKeyValid,
+				BaseURL: testBaseURLValid,
+			},
+			err: errors.New("integrations"),
+		},
 	}
 
 	for _, tc := range cases {

@@ -23,6 +23,7 @@ var (
 	errUnableToBuildAccessTokenReq    = errors.New("unable to build access token request")
 	errUnableToBuildAccessTokenRevReq = errors.New("unable to build access token revocation request")
 	errUnableToCreateAccessToken      = errors.New("unable to create access token")
+	errUnableToGetIntegrations        = errors.New("unable to get integrations")
 	errUnableToRevokeAccessToken      = errors.New("unable to revoke access token")
 	errUnableToDecodeAccessTokenRes   = errors.New("unable to decode access token response")
 	errBody                           = errors.New("error body")
@@ -226,10 +227,23 @@ func (c *Client) getInstallationID(config *Config) (int, error) {
 	// Perform the request, re-using the shared transport.
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {
-		return 0, fmt.Errorf("%w: RoundTrip error: %v", errUnableToCreateAccessToken, err)
+		return 0, fmt.Errorf("%w: RoundTrip error: %v", errUnableToGetIntegrations, err)
 	}
 
 	defer res.Body.Close()
+
+	if statusCode(res.StatusCode).Unsuccessful() {
+		bodyBytes, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return 0, fmt.Errorf("%w: %s: error reading error response body: %v",
+				errUnableToGetIntegrations, res.Status, err)
+		}
+
+		bodyErr := fmt.Errorf("%w: %v", errBody, string(bodyBytes))
+
+		return 0, fmt.Errorf("%w: %s: %v", errUnableToGetIntegrations,
+			res.Status, bodyErr)
+	}
 
 	var instResult []installation
 	if err := json.NewDecoder(res.Body).Decode(&instResult); err != nil {
