@@ -17,11 +17,12 @@ import (
 )
 
 const (
-	testRepo1   = "vault-plugin-secrets-github"
-	testRepo2   = "hashitalkaunz"
-	testRepoID1 = 223704264
-	testRepoID2 = 360447594
-	testToken   = "ghs_1aRGyjpfMQ98l0rnji5dstEEg10rOY3lenzG"
+	testRepo1    = "vault-plugin-secrets-github"
+	testRepo2    = "hashitalkaunz"
+	testRepoID1  = 223704264
+	testRepoID2  = 360447594
+	testToken    = "ghs_1aRGyjpfMQ98l0rnji5dstEEg10rOY3lenzG"
+	testJwtToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2Mzg3OTUwMTUsImlhdCI6MTYzODc5NDk1NSwiaXNzIjoiNDU3OTMifQ.BhZMsaNHCcjnzPZ5aim7mxI9ToRCbk-NfvH5Hys6BC1F9w_7to5jEW2I9BvDDtHjMQU47r8nLO1tY-ybYP9yAp5SStS9pLiQLpQp6iv7O9-wHpneAx1emU7DfcXDdMrig7xKhvITTdlWuipr5lE_ZiD-GvEicpu8fBf6JGYSPjKg7qR4Q-vcJbYDLuFz8nkH4HgkRlPCNaB2ynJ7RmPHYdvdMPY3bUwit9Dtn0p_0AXHIa9F8fM9_hPc9ayxKmV4X6o6dVjcQFx5PZ8eNjp4hyUU3pPVsf7LTarzwVPzOmyHNQp_i5j1grUAk_CSULmZ0VzmOxDmnnju0sgusUGEfA"
 )
 
 var (
@@ -351,6 +352,105 @@ func TestClient_RevokeToken(t *testing.T) {
 			}
 
 			assert.DeepEqual(t, res, tc.res)
+		})
+	}
+}
+
+func TestClient_Organization(t *testing.T) {
+	var cases = []struct {
+		name    string
+		handler http.HandlerFunc
+		ctx     context.Context
+		err     error
+	}{
+		{
+			name: "HappyPath",
+			ctx:  context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+
+				assert.Equal(t, r.Method, http.MethodGet)
+				assert.Equal(t, r.URL.Path, "/app/installations")
+				assert.Assert(t, r.Header.Get("Authorization") != "")
+
+				w.Header().Set("Content-Type", "application/json")
+				body, _ := json.Marshal([]map[string]interface{}{
+					{
+						"id": testInsID1,
+						"account": map[string]interface{}{
+							"login": testOrgName1,
+						},
+					},
+				})
+				w.WriteHeader(http.StatusOK)
+				w.Write(body)
+			}),
+		},
+		{
+			name: "ZeroPath",
+			ctx:  context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+
+				assert.Equal(t, r.Method, http.MethodGet)
+				assert.Equal(t, r.URL.Path, "/app/installations")
+				assert.Assert(t, r.Header.Get("Authorization") != "")
+
+				w.Header().Set("Content-Type", "application/json")
+				body, _ := json.Marshal([]map[string]interface{}{
+					{
+						"id": testInsID1,
+						"account": map[string]interface{}{
+							"login": testOrgName2,
+						},
+					},
+				})
+				w.WriteHeader(http.StatusOK)
+				w.Write(body)
+			}),
+			err: errors.New("application"),
+		},
+		{
+			name: "4xxResponse",
+			ctx:  context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+
+				w.WriteHeader(http.StatusUnprocessableEntity)
+			}),
+			err: errUnableToGetIntegrations,
+		},
+		{
+			name: "EmptyResponse",
+			ctx:  context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+				w.WriteHeader(http.StatusOK)
+			}),
+			err: errUnableToDecodeIntegrationRes,
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ts := httptest.NewServer(tc.handler)
+			defer ts.Close()
+
+			_, err := NewClient(&Config{
+				AppID:   testAppID1,
+				OrgName: testOrgName1,
+				PrvKey:  testPrvKeyValid,
+				BaseURL: ts.URL,
+			})
+
+			if tc.err != nil {
+				assert.ErrorContains(t, err, tc.err.Error())
+			} else {
+				assert.NilError(t, err)
+			}
 		})
 	}
 }

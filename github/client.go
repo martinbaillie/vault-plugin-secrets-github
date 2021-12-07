@@ -26,6 +26,7 @@ var (
 	errUnableToGetIntegrations        = errors.New("unable to get integrations")
 	errUnableToRevokeAccessToken      = errors.New("unable to revoke access token")
 	errUnableToDecodeAccessTokenRes   = errors.New("unable to decode access token response")
+	errUnableToDecodeIntegrationRes   = errors.New("unable to decode integrations response")
 	errBody                           = errors.New("error body")
 	errClientConfigNil                = errors.New("client configuration was nil")
 	errNoAppInstalled                 = errors.New("application wasn't installed in the organization")
@@ -247,7 +248,7 @@ func (c *Client) getInstallationID(config *Config) (int, error) {
 
 	var instResult []installation
 	if err := json.NewDecoder(res.Body).Decode(&instResult); err != nil {
-		return 0, err
+		return 0, errUnableToDecodeIntegrationRes
 	}
 
 	for _, v := range instResult {
