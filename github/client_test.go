@@ -410,16 +410,6 @@ func TestClient_Organization(t *testing.T) {
 			err: errors.New("application"),
 		},
 		{
-			name: "4xxResponse",
-			ctx:  context.Background(),
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				t.Helper()
-
-				w.WriteHeader(http.StatusUnprocessableEntity)
-			}),
-			err: errUnableToGetIntegrations,
-		},
-		{
 			name: "EmptyResponse",
 			ctx:  context.Background(),
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

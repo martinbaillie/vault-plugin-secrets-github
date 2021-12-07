@@ -248,7 +248,7 @@ func (c *Client) getInstallationID(config *Config) (int, error) {
 
 	var instResult []installation
 	if err := json.NewDecoder(res.Body).Decode(&instResult); err != nil {
-		return 0, errUnableToDecodeIntegrationRes
+		return 0, fmt.Errorf("%w: %v", errUnableToDecodeIntegrationRes, err)
 	}
 
 	for _, v := range instResult {
