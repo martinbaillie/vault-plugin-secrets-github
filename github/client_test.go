@@ -17,12 +17,11 @@ import (
 )
 
 const (
-	testRepo1    = "vault-plugin-secrets-github"
-	testRepo2    = "hashitalkaunz"
-	testRepoID1  = 223704264
-	testRepoID2  = 360447594
-	testToken    = "ghs_1aRGyjpfMQ98l0rnji5dstEEg10rOY3lenzG"
-	testJwtToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2Mzg3OTUwMTUsImlhdCI6MTYzODc5NDk1NSwiaXNzIjoiNDU3OTMifQ.BhZMsaNHCcjnzPZ5aim7mxI9ToRCbk-NfvH5Hys6BC1F9w_7to5jEW2I9BvDDtHjMQU47r8nLO1tY-ybYP9yAp5SStS9pLiQLpQp6iv7O9-wHpneAx1emU7DfcXDdMrig7xKhvITTdlWuipr5lE_ZiD-GvEicpu8fBf6JGYSPjKg7qR4Q-vcJbYDLuFz8nkH4HgkRlPCNaB2ynJ7RmPHYdvdMPY3bUwit9Dtn0p_0AXHIa9F8fM9_hPc9ayxKmV4X6o6dVjcQFx5PZ8eNjp4hyUU3pPVsf7LTarzwVPzOmyHNQp_i5j1grUAk_CSULmZ0VzmOxDmnnju0sgusUGEfA"
+	testRepo1   = "vault-plugin-secrets-github"
+	testRepo2   = "hashitalkaunz"
+	testRepoID1 = 223704264
+	testRepoID2 = 360447594
+	testToken   = "ghs_1aRGyjpfMQ98l0rnji5dstEEg10rOY3lenzG"
 )
 
 var (
