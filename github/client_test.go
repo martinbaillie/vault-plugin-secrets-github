@@ -203,6 +203,16 @@ func TestClient_Token(t *testing.T) {
 			err: errUnableToDecodeAccessTokenRes,
 		},
 		{
+			name: "ErrorInError",
+			ctx:  context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+				w.Header().Set("Content-Length", "1")
+				w.WriteHeader(http.StatusForbidden)
+			}),
+			err: errUnableToCreateAccessToken,
+		},
+		{
 			name: "EmptyResponse",
 			ctx:  context.Background(),
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -302,6 +312,16 @@ func TestClient_RevokeToken(t *testing.T) {
 			// against the configured Vault path.
 			name: "NilContext",
 			err:  errUnableToBuildAccessTokenRevReq,
+		},
+		{
+			name: "ErrorInError",
+			ctx:  context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+				w.Header().Set("Content-Length", "1")
+				w.WriteHeader(http.StatusForbidden)
+			}),
+			err: errUnableToRevokeAccessToken,
 		},
 		{
 			name: "401Response",
@@ -417,6 +437,16 @@ func TestClient_Organization(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 			}),
 			err: errUnableToDecodeIntegrationRes,
+		},
+		{
+			name: "ErrorInError",
+			ctx:  context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+				w.Header().Set("Content-Length", "1")
+				w.WriteHeader(http.StatusForbidden)
+			}),
+			err: errUnableToGetIntegrations,
 		},
 	}
 
