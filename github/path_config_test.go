@@ -112,40 +112,58 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 		assert.DeepEqual(t, testBaseURLValid, config.BaseURL)
 	})
 
-	t.Run("Exist", func(t *testing.T) {
-		t.Parallel()
+	tcConfig := map[string]map[string]interface{}{
+		"Installation": {
+			keyAppID:   testAppID2,
+			keyInsID:   testInsID2,
+			keyPrvKey:  testPrvKeyValid,
+			keyBaseURL: testBaseURLValid,
+		},
+		"Organization": {
+			keyAppID:   testAppID2,
+			keyOrgName: testOrgName2,
+			keyPrvKey:  testPrvKeyValid,
+			keyBaseURL: testBaseURLValid,
+		},
+	}
 
-		b, storage := testBackend(t)
+	for name, v := range tcConfig {
+		t.Run("Exist"+name, func(t *testing.T) {
+			t.Parallel()
 
-		entry, err := logical.StorageEntryJSON(pathPatternConfig, &Config{
-			AppID: testAppID1,
-			InsID: testInsID1,
+			b, storage := testBackend(t)
+
+			entry, err := logical.StorageEntryJSON(pathPatternConfig, &Config{
+				AppID:   testAppID1,
+				InsID:   testInsID1,
+				OrgName: testOrgName1,
+			})
+			assert.NilError(t, err)
+			assert.Assert(t, entry != nil)
+
+			assert.NilError(t, storage.Put(context.Background(), entry))
+
+			_, err = b.HandleRequest(context.Background(), &logical.Request{
+				Storage:   storage,
+				Operation: op,
+				Path:      pathPatternConfig,
+				Data:      v,
+			})
+			assert.NilError(t, err)
+
+			config, err := b.Config(context.Background(), storage)
+			assert.NilError(t, err)
+			assert.Assert(t, config != nil)
+			assert.Equal(t, testAppID2, config.AppID)
+			if name == "Installation" {
+				assert.Equal(t, testInsID2, config.InsID)
+			} else {
+				assert.Equal(t, testOrgName2, config.OrgName)
+			}
+
+			assert.DeepEqual(t, testBaseURLValid, config.BaseURL)
 		})
-		assert.NilError(t, err)
-		assert.Assert(t, entry != nil)
-
-		assert.NilError(t, storage.Put(context.Background(), entry))
-
-		_, err = b.HandleRequest(context.Background(), &logical.Request{
-			Storage:   storage,
-			Operation: op,
-			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
-				keyAppID:   testAppID2,
-				keyInsID:   testInsID2,
-				keyPrvKey:  testPrvKeyValid,
-				keyBaseURL: testBaseURLValid,
-			},
-		})
-		assert.NilError(t, err)
-
-		config, err := b.Config(context.Background(), storage)
-		assert.NilError(t, err)
-		assert.Assert(t, config != nil)
-		assert.Equal(t, testAppID2, config.AppID)
-		assert.Equal(t, testInsID2, config.InsID)
-		assert.DeepEqual(t, testBaseURLValid, config.BaseURL)
-	})
+	}
 
 	t.Run("FailedStorageRetrieve", func(t *testing.T) {
 		t.Parallel()
@@ -161,25 +179,22 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 		assert.Assert(t, is.Nil(resp))
 	})
 
-	t.Run("FailedStoragePersist", func(t *testing.T) {
-		t.Parallel()
+	for name, v := range tcConfig {
+		t.Run("FailedStoragePersist"+name, func(t *testing.T) {
+			t.Parallel()
 
-		b, storage := testBackend(t, failVerbPut)
+			b, storage := testBackend(t, failVerbPut)
 
-		resp, err := b.HandleRequest(context.Background(), &logical.Request{
-			Storage:   storage,
-			Operation: op,
-			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
-				keyAppID:   testAppID2,
-				keyInsID:   testInsID2,
-				keyPrvKey:  testPrvKeyValid,
-				keyBaseURL: testBaseURLValid,
-			},
+			resp, err := b.HandleRequest(context.Background(), &logical.Request{
+				Storage:   storage,
+				Operation: op,
+				Path:      pathPatternConfig,
+				Data:      v,
+			})
+			assert.ErrorContains(t, err, fmtErrConfPersist)
+			assert.Assert(t, is.Nil(resp))
 		})
-		assert.ErrorContains(t, err, fmtErrConfPersist)
-		assert.Assert(t, is.Nil(resp))
-	})
+	}
 
 	t.Run("FailedValidation", func(t *testing.T) {
 		t.Parallel()

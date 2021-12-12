@@ -75,6 +75,16 @@ func TestNewClient(t *testing.T) {
 			},
 			err: errors.New("parse"),
 		},
+		{
+			name: "OrgName",
+			conf: &Config{
+				AppID:   testAppID1,
+				OrgName: testOrgName1,
+				PrvKey:  testPrvKeyValid,
+				BaseURL: testBaseURLValid,
+			},
+			err: errors.New("integrations"),
+		},
 	}
 
 	for _, tc := range cases {
@@ -193,6 +203,16 @@ func TestClient_Token(t *testing.T) {
 			err: errUnableToDecodeAccessTokenRes,
 		},
 		{
+			name: "ErrorInError",
+			ctx:  context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+				w.Header().Set("Content-Length", "1")
+				w.WriteHeader(http.StatusForbidden)
+			}),
+			err: errUnableToCreateAccessToken,
+		},
+		{
 			name: "EmptyResponse",
 			ctx:  context.Background(),
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -294,6 +314,16 @@ func TestClient_RevokeToken(t *testing.T) {
 			err:  errUnableToBuildAccessTokenRevReq,
 		},
 		{
+			name: "ErrorInError",
+			ctx:  context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+				w.Header().Set("Content-Length", "1")
+				w.WriteHeader(http.StatusForbidden)
+			}),
+			err: errUnableToRevokeAccessToken,
+		},
+		{
 			name: "401Response",
 			ctx:  context.Background(),
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -341,6 +371,105 @@ func TestClient_RevokeToken(t *testing.T) {
 			}
 
 			assert.DeepEqual(t, res, tc.res)
+		})
+	}
+}
+
+func TestClient_Organization(t *testing.T) {
+	var cases = []struct {
+		name    string
+		handler http.HandlerFunc
+		ctx     context.Context
+		err     error
+	}{
+		{
+			name: "HappyPath",
+			ctx:  context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+
+				assert.Equal(t, r.Method, http.MethodGet)
+				assert.Equal(t, r.URL.Path, "/app/installations")
+				assert.Assert(t, r.Header.Get("Authorization") != "")
+
+				w.Header().Set("Content-Type", "application/json")
+				body, _ := json.Marshal([]map[string]interface{}{
+					{
+						"id": testInsID1,
+						"account": map[string]interface{}{
+							"login": testOrgName1,
+						},
+					},
+				})
+				w.WriteHeader(http.StatusOK)
+				w.Write(body)
+			}),
+		},
+		{
+			name: "ZeroPath",
+			ctx:  context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+
+				assert.Equal(t, r.Method, http.MethodGet)
+				assert.Equal(t, r.URL.Path, "/app/installations")
+				assert.Assert(t, r.Header.Get("Authorization") != "")
+
+				w.Header().Set("Content-Type", "application/json")
+				body, _ := json.Marshal([]map[string]interface{}{
+					{
+						"id": testInsID1,
+						"account": map[string]interface{}{
+							"login": testOrgName2,
+						},
+					},
+				})
+				w.WriteHeader(http.StatusOK)
+				w.Write(body)
+			}),
+			err: errors.New("application"),
+		},
+		{
+			name: "EmptyResponse",
+			ctx:  context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+				w.WriteHeader(http.StatusOK)
+			}),
+			err: errUnableToDecodeIntegrationRes,
+		},
+		{
+			name: "ErrorInError",
+			ctx:  context.Background(),
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+				w.Header().Set("Content-Length", "1")
+				w.WriteHeader(http.StatusForbidden)
+			}),
+			err: errUnableToGetIntegrations,
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ts := httptest.NewServer(tc.handler)
+			defer ts.Close()
+
+			_, err := NewClient(&Config{
+				AppID:   testAppID1,
+				OrgName: testOrgName1,
+				PrvKey:  testPrvKeyValid,
+				BaseURL: ts.URL,
+			})
+
+			if tc.err != nil {
+				assert.ErrorContains(t, err, tc.err.Error())
+			} else {
+				assert.NilError(t, err)
+			}
 		})
 	}
 }
