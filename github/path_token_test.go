@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/vault/sdk/logical"
@@ -112,8 +113,10 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 				keyPerms:   "not a map of string to string",
 			},
 		})
-		assert.Assert(t, is.Nil(r))
-		assert.Assert(t, err != nil)
+
+		assert.NilError(t, err)
+		assert.Assert(t, r != nil)
+		assert.Assert(t, strings.Contains(r.Data["error"].(string), "Field validation failed"))
 	})
 
 	t.Run("FailedCreate", func(t *testing.T) {
