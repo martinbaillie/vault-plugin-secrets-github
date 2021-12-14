@@ -29,7 +29,8 @@ var (
 
 	// Overridable GitHub App configuration.
 	appID   = envIntOrDefault(keyAppID, testAppID1)
-	insID   = envIntOrDefault(keyInsID, testInsID1)
+	insID   = envIntOrDefault(keyInsID, 0)
+	orgName = envStrOrDefault(keyOrgName, "")
 	prvKey  = envStrOrDefault(keyPrvKey, testPrvKeyValid)
 	baseURL = envStrOrDefault(keyBaseURL, "")
 
@@ -213,6 +214,7 @@ func testWriteConfig(t *testing.T) {
 		map[string]interface{}{
 			keyAppID:   appID,
 			keyInsID:   insID,
+			keyOrgName: orgName,
 			keyPrvKey:  prvKey,
 			keyBaseURL: baseURL,
 		},
@@ -242,6 +244,7 @@ func testReadConfig(t *testing.T) {
 	resData := resBody["data"].(map[string]interface{})
 	assert.Equal(t, resData[keyAppID], float64(appID))
 	assert.Equal(t, resData[keyInsID], float64(insID))
+	assert.Equal(t, resData[keyOrgName], orgName)
 	assert.Equal(t, resData[keyBaseURL], baseURL)
 }
 

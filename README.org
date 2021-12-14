@@ -216,17 +216,18 @@ plugin on your personal account if so desired.
 7. Click Install App from the LHS. You will be taken to the account installation
    pages where you can confirm the app was installed.
 
-8. Note the *Installation ID* from the URL of this page (usually:
-   https://github.com/settings/installations/<installation id>).
+8. (OPTIONAL as of v1.3.0) Note the *Installation ID* from the URL of this page (usually:
+   https://github.com/settings/installations/<installation id>) if you wish to
+   configure using the installation ID directly.
     #+BEGIN_QUOTE
     NOTE: Get the Installation ID anytime: Settings > Developer > settings >
     GitHub Apps > Advanced > Payload in Request tab.
     #+END_QUOTE
 
 ** Setup (Vault)
-Using the three key pieces of information from the previous step (Private Key,
-App ID and Installation ID), you are ready to move on to setting up the Vault
-plugin.
+Using the information noted from the previous step (Private Key, App ID and
+optionally the Installation ID), you are ready to move on to setting up the
+Vault plugin.
 
 1. Move the desired plugin binary into your Vault's configured
    =plugin_directory=.
@@ -267,10 +268,13 @@ plugin.
     vault secrets enable -path=github -plugin-name=vault-plugin-secrets-github plugin
     #+END_SRC
 
-5. Configure the plugin with the details from the previous section.
+5. Configure the plugin with the details noted from the previous section.
 
    #+BEGIN_SRC shell
-    # Write the configuration.
+    # Write the configuration (discovered installation ID).
+    vault write /github/config app_id=<app_id> org_name=<org_name> prv_key=@<private_key_file>
+
+    # Write the configuration (explicit installation ID).
     vault write /github/config app_id=<app_id> ins_id=<installation_id> prv_key=@<private_key_file>
 
     # (OPTIONAL) Confirm the configuration landed as you expected.
@@ -494,12 +498,16 @@ General CRUD operations against the configuration of the plugin.
 *** Parameters
 - =app_id= (int64) — the Application ID of the GitHub App.
 - =ins_id= (int64) — the Installation ID of the GitHub App installation.
+- =org_name= (string) — the name of the organisation with the GitHub App installation.
 - =private_key= (string) — a private key configured in the GitHub App. This private key must be in PEM PKCS#1 RSAPrivateKey format. It is not returned with read requests for security reasons.
 - =base_url= (string) — the base URL for API requests (defaults to the public GitHub API).
 
 *** Examples
 #+BEGIN_SRC shell
-# Write the plugin configuration using the default base URL and reading the key from a file.
+# Write the plugin configuration using the default base URL, reading the key from a file and discovering the installation ID by querying the organisation.
+vault write /github/config app_id=123 org_name=my-org prv_key=@key.pem
+
+# Write the plugin configuration using the default base URL, reading the key from a file and using an explicit installation ID.
 vault write /github/config app_id=123 ins_id=456 prv_key=@key.pem
 
 # Read the plugin configuration.
@@ -572,7 +580,7 @@ make integration test
 # NOTE: Keep in mind this test configuration will create real tokens.
 make integration test \
     BASE_URL=https://api.github.com \
-    INS_ID=<installation_id> \
+    ORG_NAME=<org_name> \
     APP_ID=<app_id> \
     PRV_KEY="$(cat <path_to_app_private_key>)"
 #+END_SRC
