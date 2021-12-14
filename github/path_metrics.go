@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/common/expfmt"
 	"github.com/prometheus/common/version"
 )
@@ -52,7 +53,7 @@ func init() {
 	// Register standard and custom metric collectors globally.
 	prometheus.MustRegister(
 		version.NewCollector(prefixMetrics),
-		prometheus.NewBuildInfoCollector(),
+		collectors.NewBuildInfoCollector(),
 		requestDuration,
 		revokeDuration,
 	)
