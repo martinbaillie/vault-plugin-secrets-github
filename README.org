@@ -271,11 +271,8 @@ Vault plugin.
 5. Configure the plugin with the details noted from the previous section.
 
    #+BEGIN_SRC shell
-    # Write the configuration (discovered installation ID).
-    vault write /github/config app_id=<app_id> org_name=<org_name> prv_key=@<private_key_file>
-
-    # Write the configuration (explicit installation ID).
-    vault write /github/config app_id=<app_id> ins_id=<installation_id> prv_key=@<private_key_file>
+    # Write the configuration
+    vault write /github/config app_id=<app_id> prv_key=@<private_key_file>
 
     # (OPTIONAL) Confirm the configuration landed as you expected.
     vault read /github/config
@@ -497,18 +494,13 @@ General CRUD operations against the configuration of the plugin.
 
 *** Parameters
 - =app_id= (int64) — the Application ID of the GitHub App.
-- =ins_id= (int64) — the Installation ID of the GitHub App installation.
-- =org_name= (string) — the name of the organisation with the GitHub App installation.
 - =private_key= (string) — a private key configured in the GitHub App. This private key must be in PEM PKCS#1 RSAPrivateKey format. It is not returned with read requests for security reasons.
 - =base_url= (string) — the base URL for API requests (defaults to the public GitHub API).
 
 *** Examples
 #+BEGIN_SRC shell
-# Write the plugin configuration using the default base URL, reading the key from a file and discovering the installation ID by querying the organisation.
-vault write /github/config app_id=123 org_name=my-org prv_key=@key.pem
-
-# Write the plugin configuration using the default base URL, reading the key from a file and using an explicit installation ID.
-vault write /github/config app_id=123 ins_id=456 prv_key=@key.pem
+# Write the plugin configuration using the default base URL, and reading the key from a file.
+vault write /github/config app_id=123 prv_key=@key.pem
 
 # Read the plugin configuration.
 vault read /github/config
