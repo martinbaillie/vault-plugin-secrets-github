@@ -198,7 +198,6 @@ func TestIntegration(t *testing.T) {
 		// Ensure default values post-delete.
 		resData := resBody["data"].(map[string]interface{})
 		assert.Equal(t, resData[keyAppID], 0.0)
-		assert.Equal(t, resData[keyInsID], 0.0)
 		assert.Equal(t, resData[keyBaseURL], githubPublicAPI)
 	})
 }
@@ -211,8 +210,6 @@ func testWriteConfig(t *testing.T) {
 		fmt.Sprintf("/v1/github/%s", pathPatternConfig),
 		map[string]interface{}{
 			keyAppID:   appID,
-			keyInsID:   insID,
-			keyOrgName: orgName,
 			keyPrvKey:  prvKey,
 			keyBaseURL: baseURL,
 		},
@@ -241,8 +238,6 @@ func testReadConfig(t *testing.T) {
 
 	resData := resBody["data"].(map[string]interface{})
 	assert.Equal(t, resData[keyAppID], float64(appID))
-	assert.Equal(t, resData[keyInsID], float64(insID))
-	assert.Equal(t, resData[keyOrgName], orgName)
 	assert.Equal(t, resData[keyBaseURL], baseURL)
 }
 
