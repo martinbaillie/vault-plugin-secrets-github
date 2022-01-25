@@ -48,7 +48,6 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
 			},
@@ -97,7 +96,6 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:  testAppID1,
-				keyInsID:  testInsID1,
 				keyPrvKey: testPrvKeyValid,
 			},
 		})
@@ -138,7 +136,6 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
 			},

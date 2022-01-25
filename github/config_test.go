@@ -98,14 +98,12 @@ func TestConfig_Update(t *testing.T) {
 			},
 			exp: &Config{
 				AppID:   testAppID2,
-				InsID:   testInsID1,
 				PrvKey:  testPrvKeyValid,
 				BaseURL: testBaseURLValid,
 			},
 			data: &framework.FieldData{
 				Raw: map[string]interface{}{
 					keyAppID:   testAppID2,
-					keyInsID:   testInsID1,
 					keyPrvKey:  testPrvKeyValid,
 					keyBaseURL: testBaseURLValid,
 				},

@@ -28,12 +28,6 @@ type Config struct {
 	// AppID is the application identifier of the GitHub App.
 	AppID int `json:"app_id"`
 
-	// InsID is the installation identifier of the GitHub App.
-	InsID int `json:"ins_id"`
-
-	// OrgName is the organization name for the GitHub App.
-	OrgName string `json:"org_name"`
-
 	// PrvKey is the private for signing GitHub access token requests (JWTs).
 	// NOTE: Should be in a PEM PKCS#1 RSAPrivateKey format.
 	PrvKey string `json:"prv_key"`
@@ -85,20 +79,6 @@ func (c *Config) Update(d *framework.FieldData) (bool, error) {
 	if appID, ok := d.GetOk(keyAppID); ok {
 		if nv := appID.(int); c.AppID != nv {
 			c.AppID = nv
-			changed = true
-		}
-	}
-
-	if insID, ok := d.GetOk(keyInsID); ok {
-		if nv := insID.(int); c.InsID != nv {
-			c.InsID = nv
-			changed = true
-		}
-	}
-
-	if orgName, ok := d.GetOk(keyOrgName); ok {
-		if nv := orgName.(string); c.OrgName != nv {
-			c.OrgName = nv
 			changed = true
 		}
 	}

@@ -20,6 +20,7 @@ import (
 )
 
 var (
+	errUnableToBuildAccessTokenURL    = errors.New("unable to build access token URL")
 	errUnableToBuildAccessTokenReq    = errors.New("unable to build access token request")
 	errUnableToBuildAccessTokenRevReq = errors.New("unable to build access token revocation request")
 	errUnableToCreateAccessToken      = errors.New("unable to create access token")
@@ -36,8 +37,8 @@ var (
 type Client struct {
 	*Config
 
-	// URL is the access token URL for this client.
-	url *url.URL
+	// URL is the access token URL template for this client.
+	accessTokenURLTemplate string
 
 	// Transport is the HTTP transport used for token requests.
 	transport http.RoundTripper
@@ -69,21 +70,10 @@ func NewClient(config *Config) (c *Client, err error) {
 		return nil, err
 	}
 
-	insID := config.InsID
-	if config.OrgName != "" && insID == 0 {
-		insID, err = c.getInstallationID(config)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if c.url, err = url.ParseRequestURI(fmt.Sprintf(
-		"%s/app/installations/%v/access_tokens",
+	c.accessTokenURLTemplate = fmt.Sprintf(
+		"%s/app/installations/%%v/access_tokens",
 		strings.TrimSuffix(fmt.Sprint(config.BaseURL), "/"),
-		insID,
-	)); err != nil {
-		return nil, err
-	}
+	)
 
 	if c.revocationURL, err = url.ParseRequestURI(fmt.Sprintf(
 		"%s/installation/token",
@@ -101,6 +91,8 @@ type tokenOptions struct {
 	// Permissions are the permissions granted to the access token, including
 	// their access type.
 	Permissions map[string]string `json:"permissions,omitempty"`
+	// InstallationID is the installation ID  that the token can access.
+	InstallationID int `json:"installation_id"`
 	// RepositoryIDs are the repository IDs that the token can access.
 	RepositoryIDs []int `json:"repository_ids,omitempty"`
 	// Repositories are the repository names that the token can access.
@@ -132,8 +124,13 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 		}
 	}
 
+	accessTokenURL, err := c.getAccessTokenURLForInstallationID(opts.InstallationID)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", errUnableToBuildAccessTokenURL, err)
+	}
+
 	// Build the token request.
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url.String(), body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, accessTokenURL.String(), body)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", errUnableToBuildAccessTokenReq, err)
 	}
@@ -190,7 +187,14 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 	return tokenRes, nil
 }
 
-func (c *Client) getInstallationID(config *Config) (int, error) {
+func (c *Client) getAccessTokenURLForInstallationID(installationID int) (*url.URL, error) {
+	return url.ParseRequestURI(fmt.Sprintf(
+		c.accessTokenURLTemplate,
+		installationID,
+	))
+}
+
+func (c *Client) getInstallationID(config *Config, orgName string) (int, error) {
 	expires := jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(120)))
 	issuedAt := jwt.NewNumericDate(time.Now().Add(time.Second * -10))
 	claims := &jwt.RegisteredClaims{
@@ -252,7 +256,7 @@ func (c *Client) getInstallationID(config *Config) (int, error) {
 	}
 
 	for _, v := range instResult {
-		if v.Account.Login == config.OrgName {
+		if v.Account.Login == orgName {
 			return v.ID, nil
 		}
 	}

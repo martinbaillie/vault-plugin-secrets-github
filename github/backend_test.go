@@ -103,21 +103,19 @@ func TestBackend_Config(t *testing.T) {
 		},
 		{
 			name: "HappyPath",
-			new: []byte(fmt.Sprintf(`{"%s":%d, "%s":%d}`,
-				keyAppID, testAppID1, keyInsID, testInsID1)),
+			new: []byte(fmt.Sprintf(`{"%s":%d}`,
+				keyAppID, testAppID1)),
 			exp: &Config{
 				AppID:   testAppID1,
-				InsID:   testInsID1,
 				BaseURL: githubPublicAPI,
 			},
 		},
 		{
 			name: "Organization",
-			new: []byte(fmt.Sprintf(`{"%s":%d, "%s":"%s"}`,
-				keyAppID, testAppID1, keyOrgName, testOrgName1)),
+			new: []byte(fmt.Sprintf(`{"%s":%d}`,
+				keyAppID, testAppID1)),
 			exp: &Config{
 				AppID:   testAppID1,
-				OrgName: testOrgName1,
 				BaseURL: githubPublicAPI,
 			},
 		},
@@ -169,7 +167,6 @@ func TestBackend_Client(t *testing.T) {
 
 		entry, err := logical.StorageEntryJSON(pathPatternConfig, &Config{
 			AppID:   testAppID1,
-			InsID:   testInsID1,
 			PrvKey:  testPrvKeyValid,
 			BaseURL: testBaseURLValid,
 		})
@@ -203,7 +200,6 @@ func TestBackend_Client(t *testing.T) {
 
 		entry, err := logical.StorageEntryJSON(pathPatternConfig, &Config{
 			AppID:   testAppID1,
-			InsID:   testInsID1,
 			PrvKey:  testPrvKeyValid,
 			BaseURL: testBaseURLValid,
 		})

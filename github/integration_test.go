@@ -29,8 +29,6 @@ var (
 
 	// Overridable GitHub App configuration.
 	appID   = envIntOrDefault(keyAppID, testAppID1)
-	insID   = envIntOrDefault(keyInsID, 0)
-	orgName = envStrOrDefault(keyOrgName, "")
 	prvKey  = envStrOrDefault(keyPrvKey, testPrvKeyValid)
 	baseURL = envStrOrDefault(keyBaseURL, "")
 
