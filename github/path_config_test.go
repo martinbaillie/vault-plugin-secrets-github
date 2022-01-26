@@ -126,7 +126,7 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 			b, storage := testBackend(t)
 
 			entry, err := logical.StorageEntryJSON(pathPatternConfig, &Config{
-				AppID:   testAppID1,
+				AppID: testAppID1,
 			})
 			assert.NilError(t, err)
 			assert.Assert(t, entry != nil)

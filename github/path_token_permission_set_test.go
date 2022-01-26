@@ -58,9 +58,10 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 			Operation: op,
 			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
-				keyRepos:   []string{testRepo1, testRepo2},
-				keyRepoIDs: []int{testRepoID1, testRepoID2},
-				keyPerms:   testPerms,
+				keyInstallationID: testInsID1,
+				keyRepos:          []string{testRepo1, testRepo2},
+				keyRepoIDs:        []int{testRepoID1, testRepoID2},
+				keyPerms:          testPerms,
 			},
 		})
 		assert.NilError(t, err)

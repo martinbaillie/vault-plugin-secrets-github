@@ -130,8 +130,9 @@ func TestClient_Token(t *testing.T) {
 			}),
 			res: &logical.Response{
 				Data: map[string]interface{}{
-					"token":      testToken,
-					"expires_at": testTokenExp,
+					"token":           testToken,
+					"installation_id": testInsID1,
+					"expires_at":      testTokenExp,
 				},
 			},
 		},
@@ -140,9 +141,9 @@ func TestClient_Token(t *testing.T) {
 			ctx:  context.Background(),
 			opts: &tokenOptions{
 				InstallationID: testInsID1,
-				Repositories:  []string{testRepo1, testRepo2},
-				RepositoryIDs: []int{testRepoID1, testRepoID2},
-				Permissions:   testPerms,
+				Repositories:   []string{testRepo1, testRepo2},
+				RepositoryIDs:  []int{testRepoID1, testRepoID2},
+				Permissions:    testPerms,
 			},
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
@@ -155,13 +156,15 @@ func TestClient_Token(t *testing.T) {
 				assert.NilError(t, json.NewDecoder(r.Body).Decode(&reqBody))
 				assert.Assert(t, is.Contains(reqBody, keyPerms))
 				assert.Assert(t, is.Contains(reqBody, keyRepoIDs))
+				assert.Assert(t, is.Contains(reqBody, keyInstallationID))
 				assert.Assert(t, is.Contains(reqBody, keyRepos))
 
 				w.Header().Set("Content-Type", "application/json")
 				body, _ := json.Marshal(map[string]interface{}{
-					"token":       testToken,
-					"expires_at":  testTokenExp,
-					"permissions": testPerms,
+					"token":           testToken,
+					"installation_id": testInsID1,
+					"expires_at":      testTokenExp,
+					"permissions":     testPerms,
 					"repositories": []map[string]interface{}{
 						{"id": testRepoID1, "name": testRepo1},
 						{"id": testRepoID2, "name": testRepo2},
@@ -172,9 +175,10 @@ func TestClient_Token(t *testing.T) {
 			}),
 			res: &logical.Response{
 				Data: map[string]interface{}{
-					"token":       testToken,
-					"expires_at":  testTokenExp,
-					"permissions": testPerms,
+					"token":           testToken,
+					"installation_id": testInsID1,
+					"expires_at":      testTokenExp,
+					"permissions":     testPerms,
 					"repositories": []map[string]interface{}{
 						{"id": testRepoID1, "name": testRepo1},
 						{"id": testRepoID2, "name": testRepo2},
@@ -189,7 +193,7 @@ func TestClient_Token(t *testing.T) {
 			opts: &tokenOptions{
 				InstallationID: testInsID1,
 			},
-			err:  errUnableToBuildAccessTokenReq,
+			err: errUnableToBuildAccessTokenReq,
 		},
 		{
 			name: "EOFResponse",
