@@ -248,9 +248,10 @@ func testWritePermissionSet(t *testing.T) {
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s/test-set", pathPatternPermissionSet),
 		map[string]interface{}{
-			keyRepos:   []string{testRepo1, testRepo2},
-			keyRepoIDs: []int{testRepoID1, testRepoID2},
-			keyPerms:   testPerms,
+			keyInstallationID: testInsID1,
+			keyRepos:          []string{testRepo1, testRepo2},
+			keyRepoIDs:        []int{testRepoID1, testRepoID2},
+			keyPerms:          testPerms,
 		},
 	)
 	assert.NilError(t, err)
@@ -323,7 +324,9 @@ func testCreateToken(t *testing.T) {
 	res, err := vaultDo(
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s", pathPatternToken),
-		nil,
+		map[string]interface{}{
+			keyInstallationID: testInsID1,
+		},
 	)
 	assert.NilError(t, err)
 	defer res.Body.Close()
@@ -354,10 +357,14 @@ func testCreatePermissionSetToken(t *testing.T) {
 	)
 	assert.NilError(t, err)
 	defer res.Body.Close()
-	assert.Assert(t, statusCode(res.StatusCode).Successful())
 
 	var resBody map[string]interface{}
 	err = json.NewDecoder(res.Body).Decode(&resBody)
+
+	t.Log(resBody)
+	t.Log(res.StatusCode)
+	assert.Assert(t, statusCode(res.StatusCode).Successful())
+
 	assert.NilError(t, err)
 	assert.Assert(t, is.Contains(resBody, "data"))
 
@@ -398,9 +405,10 @@ func testCreateTokenWithConstraints(t *testing.T) {
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s", pathPatternToken),
 		map[string]interface{}{
-			keyRepos:   []string{testRepo1, testRepo2},
-			keyRepoIDs: []int{testRepoID1, testRepoID2},
-			keyPerms:   testPerms,
+			keyInstallationID: testInsID1,
+			keyRepos:          []string{testRepo1, testRepo2},
+			keyRepoIDs:        []int{testRepoID1, testRepoID2},
+			keyPerms:          testPerms,
 		},
 	)
 	assert.NilError(t, err)
