@@ -290,8 +290,9 @@ Vault plugin.
 vault policy write github-only-prs -<<EOF
 path "github/token" {
   capabilities = ["update"]
-  required_parameters = ["permissions","repository_ids"]
+  required_parameters = ["installation_id","permissions","repository_ids"]
   allowed_parameters = {
+    "installation_id" = ["987654"]
     "repository_ids" = ["69857131"]
     "permissions"= ["pull_requests=write"]
   }
@@ -305,14 +306,15 @@ vault login -method=userpass username=martin password=baillie
 
 # Test the efficacy of the policy.
 # Successfully creates token:
-vault write /github/token repository_ids=69857131 permissions=pull_requests=write
+vault write /github/token installation_id=987654 repository_ids=69857131 permissions=pull_requests=write
 # Permission denied:
 vault write -f /github/token
-vault write /github/token permissions=pull_requests=write
-vault write /github/token repository_ids=69857131 permissions=pull_requests=read
-vault write /github/token repository_ids=69857131 permissions=metadata=read
-vault write /github/token repository_ids=123 permissions=pull_requests=write
-vault write /github/token repository_ids=69857131
+vault write /github/token installation_id=987654  permissions=pull_requests=write
+vault write /github/token installation_id=987654  repository_ids=69857131 permissions=pull_requests=read
+vault write /github/token installation_id=987654  repository_ids=69857131 permissions=metadata=read
+vault write /github/token installation_id=987654 repository_ids=123 permissions=pull_requests=write
+vault write /github/token installation_id=987654 repository_ids=69857131
+vault write /github/token installation_id=123456 repository_ids=69857131
    #+END_SRC
 
 * API
@@ -339,6 +341,7 @@ favour =repository_ids= (GitHub repository IDs are immutable) instead of
 =repositories= (GitHub repository names are mutable).
 #+end_quote
 
+- =installation_id= (int64) — the ID of the app installation.
 - =repositories= ([]string) — a list of the names of the repositories within the
   organisation that the installation token can access.
 - =repository_ids= ([]int64) — a list of the IDs of the repositories that the
@@ -357,16 +360,17 @@ vault read /github/token
 # Create a token with read permissions on the packages and write permissions on
 # the pull requests of repositories named "demo-repo" and ID 123.
 vault write /github/token \
+  installation_id=456 \
 	repository_ids=123 \
 	repositories=demo-repo \
 	permissions=packages=read \
 	permissions=pull_requests=write
 
 # Create a token with all permissions but only on the "demo-repo" repository.
-vault write /github/token repository_ids=123 repository_ids=456
+vault write /github/token installation_id=456 repository_ids=123 repository_ids=456
 
 # Create a token with all permissions but only on repositories 123 and 456.
-vault write /github/token repository_ids=123 repository_ids=456
+vault write /github/token installation_id=456 repository_ids=123 repository_ids=456
 
 # Create a token with write access to pull requests using read / GET.
 vault write /github/token permissions=pull_requests=write
@@ -376,6 +380,7 @@ vault write /github/token permissions=pull_requests=write
 # NOTE: Uses a Vault CLI JSON heredoc to submit the complex map type.
 vault write /github/token - <<EOF
 {
+"installation_id": 456,
 "repositories": ["demo-repo"],
 "repository_ids": [123,456],
 "permissions": {"metadata": "read", "pull_requests": "write"}
@@ -430,6 +435,7 @@ favour =repository_ids= (GitHub repository IDs are immutable) instead of
 =repositories= (GitHub repository names are mutable).
 #+end_quote
 
+- =installation_id= (int64) — the ID of the app installation.
 - =repositories= ([]string) — a list of the names of the repositories within the
   organisation that the installation token can access.
 - =repository_ids= ([]int64) — a list of the IDs of the repositories that the
@@ -456,6 +462,7 @@ returned will be constrained by that pre-configured permission set.
 # against three repositories.
 vault write /github/permissionset/demo-set - <<EOF
 {
+"installation_id": 987,
 "repositories": ["demo-repo"],
 "repository_ids": [123,456],
 "permissions": {"metadata": "read", "pull_requests": "write"}
@@ -463,6 +470,7 @@ vault write /github/permissionset/demo-set - <<EOF
 EOF
 # Or
 vault write /github/permissionset/demo-set \
+	installation_id=987 \
 	repositories=demo-repo \
 	repository_ids=123 \
 	repository_ids=456 \
