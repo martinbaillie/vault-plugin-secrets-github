@@ -23,12 +23,12 @@ const (
 const (
 	// NOTE: keys match GitHub installation permissions for ease of marshalling.
 	// SEE: https://git.io/JsQ7n
-	keyRepos           = "repositories"
-	descRepos          = "The repository names that the token should have access to"
-	keyRepoIDs         = "repository_ids"
-	descRepoIDs        = "The IDs of the repositories that the token can access."
-	keyPerms           = "permissions"
-	descPerms          = "The permissions granted to the token."
+	keyRepos    = "repositories"
+	descRepos   = "The repository names that the token should have access to"
+	keyRepoIDs  = "repository_ids"
+	descRepoIDs = "The IDs of the repositories that the token can access."
+	keyPerms    = "permissions"
+	descPerms   = "The permissions granted to the token."
 )
 
 const pathTokenHelpSyn = `
@@ -60,6 +60,7 @@ func (b *backend) pathToken() *framework.Path {
 			keyInstallationID: {
 				Type:        framework.TypeInt,
 				Description: descInstallationID,
+				Required:    true,
 			},
 			keyRepos: {
 				Type:        framework.TypeCommaStringSlice,
@@ -109,6 +110,9 @@ func (b *backend) pathTokenWrite(
 	opts := new(tokenOptions)
 
 	opts.InstallationID = d.Get(keyInstallationID).(int)
+	if opts.InstallationID == 0 {
+		return logical.ErrorResponse("%s is a required parameter", keyInstallationID), nil
+	}
 
 	if perms, ok := d.GetOk(keyPerms); ok {
 		opts.Permissions = perms.(map[string]string)

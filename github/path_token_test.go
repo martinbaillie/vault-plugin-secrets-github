@@ -148,6 +148,9 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      pathPatternToken,
+			Data: map[string]interface{}{
+				keyInstallationID: testInsID1,
+			},
 		})
 		assert.Assert(t, is.Nil(r))
 		assert.Assert(t, errors.Is(err, errUnableToCreateAccessToken))

@@ -87,7 +87,7 @@ type tokenOptions struct {
 	// their access type.
 	Permissions map[string]string `json:"permissions,omitempty"`
 	// InstallationID is the installation ID  that the token can access.
-	InstallationID int `json:"installation_id"`
+	InstallationID int `json:"installation_id,omitempty"`
 	// RepositoryIDs are the repository IDs that the token can access.
 	RepositoryIDs []int `json:"repository_ids,omitempty"`
 	// Repositories are the repository names that the token can access.
@@ -163,6 +163,7 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 	}
 
 	tokenRes := &logical.Response{Data: resData}
+	tokenRes.Data["installation_id"] = opts.InstallationID
 
 	// As per the issue request in https://git.io/JUhRk, return a Vault "lease"
 	// aligned to the GitHub token's `expires_at` field.

@@ -116,6 +116,7 @@ func (b *backend) pathPermissionSet() *framework.Path {
 			keyInstallationID: {
 				Type:        framework.TypeInt,
 				Description: descInstallationID,
+				Required:    true,
 			},
 			keyRepos: {
 				Type:        framework.TypeCommaStringSlice,
@@ -229,6 +230,9 @@ func (b *backend) pathPermissionSetCreateUpdate(
 	}
 
 	ps.TokenOptions.InstallationID = d.Get(keyInstallationID).(int)
+	if ps.TokenOptions.InstallationID == 0 {
+		return logical.ErrorResponse("%s is a required parameter", keyInstallationID), nil
+	}
 
 	if perms, ok := d.GetOk(keyPerms); ok {
 		ps.TokenOptions.Permissions = perms.(map[string]string)
