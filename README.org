@@ -309,9 +309,9 @@ vault login -method=userpass username=martin password=baillie
 vault write /github/token installation_id=987654 repository_ids=69857131 permissions=pull_requests=write
 # Permission denied:
 vault write -f /github/token
-vault write /github/token installation_id=987654  permissions=pull_requests=write
-vault write /github/token installation_id=987654  repository_ids=69857131 permissions=pull_requests=read
-vault write /github/token installation_id=987654  repository_ids=69857131 permissions=metadata=read
+vault write /github/token installation_id=987654 permissions=pull_requests=write
+vault write /github/token installation_id=987654 repository_ids=69857131 permissions=pull_requests=read
+vault write /github/token installation_id=987654 repository_ids=69857131 permissions=metadata=read
 vault write /github/token installation_id=987654 repository_ids=123 permissions=pull_requests=write
 vault write /github/token installation_id=987654 repository_ids=69857131
 vault write /github/token installation_id=123456 repository_ids=69857131
