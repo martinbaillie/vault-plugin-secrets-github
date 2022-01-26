@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/vault/sdk/logical"
@@ -77,6 +78,53 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 		assert.Assert(t, r != nil)
 		assert.Equal(t, r.Data["expires_at"].(string), testTokenExp)
 		assert.Equal(t, r.Data["token"].(string), testToken)
+	})
+
+	t.Run("MissingInstallationID", func(t *testing.T) {
+		t.Parallel()
+
+		b, storage := testBackend(t)
+
+		ts := httptest.NewServer(http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+
+				body, _ := json.Marshal(map[string]interface{}{
+					"token":      testToken,
+					"expires_at": testTokenExp,
+				})
+				w.WriteHeader(http.StatusCreated)
+				w.Write(body)
+			}),
+		)
+		defer ts.Close()
+
+		_, err := b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: logical.CreateOperation,
+			Path:      pathPatternConfig,
+			Data: map[string]interface{}{
+				keyAppID:   testAppID1,
+				keyPrvKey:  testPrvKeyValid,
+				keyBaseURL: ts.URL,
+			},
+		})
+		assert.NilError(t, err)
+
+		r, err := b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: op,
+			Path:      "permissionset/foo",
+			Data: map[string]interface{}{
+				keyRepos:   []string{testRepo1, testRepo2},
+				keyRepoIDs: []int{testRepoID1, testRepoID2},
+				keyPerms:   testPerms,
+			},
+		})
+		assert.NilError(t, err)
+
+		assert.Assert(t, r != nil)
+		assert.Assert(t, strings.Contains(r.Data["error"].(string), "installation_id is a required parameter"))
 	})
 
 	t.Run("FailedClient", func(t *testing.T) {

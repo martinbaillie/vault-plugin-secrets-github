@@ -86,6 +86,34 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 		assert.ErrorContains(t, err, fmtErrConfRetrieval)
 	})
 
+	t.Run("MissingInstallationID", func(t *testing.T) {
+		t.Parallel()
+
+		b, storage := testBackend(t)
+
+		_, err := b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: logical.CreateOperation,
+			Path:      pathPatternConfig,
+			Data: map[string]interface{}{
+				keyAppID:  testAppID1,
+				keyPrvKey: testPrvKeyValid,
+			},
+		})
+		assert.NilError(t, err)
+
+		r, err := b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: op,
+			Path:      pathPatternToken,
+			Data:      map[string]interface{}{},
+		})
+
+		assert.NilError(t, err)
+		assert.Assert(t, r != nil)
+		assert.Assert(t, strings.Contains(r.Data["error"].(string), "installation_id is a required parameter"))
+	})
+
 	t.Run("FailedOptionsParsing", func(t *testing.T) {
 		t.Parallel()
 
