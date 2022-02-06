@@ -67,6 +67,13 @@ help: ## This help target
 default: help
 .PHONY: default
 
+update: ## Update Nix flake and Go modules
+	nix flake lock --update-input nixpkgs
+	direnv allow .
+	go get -u
+	go mod tidy
+.PHONY: update
+
 todo: ## Shows TODO items per file
 	grep --exclude=Makefile --text -InRo -E ' TODO.*' .
 .PHONY: todo
