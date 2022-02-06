@@ -29,8 +29,6 @@ var (
 
 	// Overridable GitHub App configuration.
 	appID   = envIntOrDefault(keyAppID, testAppID1)
-	insID   = envIntOrDefault(keyInsID, 0)
-	orgName = envStrOrDefault(keyOrgName, "")
 	prvKey  = envStrOrDefault(keyPrvKey, testPrvKeyValid)
 	baseURL = envStrOrDefault(keyBaseURL, "")
 
@@ -200,7 +198,6 @@ func TestIntegration(t *testing.T) {
 		// Ensure default values post-delete.
 		resData := resBody["data"].(map[string]interface{})
 		assert.Equal(t, resData[keyAppID], 0.0)
-		assert.Equal(t, resData[keyInsID], 0.0)
 		assert.Equal(t, resData[keyBaseURL], githubPublicAPI)
 	})
 }
@@ -213,8 +210,6 @@ func testWriteConfig(t *testing.T) {
 		fmt.Sprintf("/v1/github/%s", pathPatternConfig),
 		map[string]interface{}{
 			keyAppID:   appID,
-			keyInsID:   insID,
-			keyOrgName: orgName,
 			keyPrvKey:  prvKey,
 			keyBaseURL: baseURL,
 		},
@@ -243,8 +238,6 @@ func testReadConfig(t *testing.T) {
 
 	resData := resBody["data"].(map[string]interface{})
 	assert.Equal(t, resData[keyAppID], float64(appID))
-	assert.Equal(t, resData[keyInsID], float64(insID))
-	assert.Equal(t, resData[keyOrgName], orgName)
 	assert.Equal(t, resData[keyBaseURL], baseURL)
 }
 
@@ -255,9 +248,10 @@ func testWritePermissionSet(t *testing.T) {
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s/test-set", pathPatternPermissionSet),
 		map[string]interface{}{
-			keyRepos:   []string{testRepo1, testRepo2},
-			keyRepoIDs: []int{testRepoID1, testRepoID2},
-			keyPerms:   testPerms,
+			keyInstallationID: testInsID1,
+			keyRepos:          []string{testRepo1, testRepo2},
+			keyRepoIDs:        []int{testRepoID1, testRepoID2},
+			keyPerms:          testPerms,
 		},
 	)
 	assert.NilError(t, err)
@@ -330,7 +324,9 @@ func testCreateToken(t *testing.T) {
 	res, err := vaultDo(
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s", pathPatternToken),
-		nil,
+		map[string]interface{}{
+			keyInstallationID: testInsID1,
+		},
 	)
 	assert.NilError(t, err)
 	defer res.Body.Close()
@@ -361,10 +357,14 @@ func testCreatePermissionSetToken(t *testing.T) {
 	)
 	assert.NilError(t, err)
 	defer res.Body.Close()
-	assert.Assert(t, statusCode(res.StatusCode).Successful())
 
 	var resBody map[string]interface{}
 	err = json.NewDecoder(res.Body).Decode(&resBody)
+
+	t.Log(resBody)
+	t.Log(res.StatusCode)
+	assert.Assert(t, statusCode(res.StatusCode).Successful())
+
 	assert.NilError(t, err)
 	assert.Assert(t, is.Contains(resBody, "data"))
 
@@ -405,9 +405,10 @@ func testCreateTokenWithConstraints(t *testing.T) {
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s", pathPatternToken),
 		map[string]interface{}{
-			keyRepos:   []string{testRepo1, testRepo2},
-			keyRepoIDs: []int{testRepoID1, testRepoID2},
-			keyPerms:   testPerms,
+			keyInstallationID: testInsID1,
+			keyRepos:          []string{testRepo1, testRepo2},
+			keyRepoIDs:        []int{testRepoID1, testRepoID2},
+			keyPerms:          testPerms,
 		},
 	)
 	assert.NilError(t, err)

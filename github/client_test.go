@@ -50,7 +50,6 @@ func TestNewClient(t *testing.T) {
 			name: "HappyPath",
 			conf: &Config{
 				AppID:   testAppID1,
-				InsID:   testInsID1,
 				PrvKey:  testPrvKeyValid,
 				BaseURL: testBaseURLValid,
 			},
@@ -60,7 +59,6 @@ func TestNewClient(t *testing.T) {
 			name: "InvalidPrvKey",
 			conf: &Config{
 				AppID:  testAppID1,
-				InsID:  testInsID1,
 				PrvKey: "not a valid private key",
 			},
 			err: errors.New("private key"),
@@ -69,21 +67,10 @@ func TestNewClient(t *testing.T) {
 			name: "InvalidBaseURL",
 			conf: &Config{
 				AppID:   testAppID1,
-				InsID:   testInsID1,
 				PrvKey:  testPrvKeyValid,
 				BaseURL: testBaseURLInvalid,
 			},
 			err: errors.New("parse"),
-		},
-		{
-			name: "OrgName",
-			conf: &Config{
-				AppID:   testAppID1,
-				OrgName: testOrgName1,
-				PrvKey:  testPrvKeyValid,
-				BaseURL: testBaseURLValid,
-			},
-			err: errors.New("integrations"),
 		},
 	}
 
@@ -98,8 +85,12 @@ func TestNewClient(t *testing.T) {
 				assert.Assert(t, is.Nil(c))
 			} else {
 				assert.NilError(t, err)
+
+				url, err := c.getAccessTokenURLForInstallationID(testInsID1)
+
+				assert.NilError(t, err)
 				assert.Assert(t, c != nil)
-				assert.Equal(t, c.url.String(), tc.url)
+				assert.Equal(t, url.String(), tc.url)
 			}
 		})
 	}
@@ -119,6 +110,9 @@ func TestClient_Token(t *testing.T) {
 		{
 			name: "HappyPath",
 			ctx:  context.Background(),
+			opts: &tokenOptions{
+				InstallationID: testInsID1,
+			},
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
 
@@ -136,8 +130,9 @@ func TestClient_Token(t *testing.T) {
 			}),
 			res: &logical.Response{
 				Data: map[string]interface{}{
-					"token":      testToken,
-					"expires_at": testTokenExp,
+					"token":           testToken,
+					"installation_id": testInsID1,
+					"expires_at":      testTokenExp,
 				},
 			},
 		},
@@ -145,9 +140,10 @@ func TestClient_Token(t *testing.T) {
 			name: "HappyPathWithTokenConstraints",
 			ctx:  context.Background(),
 			opts: &tokenOptions{
-				Repositories:  []string{testRepo1, testRepo2},
-				RepositoryIDs: []int{testRepoID1, testRepoID2},
-				Permissions:   testPerms,
+				InstallationID: testInsID1,
+				Repositories:   []string{testRepo1, testRepo2},
+				RepositoryIDs:  []int{testRepoID1, testRepoID2},
+				Permissions:    testPerms,
 			},
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
@@ -160,13 +156,15 @@ func TestClient_Token(t *testing.T) {
 				assert.NilError(t, json.NewDecoder(r.Body).Decode(&reqBody))
 				assert.Assert(t, is.Contains(reqBody, keyPerms))
 				assert.Assert(t, is.Contains(reqBody, keyRepoIDs))
+				assert.Assert(t, is.Contains(reqBody, keyInstallationID))
 				assert.Assert(t, is.Contains(reqBody, keyRepos))
 
 				w.Header().Set("Content-Type", "application/json")
 				body, _ := json.Marshal(map[string]interface{}{
-					"token":       testToken,
-					"expires_at":  testTokenExp,
-					"permissions": testPerms,
+					"token":           testToken,
+					"installation_id": testInsID1,
+					"expires_at":      testTokenExp,
+					"permissions":     testPerms,
 					"repositories": []map[string]interface{}{
 						{"id": testRepoID1, "name": testRepo1},
 						{"id": testRepoID2, "name": testRepo2},
@@ -177,9 +175,10 @@ func TestClient_Token(t *testing.T) {
 			}),
 			res: &logical.Response{
 				Data: map[string]interface{}{
-					"token":       testToken,
-					"expires_at":  testTokenExp,
-					"permissions": testPerms,
+					"token":           testToken,
+					"installation_id": testInsID1,
+					"expires_at":      testTokenExp,
+					"permissions":     testPerms,
 					"repositories": []map[string]interface{}{
 						{"id": testRepoID1, "name": testRepo1},
 						{"id": testRepoID2, "name": testRepo2},
@@ -191,11 +190,17 @@ func TestClient_Token(t *testing.T) {
 			// All Token() requests should be part of an existing RPC against
 			// the configured Vault path.
 			name: "NilContext",
-			err:  errUnableToBuildAccessTokenReq,
+			opts: &tokenOptions{
+				InstallationID: testInsID1,
+			},
+			err: errUnableToBuildAccessTokenReq,
 		},
 		{
 			name: "EOFResponse",
 			ctx:  context.Background(),
+			opts: &tokenOptions{
+				InstallationID: testInsID1,
+			},
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
 				// Simulate an empty response.
@@ -205,6 +210,9 @@ func TestClient_Token(t *testing.T) {
 		{
 			name: "ErrorInError",
 			ctx:  context.Background(),
+			opts: &tokenOptions{
+				InstallationID: testInsID1,
+			},
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
 				w.Header().Set("Content-Length", "1")
@@ -215,6 +223,9 @@ func TestClient_Token(t *testing.T) {
 		{
 			name: "EmptyResponse",
 			ctx:  context.Background(),
+			opts: &tokenOptions{
+				InstallationID: testInsID1,
+			},
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
 				w.WriteHeader(http.StatusOK)
@@ -224,6 +235,9 @@ func TestClient_Token(t *testing.T) {
 		{
 			name: "4xxResponse",
 			ctx:  context.Background(),
+			opts: &tokenOptions{
+				InstallationID: testInsID1,
+			},
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
 				// 422 is the most likely GitHub Apps API 4xx response (when
@@ -246,7 +260,6 @@ func TestClient_Token(t *testing.T) {
 
 			client, err := NewClient(&Config{
 				AppID:   testAppID1,
-				InsID:   testInsID1,
 				PrvKey:  testPrvKeyValid,
 				BaseURL: ts.URL,
 			})
@@ -356,7 +369,6 @@ func TestClient_RevokeToken(t *testing.T) {
 
 			client, err := NewClient(&Config{
 				AppID:   testAppID1,
-				InsID:   testInsID1,
 				PrvKey:  testPrvKeyValid,
 				BaseURL: ts.URL,
 			})
@@ -371,105 +383,6 @@ func TestClient_RevokeToken(t *testing.T) {
 			}
 
 			assert.DeepEqual(t, res, tc.res)
-		})
-	}
-}
-
-func TestClient_Organization(t *testing.T) {
-	var cases = []struct {
-		name    string
-		handler http.HandlerFunc
-		ctx     context.Context
-		err     error
-	}{
-		{
-			name: "HappyPath",
-			ctx:  context.Background(),
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				t.Helper()
-
-				assert.Equal(t, r.Method, http.MethodGet)
-				assert.Equal(t, r.URL.Path, "/app/installations")
-				assert.Assert(t, r.Header.Get("Authorization") != "")
-
-				w.Header().Set("Content-Type", "application/json")
-				body, _ := json.Marshal([]map[string]interface{}{
-					{
-						"id": testInsID1,
-						"account": map[string]interface{}{
-							"login": testOrgName1,
-						},
-					},
-				})
-				w.WriteHeader(http.StatusOK)
-				w.Write(body)
-			}),
-		},
-		{
-			name: "ZeroPath",
-			ctx:  context.Background(),
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				t.Helper()
-
-				assert.Equal(t, r.Method, http.MethodGet)
-				assert.Equal(t, r.URL.Path, "/app/installations")
-				assert.Assert(t, r.Header.Get("Authorization") != "")
-
-				w.Header().Set("Content-Type", "application/json")
-				body, _ := json.Marshal([]map[string]interface{}{
-					{
-						"id": testInsID1,
-						"account": map[string]interface{}{
-							"login": testOrgName2,
-						},
-					},
-				})
-				w.WriteHeader(http.StatusOK)
-				w.Write(body)
-			}),
-			err: errors.New("application"),
-		},
-		{
-			name: "EmptyResponse",
-			ctx:  context.Background(),
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				t.Helper()
-				w.WriteHeader(http.StatusOK)
-			}),
-			err: errUnableToDecodeIntegrationRes,
-		},
-		{
-			name: "ErrorInError",
-			ctx:  context.Background(),
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				t.Helper()
-				w.Header().Set("Content-Length", "1")
-				w.WriteHeader(http.StatusForbidden)
-			}),
-			err: errUnableToGetIntegrations,
-		},
-	}
-
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			ts := httptest.NewServer(tc.handler)
-			defer ts.Close()
-
-			_, err := NewClient(&Config{
-				AppID:   testAppID1,
-				OrgName: testOrgName1,
-				PrvKey:  testPrvKeyValid,
-				BaseURL: ts.URL,
-			})
-
-			if tc.err != nil {
-				assert.ErrorContains(t, err, tc.err.Error())
-			} else {
-				assert.NilError(t, err)
-			}
 		})
 	}
 }

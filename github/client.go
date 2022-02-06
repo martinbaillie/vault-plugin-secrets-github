@@ -10,34 +10,30 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/bradleyfalzon/ghinstallation"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
 var (
+	errUnableToBuildAccessTokenURL    = errors.New("unable to build access token URL")
 	errUnableToBuildAccessTokenReq    = errors.New("unable to build access token request")
 	errUnableToBuildAccessTokenRevReq = errors.New("unable to build access token revocation request")
 	errUnableToCreateAccessToken      = errors.New("unable to create access token")
-	errUnableToGetIntegrations        = errors.New("unable to get integrations")
 	errUnableToRevokeAccessToken      = errors.New("unable to revoke access token")
 	errUnableToDecodeAccessTokenRes   = errors.New("unable to decode access token response")
-	errUnableToDecodeIntegrationRes   = errors.New("unable to decode integrations response")
 	errBody                           = errors.New("error body")
 	errClientConfigNil                = errors.New("client configuration was nil")
-	errNoAppInstalled                 = errors.New("application wasn't installed in the organization")
 )
 
 // Client encapsulates an HTTP client for talking to the configured GitHub App.
 type Client struct {
 	*Config
 
-	// URL is the access token URL for this client.
-	url *url.URL
+	// URL is the access token URL template for this client.
+	accessTokenURLTemplate string
 
 	// Transport is the HTTP transport used for token requests.
 	transport http.RoundTripper
@@ -69,21 +65,10 @@ func NewClient(config *Config) (c *Client, err error) {
 		return nil, err
 	}
 
-	insID := config.InsID
-	if config.OrgName != "" && insID == 0 {
-		insID, err = c.getInstallationID(config)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if c.url, err = url.ParseRequestURI(fmt.Sprintf(
-		"%s/app/installations/%v/access_tokens",
+	c.accessTokenURLTemplate = fmt.Sprintf(
+		"%s/app/installations/%%v/access_tokens",
 		strings.TrimSuffix(fmt.Sprint(config.BaseURL), "/"),
-		insID,
-	)); err != nil {
-		return nil, err
-	}
+	)
 
 	if c.revocationURL, err = url.ParseRequestURI(fmt.Sprintf(
 		"%s/installation/token",
@@ -101,6 +86,8 @@ type tokenOptions struct {
 	// Permissions are the permissions granted to the access token, including
 	// their access type.
 	Permissions map[string]string `json:"permissions,omitempty"`
+	// InstallationID is the installation ID  that the token can access.
+	InstallationID int `json:"installation_id,omitempty"`
 	// RepositoryIDs are the repository IDs that the token can access.
 	RepositoryIDs []int `json:"repository_ids,omitempty"`
 	// Repositories are the repository names that the token can access.
@@ -132,8 +119,13 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 		}
 	}
 
+	accessTokenURL, err := c.getAccessTokenURLForInstallationID(opts.InstallationID)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", errUnableToBuildAccessTokenURL, err)
+	}
+
 	// Build the token request.
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url.String(), body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, accessTokenURL.String(), body)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", errUnableToBuildAccessTokenReq, err)
 	}
@@ -171,6 +163,7 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 	}
 
 	tokenRes := &logical.Response{Data: resData}
+	tokenRes.Data["installation_id"] = opts.InstallationID
 
 	// As per the issue request in https://git.io/JUhRk, return a Vault "lease"
 	// aligned to the GitHub token's `expires_at` field.
@@ -190,83 +183,11 @@ func (c *Client) Token(ctx context.Context, opts *tokenOptions) (*logical.Respon
 	return tokenRes, nil
 }
 
-func (c *Client) getInstallationID(config *Config) (int, error) {
-	expires := jwt.NewNumericDate(time.Now().Add(time.Second * time.Duration(120)))
-	issuedAt := jwt.NewNumericDate(time.Now().Add(time.Second * -10))
-	claims := &jwt.RegisteredClaims{
-		ExpiresAt: expires,
-		IssuedAt:  issuedAt,
-		Issuer:    strconv.Itoa(config.AppID),
-	}
-
-	signKey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(config.PrvKey))
-	if err != nil {
-		return 0, err
-	}
-
-	instURL, err := url.ParseRequestURI(fmt.Sprintf(
-		"%s/app/installations",
-		strings.TrimSuffix(config.BaseURL, "/"),
+func (c *Client) getAccessTokenURLForInstallationID(installationID int) (*url.URL, error) {
+	return url.ParseRequestURI(fmt.Sprintf(
+		c.accessTokenURLTemplate,
+		installationID,
 	))
-	if err != nil {
-		return 0, err
-	}
-
-	signedToken, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(signKey)
-	if err != nil {
-		return 0, err
-	}
-
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, instURL.String(), nil)
-	if err != nil {
-		return 0, err
-	}
-
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", signedToken))
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
-
-	// Perform the request, re-using the shared transport.
-	res, err := c.transport.RoundTrip(req)
-	if err != nil {
-		return 0, fmt.Errorf("%w: RoundTrip error: %v", errUnableToGetIntegrations, err)
-	}
-
-	defer res.Body.Close()
-
-	if statusCode(res.StatusCode).Unsuccessful() {
-		bodyBytes, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return 0, fmt.Errorf("%w: %s: error reading error response body: %v",
-				errUnableToGetIntegrations, res.Status, err)
-		}
-
-		bodyErr := fmt.Errorf("%w: %v", errBody, string(bodyBytes))
-
-		return 0, fmt.Errorf("%w: %s: %v", errUnableToGetIntegrations,
-			res.Status, bodyErr)
-	}
-
-	var instResult []installation
-	if err := json.NewDecoder(res.Body).Decode(&instResult); err != nil {
-		return 0, fmt.Errorf("%w: %v", errUnableToDecodeIntegrationRes, err)
-	}
-
-	for _, v := range instResult {
-		if v.Account.Login == config.OrgName {
-			return v.ID, nil
-		}
-	}
-
-	return 0, errNoAppInstalled
-}
-
-type account struct {
-	Login string `json:"login"`
-}
-
-type installation struct {
-	ID      int     `json:"id"`
-	Account account `json:"account"`
 }
 
 // RevokeToken takes a valid access token and performs a revocation against

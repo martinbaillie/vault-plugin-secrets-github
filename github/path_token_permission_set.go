@@ -18,18 +18,22 @@ Create and return a token using the GitHub secrets plugin.
 `
 
 var pathTokenPermissinonSetHelpDesc = fmt.Sprintf(`
-Create and return a token using the GitHub secrets plugin, optionally
-constrained by the above parameters.
+Create and return a token using the GitHub secrets plugin.
 
-NOTE: '%s' is a slice of repository names.
+NOTE: '%s' is an installation ID.
+
+Optionally, the thoken can be constrained by the following parameters:
+
+* '%s' is a slice of repository names.
 These must be the short names of repositories under the organisation.
 
-NOTE: '%s' is a slice of repository IDs.
+* '%s' is a slice of repository IDs.
 The quickest way to find a repository ID: https://stackoverflow.com/a/47223479
 
-NOTE: '%s' is a map of permission names to their access type (read or write).
+* '%s' is a map of permission names to their access type (read or write).
+
 Permission names taken from: https://developer.github.com/v3/apps/permissions
-`, keyRepos, keyRepoIDs, keyPerms)
+`, keyInstallationID, keyRepos, keyRepoIDs, keyPerms)
 
 func (b *backend) pathTokenPermissionSet() *framework.Path {
 	return &framework.Path{
@@ -89,14 +93,16 @@ func (b *backend) pathTokenPermissionSetWrite(
 			"took", duration.String(),
 			"err", err,
 			"permissions", opts.Permissions,
+			"installation_id", fmt.Sprint(opts.InstallationID),
 			"repository_ids", fmt.Sprint(opts.RepositoryIDs),
 			"repositories", fmt.Sprint(opts.Repositories),
 		)
 		requestDuration.With(prometheus.Labels{
-			"success":  strconv.FormatBool(err == nil),
-			keyPerms:   strconv.FormatBool(len(opts.Permissions) > 0),
-			keyRepoIDs: strconv.FormatBool(len(opts.RepositoryIDs) > 0),
-			keyRepos:   strconv.FormatBool(len(opts.Repositories) > 0),
+			"success":         strconv.FormatBool(err == nil),
+			keyInstallationID: fmt.Sprint(opts.InstallationID),
+			keyPerms:          strconv.FormatBool(len(opts.Permissions) > 0),
+			keyRepoIDs:        strconv.FormatBool(len(opts.RepositoryIDs) > 0),
+			keyRepos:          strconv.FormatBool(len(opts.Repositories) > 0),
 		}).Observe(duration.Seconds())
 	}(time.Now())
 

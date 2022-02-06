@@ -30,7 +30,6 @@ func TestBackend_PathConfigRead(t *testing.T) {
 		})
 		assert.NilError(t, err)
 		assert.Assert(t, is.Contains(resp.Data, keyAppID))
-		assert.Assert(t, is.Contains(resp.Data, keyInsID))
 		assert.Assert(t, is.Contains(resp.Data, keyBaseURL))
 	})
 
@@ -41,7 +40,6 @@ func TestBackend_PathConfigRead(t *testing.T) {
 
 		entry, err := logical.StorageEntryJSON(pathPatternConfig, &Config{
 			AppID:   testAppID1,
-			InsID:   testInsID1,
 			PrvKey:  testPrvKeyValid,
 			BaseURL: testBaseURLValid,
 		})
@@ -57,8 +55,6 @@ func TestBackend_PathConfigRead(t *testing.T) {
 
 		assert.Assert(t, is.Contains(resp.Data, keyAppID))
 		assert.Equal(t, testAppID1, resp.Data[keyAppID])
-		assert.Assert(t, is.Contains(resp.Data, keyInsID))
-		assert.Equal(t, testInsID1, resp.Data[keyInsID])
 		assert.Assert(t, is.Contains(resp.Data, keyBaseURL))
 		assert.DeepEqual(t, testBaseURLValid, resp.Data[keyBaseURL])
 	})
@@ -97,7 +93,6 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: testBaseURLValid,
 			},
@@ -108,20 +103,17 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 		assert.NilError(t, err)
 		assert.Assert(t, config != nil)
 		assert.Equal(t, testAppID1, config.AppID)
-		assert.Equal(t, testInsID1, config.InsID)
 		assert.DeepEqual(t, testBaseURLValid, config.BaseURL)
 	})
 
 	tcConfig := map[string]map[string]interface{}{
 		"Installation": {
 			keyAppID:   testAppID2,
-			keyInsID:   testInsID2,
 			keyPrvKey:  testPrvKeyValid,
 			keyBaseURL: testBaseURLValid,
 		},
 		"Organization": {
 			keyAppID:   testAppID2,
-			keyOrgName: testOrgName2,
 			keyPrvKey:  testPrvKeyValid,
 			keyBaseURL: testBaseURLValid,
 		},
@@ -134,9 +126,7 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 			b, storage := testBackend(t)
 
 			entry, err := logical.StorageEntryJSON(pathPatternConfig, &Config{
-				AppID:   testAppID1,
-				InsID:   testInsID1,
-				OrgName: testOrgName1,
+				AppID: testAppID1,
 			})
 			assert.NilError(t, err)
 			assert.Assert(t, entry != nil)
@@ -155,11 +145,6 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 			assert.NilError(t, err)
 			assert.Assert(t, config != nil)
 			assert.Equal(t, testAppID2, config.AppID)
-			if name == "Installation" {
-				assert.Equal(t, testInsID2, config.InsID)
-			} else {
-				assert.Equal(t, testOrgName2, config.OrgName)
-			}
 
 			assert.DeepEqual(t, testBaseURLValid, config.BaseURL)
 		})
@@ -257,7 +242,6 @@ func TestBackend_PathConfigDelete(t *testing.T) {
 
 		entry, err := logical.StorageEntryJSON(pathPatternConfig, &Config{
 			AppID:   testAppID1,
-			InsID:   testInsID1,
 			PrvKey:  testPrvKeyValid,
 			BaseURL: testBaseURLValid,
 		})

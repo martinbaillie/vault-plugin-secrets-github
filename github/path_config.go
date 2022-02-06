@@ -21,10 +21,6 @@ const (
 const (
 	keyAppID    = "app_id"
 	descAppID   = "Application ID of the GitHub App."
-	keyInsID    = "ins_id"
-	descInsID   = "Installation ID of the GitHub App."
-	keyOrgName  = "org_name"
-	descOrgName = "Organization name for the GitHub App."
 	keyPrvKey   = "prv_key"
 	descPrvKey  = "Private key for signing GitHub access token requests (JWTs)."
 	keyBaseURL  = "base_url"
@@ -49,14 +45,6 @@ func (b *backend) pathConfig() *framework.Path {
 				Type:        framework.TypeInt,
 				Description: descAppID,
 				Required:    true,
-			},
-			keyInsID: {
-				Type:        framework.TypeInt,
-				Description: descInsID,
-			},
-			keyOrgName: {
-				Type:        framework.TypeString,
-				Description: descOrgName,
 			},
 			keyPrvKey: {
 				Type:        framework.TypeString,
@@ -101,8 +89,6 @@ func (b *backend) pathConfigRead(
 	return &logical.Response{
 		Data: map[string]interface{}{
 			keyAppID:   c.AppID,
-			keyInsID:   c.InsID,
-			keyOrgName: c.OrgName,
 			keyBaseURL: c.BaseURL,
 		},
 	}, nil

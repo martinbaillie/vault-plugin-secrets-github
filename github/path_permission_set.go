@@ -25,6 +25,7 @@ GitHub access tokens. Access tokens generated under a permission set subpath wil
 of permission on GitHub. The following is a sample payload:
 
 {
+	"installation_id": 123,
 	"repositories": [
 		"test-repo",
 		"demo-repo",
@@ -112,6 +113,11 @@ func (b *backend) pathPermissionSet() *framework.Path {
 				Type:        framework.TypeString,
 				Description: "Required. Name of the permission set.",
 			},
+			keyInstallationID: {
+				Type:        framework.TypeInt,
+				Description: descInstallationID,
+				Required:    true,
+			},
 			keyRepos: {
 				Type:        framework.TypeCommaStringSlice,
 				Description: descRepos,
@@ -173,9 +179,10 @@ func (b *backend) pathPermissionSetRead(
 	}
 
 	data := map[string]interface{}{
-		keyRepos:   ps.TokenOptions.Repositories,
-		keyRepoIDs: ps.TokenOptions.RepositoryIDs,
-		keyPerms:   ps.TokenOptions.Permissions,
+		keyInstallationID: ps.TokenOptions.InstallationID,
+		keyRepos:          ps.TokenOptions.Repositories,
+		keyRepoIDs:        ps.TokenOptions.RepositoryIDs,
+		keyPerms:          ps.TokenOptions.Permissions,
 	}
 
 	return &logical.Response{
@@ -220,6 +227,11 @@ func (b *backend) pathPermissionSetCreateUpdate(
 			Name:         name,
 			TokenOptions: new(tokenOptions),
 		}
+	}
+
+	ps.TokenOptions.InstallationID = d.Get(keyInstallationID).(int)
+	if ps.TokenOptions.InstallationID == 0 {
+		return logical.ErrorResponse("%s is a required parameter", keyInstallationID), nil
 	}
 
 	if perms, ok := d.GetOk(keyPerms); ok {

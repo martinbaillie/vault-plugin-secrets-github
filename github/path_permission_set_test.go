@@ -62,9 +62,10 @@ func testBackendPathPermissionSetWrite(t *testing.T, op logical.Operation) {
 			Operation: op,
 			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
-				keyRepos:   []string{testRepo1, testRepo2},
-				keyRepoIDs: []int{testRepoID1, testRepoID2},
-				keyPerms:   testPerms,
+				keyInstallationID: testInsID1,
+				keyRepos:          []string{testRepo1, testRepo2},
+				keyRepoIDs:        []int{testRepoID1, testRepoID2},
+				keyPerms:          testPerms,
 			},
 		})
 		assert.NilError(t, err)
@@ -79,9 +80,10 @@ func testBackendPathPermissionSetWrite(t *testing.T, op logical.Operation) {
 			Operation: op,
 			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
-				keyRepos:   []string{testRepo1, testRepo2},
-				keyRepoIDs: []int{testRepoID1, testRepoID2},
-				keyPerms:   testPerms,
+				keyInstallationID: testInsID1,
+				keyRepos:          []string{testRepo1, testRepo2},
+				keyRepoIDs:        []int{testRepoID1, testRepoID2},
+				keyPerms:          testPerms,
 			},
 		})
 		assert.Assert(t, err != nil)
@@ -92,9 +94,10 @@ func testBackendPathPermissionSetWrite(t *testing.T, op logical.Operation) {
 			Operation: op,
 			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
-				keyRepos:   []string{testRepo1, testRepo2},
-				keyRepoIDs: []int{testRepoID1, testRepoID2},
-				keyPerms:   testPerms,
+				keyInstallationID: testInsID1,
+				keyRepos:          []string{testRepo1, testRepo2},
+				keyRepoIDs:        []int{testRepoID1, testRepoID2},
+				keyPerms:          testPerms,
 			},
 		})
 		assert.NilError(t, err)
@@ -114,9 +117,10 @@ func testBackendPathPermissionSetDelete(t *testing.T, op logical.Operation) {
 			Operation: logical.CreateOperation,
 			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
-				keyRepos:   []string{testRepo1, testRepo2},
-				keyRepoIDs: []int{testRepoID1, testRepoID2},
-				keyPerms:   testPerms,
+				keyInstallationID: testInsID1,
+				keyRepos:          []string{testRepo1, testRepo2},
+				keyRepoIDs:        []int{testRepoID1, testRepoID2},
+				keyPerms:          testPerms,
 			},
 		})
 		assert.NilError(t, err)
@@ -181,9 +185,10 @@ func testBackendPathPermissionSetRead(t *testing.T, op logical.Operation) {
 			Operation: logical.CreateOperation,
 			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
-				keyRepos:   []string{testRepo1, testRepo2},
-				keyRepoIDs: []int{testRepoID1, testRepoID2},
-				keyPerms:   testPerms,
+				keyInstallationID: testInsID1,
+				keyRepos:          []string{testRepo1, testRepo2},
+				keyRepoIDs:        []int{testRepoID1, testRepoID2},
+				keyPerms:          testPerms,
 			},
 		})
 		assert.NilError(t, err)
@@ -196,8 +201,10 @@ func testBackendPathPermissionSetRead(t *testing.T, op logical.Operation) {
 		})
 		assert.NilError(t, err)
 		permData := r.Data[keyPerms].(map[string]string)
+		installationIDData := r.Data[keyInstallationID].(int)
 		repoIDData := r.Data[keyRepoIDs].([]int)
 		repoData := r.Data[keyRepos].([]string)
+		assert.DeepEqual(t, installationIDData, testInsID1)
 		assert.DeepEqual(t, permData, testPerms)
 		assert.DeepEqual(t, repoIDData, []int{testRepoID1, testRepoID2})
 		assert.DeepEqual(t, repoData, []string{testRepo1, testRepo2})
@@ -246,9 +253,10 @@ func testBackendPathPermissionSetList(t *testing.T, op logical.Operation) {
 			Operation: logical.CreateOperation,
 			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
-				keyRepos:   []string{testRepo1, testRepo2},
-				keyRepoIDs: []int{testRepoID1, testRepoID2},
-				keyPerms:   testPerms,
+				keyInstallationID: testInsID1,
+				keyRepos:          []string{testRepo1, testRepo2},
+				keyRepoIDs:        []int{testRepoID1, testRepoID2},
+				keyPerms:          testPerms,
 			},
 		})
 		assert.NilError(t, err)
@@ -272,9 +280,10 @@ func testBackendPathPermissionSetList(t *testing.T, op logical.Operation) {
 			Operation: logical.CreateOperation,
 			Path:      "permissionset/foo",
 			Data: map[string]interface{}{
-				keyRepos:   []string{testRepo1, testRepo2},
-				keyRepoIDs: []int{testRepoID1, testRepoID2},
-				keyPerms:   testPerms,
+				keyInstallationID: testInsID1,
+				keyRepos:          []string{testRepo1, testRepo2},
+				keyRepoIDs:        []int{testRepoID1, testRepoID2},
+				keyPerms:          testPerms,
 			},
 		})
 		assert.NilError(t, err)

@@ -35,7 +35,6 @@ func TestBackend_Revoke(t *testing.T) {
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
 			},
@@ -83,7 +82,6 @@ func TestBackend_Revoke(t *testing.T) {
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:  testAppID1,
-				keyInsID:  testInsID1,
 				keyPrvKey: testPrvKeyValid,
 			},
 		})
@@ -123,7 +121,6 @@ func TestBackend_Revoke(t *testing.T) {
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
 			},

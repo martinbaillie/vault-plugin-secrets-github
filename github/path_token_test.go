@@ -48,7 +48,6 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
 			},
@@ -60,9 +59,10 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Operation: op,
 			Path:      pathPatternToken,
 			Data: map[string]interface{}{
-				keyRepos:   []string{testRepo1, testRepo2},
-				keyRepoIDs: []int{testRepoID1, testRepoID2},
-				keyPerms:   testPerms,
+				keyInstallationID: testInsID1,
+				keyRepos:          []string{testRepo1, testRepo2},
+				keyRepoIDs:        []int{testRepoID1, testRepoID2},
+				keyPerms:          testPerms,
 			},
 		})
 		assert.NilError(t, err)
@@ -86,6 +86,34 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 		assert.ErrorContains(t, err, fmtErrConfRetrieval)
 	})
 
+	t.Run("MissingInstallationID", func(t *testing.T) {
+		t.Parallel()
+
+		b, storage := testBackend(t)
+
+		_, err := b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: logical.CreateOperation,
+			Path:      pathPatternConfig,
+			Data: map[string]interface{}{
+				keyAppID:  testAppID1,
+				keyPrvKey: testPrvKeyValid,
+			},
+		})
+		assert.NilError(t, err)
+
+		r, err := b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: op,
+			Path:      pathPatternToken,
+			Data:      map[string]interface{}{},
+		})
+
+		assert.NilError(t, err)
+		assert.Assert(t, r != nil)
+		assert.Assert(t, strings.Contains(r.Data["error"].(string), "installation_id is a required parameter"))
+	})
+
 	t.Run("FailedOptionsParsing", func(t *testing.T) {
 		t.Parallel()
 
@@ -97,7 +125,6 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:  testAppID1,
-				keyInsID:  testInsID1,
 				keyPrvKey: testPrvKeyValid,
 			},
 		})
@@ -108,9 +135,10 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Operation: op,
 			Path:      pathPatternToken,
 			Data: map[string]interface{}{
-				keyRepos:   "not a string slice",
-				keyRepoIDs: "not an int slice",
-				keyPerms:   "not a map of string to string",
+				keyInstallationID: "not an int",
+				keyRepos:          "not a string slice",
+				keyRepoIDs:        "not an int slice",
+				keyPerms:          "not a map of string to string",
 			},
 		})
 
@@ -138,7 +166,6 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Path:      pathPatternConfig,
 			Data: map[string]interface{}{
 				keyAppID:   testAppID1,
-				keyInsID:   testInsID1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
 			},
@@ -149,6 +176,9 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      pathPatternToken,
+			Data: map[string]interface{}{
+				keyInstallationID: testInsID1,
+			},
 		})
 		assert.Assert(t, is.Nil(r))
 		assert.Assert(t, errors.Is(err, errUnableToCreateAccessToken))

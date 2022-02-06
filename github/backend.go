@@ -158,8 +158,6 @@ func (b *backend) Client(s logical.Storage) (*Client, func(), error) {
 	b.Logger().Debug("created GitHub App installation client",
 		"base_url", config.BaseURL,
 		"app_id", strconv.Itoa(config.AppID),
-		"ins_id", strconv.Itoa(config.InsID),
-		"org_name", config.OrgName,
 	)
 	b.clientLock.RLock()
 
