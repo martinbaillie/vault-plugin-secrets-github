@@ -7,3 +7,5 @@ vault-plugin-secrets-github-*
 SHA256SUM*
 todo.org
 *.pem
+/.direnv
+/.direnv

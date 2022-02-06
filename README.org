@@ -190,8 +190,8 @@ plugin on your personal account if so desired.
 2. Choose any unique name, and homepage / webhook URLs (these can be anything;
    they are not required by the plugin).
    #+BEGIN_QUOTE
-    NOTE: You may wish to take advantage of having GitHub call a webhook URL you own each
-    time the App is used for auditing purposes.
+    NOTE: You may wish to take advantage of having GitHub call a webhook URL you
+    own each time the App is used for auditing purposes.
     #+END_QUOTE
 
 3. Carefully choose the permissions the App will have access to. This is the

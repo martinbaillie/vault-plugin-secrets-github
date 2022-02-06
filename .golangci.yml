@@ -8,6 +8,8 @@ linters:
     - gochecknoglobals
     - gochecknoinits
     - gomnd
+    - forcetypeassert
+    - tagliatelle
 
 issues:
   max-same-issues: 0

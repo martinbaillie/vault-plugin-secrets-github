@@ -48,7 +48,7 @@ GPG_KEY 	?=$(shell git config user.signingkey)
 VAULT_TOKEN?=root
 VAULT_ADDR?=http://127.0.0.1:8200
 VAULT_API_ADDR?=$(VAULT_ADDR)
-VAULT_VER?=1.6.0
+VAULT_VER?=1.9.1
 VAULT_ZIP=vault_$(VAULT_VER)_$(GOOS)_$(GOARCH).zip
 VAULT_URL=releases.hashicorp.com/vault/$(VAULT_VER)/$(VAULT_ZIP)
 
@@ -66,6 +66,13 @@ help: ## This help target
 
 default: help
 .PHONY: default
+
+update: ## Update Nix flake and Go modules
+	nix flake lock --update-input nixpkgs
+	direnv allow .
+	go get -u
+	go mod tidy
+.PHONY: update
 
 todo: ## Shows TODO items per file
 	grep --exclude=Makefile --text -InRo -E ' TODO.*' .
