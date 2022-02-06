@@ -191,7 +191,7 @@ integration-test: integration test ## Run a local development Vault and the inte
 
 tag: ## Create a signed commit and tag
 	echo >&2 "==> Tagging"
-	if [[ ! $(VERSION) =~ ^[0-9]+[.][0-9]+([.][0.9]*)(-rc.[0-9]+)?$ ]]; then \
+	if [[ ! $(VERSION) =~ ^[0-9]+[.][0-9]+([.][0.9]*)(-rc.[0-9]+)?$  ]]; then \
 		echo >&2 "ERROR: VERSION ($(VERSION)) is not a semantic version"; \
 		exit 1; \
 	fi
