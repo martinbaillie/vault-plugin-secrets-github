@@ -31,8 +31,8 @@ GOVERS 		=$(shell go version)
 GOOS		=$(word 1,$(subst /, ,$(lastword $(GOVERS))))
 GOARCH		=$(word 2,$(subst /, ,$(lastword $(GOVERS))))
 GOOSES		=darwin freebsd linux netbsd openbsd solaris windows
-GOARCHES 	=amd64 arm
-NOARCHES 	=darwin-arm solaris-arm windows-arm
+GOARCHES 	=amd64 arm64
+NOARCHES 	=solaris-arm64 windows-arm64
 
 GOCILINT_VER?=v1.30.0
 GOCILINT_URL=raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
