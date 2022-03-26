@@ -5,8 +5,8 @@ go 1.17
 require (
 	github.com/bradleyfalzon/ghinstallation v1.1.1
 	github.com/hashicorp/go-hclog v1.1.0
-	github.com/hashicorp/vault/api v1.3.1
-	github.com/hashicorp/vault/sdk v0.3.0
+	github.com/hashicorp/vault/api v1.5.0
+	github.com/hashicorp/vault/sdk v0.4.1
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/common v0.32.1
 	gotest.tools v2.2.0+incompatible
