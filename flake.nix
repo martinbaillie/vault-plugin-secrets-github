@@ -14,7 +14,7 @@
             git
             gnumake
             gnupg
-            golangci-lint
+            # golangci-lint
             gotestsum
             go
             vault-bin

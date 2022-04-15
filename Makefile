@@ -48,7 +48,7 @@ GPG_KEY 	?=$(shell git config user.signingkey)
 VAULT_TOKEN?=root
 VAULT_ADDR?=http://127.0.0.1:8200
 VAULT_API_ADDR?=$(VAULT_ADDR)
-VAULT_VER?=1.9.1
+VAULT_VER?=1.10.0
 VAULT_ZIP=vault_$(VAULT_VER)_$(GOOS)_$(GOARCH).zip
 VAULT_URL=releases.hashicorp.com/vault/$(VAULT_VER)/$(VAULT_ZIP)
 
@@ -230,7 +230,7 @@ release: GOTHUB=$(shell command -v gothub || \
 release: GITHUB_REPO=$(PROJECT)
 release: GITHUB_USER=$(word 2,$(subst /, ,$(PACKAGE)))
 release: GITHUB_ASSETS=$(wildcard $(PROJECT)-* SHA256SUMS*)
-release: clean tag build SHA256SUMS.sig ## Build, tag and release to GitHub
+release: tag build SHA256SUMS.sig ## Build, tag and release to GitHub
 release:
 	echo >&2 "==> Releasing"
 ifndef GITHUB_TOKEN
