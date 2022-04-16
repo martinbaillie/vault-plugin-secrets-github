@@ -14,9 +14,8 @@
             git
             gnumake
             gnupg
-            # golangci-lint
             gotestsum
-            go
+            go_1_18
             vault-bin
             unzip
             which

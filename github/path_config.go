@@ -86,12 +86,19 @@ func (b *backend) pathConfigRead(
 		return nil, err
 	}
 
-	return &logical.Response{
-		Data: map[string]interface{}{
-			keyAppID:   c.AppID,
-			keyBaseURL: c.BaseURL,
-		},
-	}, nil
+	resData := map[string]interface{}{
+		keyAppID:   c.AppID,
+		keyBaseURL: c.BaseURL,
+	}
+
+	// We don't return the key but indicate its presence for a better UX.
+	if c.PrvKey != "" {
+		resData[keyPrvKey] = "<configured>"
+	} else {
+		resData[keyPrvKey] = "" // Vault renders this as "n/a" which is ideal.
+	}
+
+	return &logical.Response{Data: resData}, nil
 }
 
 // pathConfigWrite corresponds to both CREATE and UPDATE on /github/config.

@@ -502,7 +502,7 @@ General CRUD operations against the configuration of the plugin.
 
 *** Parameters
 - =app_id= (int64) — the Application ID of the GitHub App.
-- =prv_key= (string) — a private key configured in the GitHub App. This private key must be in PEM PKCS#1 RSAPrivateKey format. It is not returned with read requests for security reasons.
+- =prv_key= (string) — a private key configured in the GitHub App. This private key must be in PEM PKCS#1 RSAPrivateKey format. It is not returned with read requests for security reasons but its presence or lack thereof is indicated.
 - =base_url= (string) — the base URL for API requests (defaults to the public GitHub API).
 
 *** Examples
