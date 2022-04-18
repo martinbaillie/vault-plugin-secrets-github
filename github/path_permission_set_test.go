@@ -21,21 +21,21 @@ func testBackendPermissionSet(t *testing.T) {
 		err := ps.save(context.Background(), storage)
 		assert.Assert(t, errors.Is(err, errPermissionSetNameEmpty))
 	})
-	t.Run("ValidateTokenOptionEmpty", func(t *testing.T) {
+	t.Run("ValidateTokenRequestEmpty", func(t *testing.T) {
 		t.Parallel()
 
 		_, storage := testBackend(t)
 
 		ps := &PermissionSet{Name: "foo"}
 		err := ps.save(context.Background(), storage)
-		assert.Assert(t, errors.Is(err, errPermissionSetTokenOptionEmpty))
+		assert.Assert(t, errors.Is(err, errPermissionSetTokenRequestEmpty))
 	})
 	t.Run("FailSave", func(t *testing.T) {
 		t.Parallel()
 
 		_, storage := testBackend(t, failVerbPut)
 
-		ps := &PermissionSet{Name: "foo", TokenOptions: new(tokenOptions)}
+		ps := &PermissionSet{Name: "foo", TokenRequest: new(tokenRequest)}
 		err := ps.save(context.Background(), storage)
 		assert.Assert(t, err != nil)
 	})
@@ -45,7 +45,6 @@ func testBackendPermissionSet(t *testing.T) {
 		_, storage := testBackend(t, failVerbRead)
 		_, err := getPermissionSet(context.Background(), "foo", storage)
 		assert.Assert(t, err != nil)
-
 	})
 }
 
@@ -297,6 +296,7 @@ func testBackendPathPermissionSetList(t *testing.T, op logical.Operation) {
 		assert.Assert(t, err != nil)
 	})
 }
+
 func TestBackend_PermissionSet(t *testing.T) {
 	t.Parallel()
 	testBackendPermissionSet(t)

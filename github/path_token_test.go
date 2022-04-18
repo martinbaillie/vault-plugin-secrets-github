@@ -111,7 +111,10 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 
 		assert.NilError(t, err)
 		assert.Assert(t, r != nil)
-		assert.Assert(t, strings.Contains(r.Data["error"].(string), "installation_id is a required parameter"))
+		assert.Assert(t, strings.Contains(
+			r.Data["error"].(string),
+			"installation_id or org_name is a required parameter",
+		))
 	})
 
 	t.Run("FailedOptionsParsing", func(t *testing.T) {

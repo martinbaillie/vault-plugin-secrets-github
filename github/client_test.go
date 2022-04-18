@@ -33,10 +33,17 @@ var (
 	}
 )
 
+// Force errors in a round trip.
+type doomedRoundTrip struct{ err error }
+
+func (d *doomedRoundTrip) RoundTrip(r *http.Request) (*http.Response, error) {
+	return nil, d.err
+}
+
 func TestNewClient(t *testing.T) {
 	t.Parallel()
 
-	var cases = []struct {
+	cases := []struct {
 		name string
 		conf *Config
 		err  error
@@ -72,6 +79,15 @@ func TestNewClient(t *testing.T) {
 			},
 			err: errors.New("parse"),
 		},
+		{
+			name: "UnparseableBaseURL",
+			conf: &Config{
+				AppID:   testAppID1,
+				PrvKey:  testPrvKeyValid,
+				BaseURL: "%zzzzz",
+			},
+			err: errors.New("parse"),
+		},
 	}
 
 	for _, tc := range cases {
@@ -86,7 +102,7 @@ func TestNewClient(t *testing.T) {
 			} else {
 				assert.NilError(t, err)
 
-				url, err := c.getAccessTokenURLForInstallationID(testInsID1)
+				url, err := c.accessTokenURLForInstallationID(testInsID1)
 
 				assert.NilError(t, err)
 				assert.Assert(t, c != nil)
@@ -99,20 +115,20 @@ func TestNewClient(t *testing.T) {
 func TestClient_Token(t *testing.T) {
 	t.Parallel()
 
-	var cases = []struct {
-		name    string
-		opts    *tokenOptions
-		handler http.HandlerFunc
-		res     *logical.Response
-		ctx     context.Context
-		err     error
+	cases := []struct {
+		name                   string
+		accessTokenURLTemplate string
+		transport              http.RoundTripper
+		tokReq                 *tokenRequest
+		handler                http.HandlerFunc
+		res                    *logical.Response
+		ctx                    context.Context
+		err                    error
 	}{
 		{
-			name: "HappyPath",
-			ctx:  context.Background(),
-			opts: &tokenOptions{
-				InstallationID: testInsID1,
-			},
+			name:   "HappyPath",
+			ctx:    context.Background(),
+			tokReq: &tokenRequest{InstallationID: testInsID1},
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
 
@@ -139,11 +155,13 @@ func TestClient_Token(t *testing.T) {
 		{
 			name: "HappyPathWithTokenConstraints",
 			ctx:  context.Background(),
-			opts: &tokenOptions{
+			tokReq: &tokenRequest{
 				InstallationID: testInsID1,
-				Repositories:   []string{testRepo1, testRepo2},
-				RepositoryIDs:  []int{testRepoID1, testRepoID2},
-				Permissions:    testPerms,
+				tokenConstraints: tokenConstraints{
+					Repositories:  []string{testRepo1, testRepo2},
+					RepositoryIDs: []int{testRepoID1, testRepoID2},
+					Permissions:   testPerms,
+				},
 			},
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
@@ -156,7 +174,6 @@ func TestClient_Token(t *testing.T) {
 				assert.NilError(t, json.NewDecoder(r.Body).Decode(&reqBody))
 				assert.Assert(t, is.Contains(reqBody, keyPerms))
 				assert.Assert(t, is.Contains(reqBody, keyRepoIDs))
-				assert.Assert(t, is.Contains(reqBody, keyInstallationID))
 				assert.Assert(t, is.Contains(reqBody, keyRepos))
 
 				w.Header().Set("Content-Type", "application/json")
@@ -187,20 +204,35 @@ func TestClient_Token(t *testing.T) {
 			},
 		},
 		{
-			// All Token() requests should be part of an existing RPC against
-			// the configured Vault path.
-			name: "NilContext",
-			opts: &tokenOptions{
-				InstallationID: testInsID1,
-			},
-			err: errUnableToBuildAccessTokenReq,
+			name: "MissingTokenReq",
+			ctx:  context.Background(),
+			err:  errMissingTokenReq,
 		},
 		{
-			name: "EOFResponse",
-			ctx:  context.Background(),
-			opts: &tokenOptions{
-				InstallationID: testInsID1,
-			},
+			name:      "FailedRoundTrip",
+			ctx:       context.Background(),
+			tokReq:    &tokenRequest{InstallationID: testInsID1},
+			transport: &doomedRoundTrip{errors.New("failed RT")},
+			err:       errors.New("failed RT"),
+		},
+		{
+			name:                   "UnparseableAccessTokenURL",
+			ctx:                    context.Background(),
+			tokReq:                 &tokenRequest{InstallationID: testInsID1},
+			accessTokenURLTemplate: "%zzzzz",
+			err:                    errors.New("parse"),
+		},
+		{
+			// All Token() requests should be part of an existing RPC against
+			// the configured Vault path.
+			name:   "NilContext",
+			tokReq: &tokenRequest{InstallationID: testInsID1},
+			err:    errUnableToBuildAccessTokenReq,
+		},
+		{
+			name:   "EOFResponse",
+			ctx:    context.Background(),
+			tokReq: &tokenRequest{InstallationID: testInsID1},
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
 				// Simulate an empty response.
@@ -208,11 +240,9 @@ func TestClient_Token(t *testing.T) {
 			err: errUnableToDecodeAccessTokenRes,
 		},
 		{
-			name: "ErrorInError",
-			ctx:  context.Background(),
-			opts: &tokenOptions{
-				InstallationID: testInsID1,
-			},
+			name:   "ErrorInError",
+			ctx:    context.Background(),
+			tokReq: &tokenRequest{InstallationID: testInsID1},
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
 				w.Header().Set("Content-Length", "1")
@@ -223,7 +253,7 @@ func TestClient_Token(t *testing.T) {
 		{
 			name: "EmptyResponse",
 			ctx:  context.Background(),
-			opts: &tokenOptions{
+			tokReq: &tokenRequest{
 				InstallationID: testInsID1,
 			},
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -233,11 +263,9 @@ func TestClient_Token(t *testing.T) {
 			err: errUnableToDecodeAccessTokenRes,
 		},
 		{
-			name: "4xxResponse",
-			ctx:  context.Background(),
-			opts: &tokenOptions{
-				InstallationID: testInsID1,
-			},
+			name:   "4xxResponse",
+			ctx:    context.Background(),
+			tokReq: &tokenRequest{InstallationID: testInsID1},
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Helper()
 				// 422 is the most likely GitHub Apps API 4xx response (when
@@ -247,6 +275,114 @@ func TestClient_Token(t *testing.T) {
 				w.WriteHeader(http.StatusUnprocessableEntity)
 			}),
 			err: errUnableToCreateAccessToken,
+		},
+		{
+			name:   "OrgNameExtraLookupHappyPath",
+			ctx:    context.Background(),
+			tokReq: &tokenRequest{OrgName: testOrgName1},
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+
+				switch r.Method {
+				case http.MethodGet:
+					assert.Equal(t, r.URL.Path, "/app/installations")
+					assert.Assert(t, r.Header.Get("Authorization") != "")
+
+					w.Header().Set("Content-Type", "application/json")
+					body, _ := json.Marshal([]map[string]interface{}{
+						{
+							"id": testInsID1,
+							"account": map[string]interface{}{
+								"login": testOrgName1,
+							},
+						},
+					})
+					w.WriteHeader(http.StatusOK)
+					w.Write(body)
+
+				case http.MethodPost:
+					assert.Equal(t, r.URL.Path, fmt.Sprintf("/%s", testPath))
+					assert.Assert(t, r.Header.Get("Authorization") != "")
+
+					w.Header().Set("Content-Type", "application/json")
+					body, _ := json.Marshal(map[string]interface{}{
+						"token":      testToken,
+						"expires_at": testTokenExp,
+					})
+					w.WriteHeader(http.StatusCreated)
+					w.Write(body)
+				}
+			}),
+			res: &logical.Response{
+				Data: map[string]interface{}{
+					"token":           testToken,
+					"installation_id": testInsID1,
+					"expires_at":      testTokenExp,
+				},
+			},
+		},
+		{
+			name:   "OrgNameNotInstalled",
+			ctx:    context.Background(),
+			tokReq: &tokenRequest{OrgName: testOrgName1},
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+
+				assert.Equal(t, r.Method, http.MethodGet)
+				assert.Equal(t, r.URL.Path, "/app/installations")
+				assert.Assert(t, r.Header.Get("Authorization") != "")
+
+				w.Header().Set("Content-Type", "application/json")
+				body, _ := json.Marshal([]map[string]interface{}{
+					{
+						"id": testInsID1,
+						"account": map[string]interface{}{
+							"login": testOrgName2,
+						},
+					},
+				})
+				w.WriteHeader(http.StatusOK)
+				w.Write(body)
+			}),
+			err: errAppNotInstalled,
+		},
+		{
+			name:   "OrgNameEmptyResponse",
+			ctx:    context.Background(),
+			tokReq: &tokenRequest{OrgName: testOrgName1},
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+				w.WriteHeader(http.StatusOK)
+			}),
+			err: errUnableToDecodeInstallationsRes,
+		},
+		{
+			name:   "OrgNameForbidden",
+			ctx:    context.Background(),
+			tokReq: &tokenRequest{OrgName: testOrgName1},
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+				w.WriteHeader(http.StatusForbidden)
+			}),
+			err: errUnableToGetInstallations,
+		},
+		{
+			name:   "OrgNameErrorInError",
+			ctx:    context.Background(),
+			tokReq: &tokenRequest{OrgName: testOrgName1},
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+				w.Header().Set("Content-Length", "1")
+				w.WriteHeader(http.StatusForbidden)
+			}),
+			err: errUnableToGetInstallations,
+		},
+		{
+			name:      "OrgNameFailedRoundTrip",
+			ctx:       context.Background(),
+			tokReq:    &tokenRequest{OrgName: testOrgName1},
+			transport: &doomedRoundTrip{errors.New("failed RT")},
+			err:       errors.New("failed RT"),
 		},
 	}
 
@@ -265,7 +401,15 @@ func TestClient_Token(t *testing.T) {
 			})
 			assert.NilError(t, err)
 
-			res, err := client.Token(tc.ctx, tc.opts)
+			if tc.accessTokenURLTemplate != "" {
+				client.accessTokenURLTemplate = tc.accessTokenURLTemplate
+			}
+
+			if tc.transport != nil {
+				client.transport = tc.transport
+			}
+
+			res, err := client.Token(tc.ctx, tc.tokReq)
 
 			if tc.err != nil {
 				assert.ErrorContains(t, err, tc.err.Error())
@@ -297,13 +441,14 @@ func TestClient_Token(t *testing.T) {
 func TestClient_RevokeToken(t *testing.T) {
 	t.Parallel()
 
-	var cases = []struct {
-		name    string
-		token   string
-		handler http.HandlerFunc
-		res     *logical.Response
-		ctx     context.Context
-		err     error
+	cases := []struct {
+		name                string
+		token               string
+		revocationTransport http.RoundTripper
+		handler             http.HandlerFunc
+		res                 *logical.Response
+		ctx                 context.Context
+		err                 error
 	}{
 		{
 			name:  "HappyPath",
@@ -357,6 +502,12 @@ func TestClient_RevokeToken(t *testing.T) {
 			}),
 			err: errUnableToRevokeAccessToken,
 		},
+		{
+			name:                "FailedRoundTrip",
+			ctx:                 context.Background(),
+			revocationTransport: &doomedRoundTrip{errors.New("failed RT")},
+			err:                 errors.New("failed RT"),
+		},
 	}
 
 	for _, tc := range cases {
@@ -373,6 +524,10 @@ func TestClient_RevokeToken(t *testing.T) {
 				BaseURL: ts.URL,
 			})
 			assert.NilError(t, err)
+
+			if tc.revocationTransport != nil {
+				client.revocationTransport = tc.revocationTransport
+			}
 
 			res, err := client.RevokeToken(tc.ctx, tc.token)
 

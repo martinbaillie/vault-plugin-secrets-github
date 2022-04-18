@@ -9,28 +9,31 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-// pathPatternPermissionSet is the string used to define the base path of the permission set
-// endpoint as well as the storage path of the permission set objects.
+// pathPatternPermissionSet is the string used to define the base path of the
+// permission set endpoint as well as the storage path of the permission set
+// objects.
 const pathPatternPermissionSet = "permissionset"
 
-// pathPatternPermissionSets is the string used to define the base path of the permission sets
-// endpoint.
+// pathPatternPermissionSets is the string used to define the base path of the
+// permission sets endpoint.
 const pathPatternPermissionSets = "permissionsets"
 
 const (
 	pathPermissionSetHelpSyn  = `Read/write GitHub permission sets for GitHub access tokens.`
 	pathPermissionSetHelpDesc = `
-This path allows you create permission sets which automatically bind sets of permissions to returned
-GitHub access tokens. Access tokens generated under a permission set subpath will have the given set
-of permission on GitHub. The following is a sample payload:
+This path allows you create permission sets which automatically bind sets of
+permissions to returned GitHub access tokens. Access tokens generated under a
+permission set subpath will have the given set of permission on GitHub. The
+following is a sample payload:
 
 {
 	"installation_id": 123,
+	"org_name": "acme",
 	"repositories": [
 		"test-repo",
 		"demo-repo",
 		"fubar",
-		..opts.
+		...
 	]
 	"repository_ids": [
 		123,
@@ -49,13 +52,13 @@ of permission on GitHub. The following is a sample payload:
 )
 
 var (
-	errPermissionSetNameEmpty        = errors.New("permission set name is empty")
-	errPermissionSetTokenOptionEmpty = errors.New("permission set option is empty")
+	errPermissionSetNameEmpty         = errors.New("permission set name empty")
+	errPermissionSetTokenRequestEmpty = errors.New("permission set token request empty")
 )
 
 type PermissionSet struct {
 	Name         string
-	TokenOptions *tokenOptions
+	TokenRequest *tokenRequest
 }
 
 func (ps *PermissionSet) validate() error {
@@ -63,8 +66,8 @@ func (ps *PermissionSet) validate() error {
 		return errPermissionSetNameEmpty
 	}
 
-	if ps.TokenOptions == nil {
-		return errPermissionSetTokenOptionEmpty
+	if ps.TokenRequest == nil {
+		return errPermissionSetTokenRequestEmpty
 	}
 
 	return nil
@@ -116,7 +119,10 @@ func (b *backend) pathPermissionSet() *framework.Path {
 			keyInstallationID: {
 				Type:        framework.TypeInt,
 				Description: descInstallationID,
-				Required:    true,
+			},
+			keyOrgName: {
+				Type:        framework.TypeString,
+				Description: descOrgName,
 			},
 			keyRepos: {
 				Type:        framework.TypeCommaStringSlice,
@@ -179,10 +185,11 @@ func (b *backend) pathPermissionSetRead(
 	}
 
 	data := map[string]interface{}{
-		keyInstallationID: ps.TokenOptions.InstallationID,
-		keyRepos:          ps.TokenOptions.Repositories,
-		keyRepoIDs:        ps.TokenOptions.RepositoryIDs,
-		keyPerms:          ps.TokenOptions.Permissions,
+		keyInstallationID: ps.TokenRequest.InstallationID,
+		keyOrgName:        ps.TokenRequest.OrgName,
+		keyRepos:          ps.TokenRequest.Repositories,
+		keyRepoIDs:        ps.TokenRequest.RepositoryIDs,
+		keyPerms:          ps.TokenRequest.Permissions,
 	}
 
 	return &logical.Response{
@@ -225,25 +232,31 @@ func (b *backend) pathPermissionSetCreateUpdate(
 	if ps == nil {
 		ps = &PermissionSet{
 			Name:         name,
-			TokenOptions: new(tokenOptions),
+			TokenRequest: new(tokenRequest),
 		}
 	}
 
-	ps.TokenOptions.InstallationID = d.Get(keyInstallationID).(int)
-	if ps.TokenOptions.InstallationID == 0 {
-		return logical.ErrorResponse("%s is a required parameter", keyInstallationID), nil
+	ps.TokenRequest.InstallationID = d.Get(keyInstallationID).(int)
+	ps.TokenRequest.OrgName = d.Get(keyOrgName).(string)
+
+	if ps.TokenRequest.InstallationID == 0 && ps.TokenRequest.OrgName == "" {
+		return logical.ErrorResponse(
+			"%s or %s is a required parameter",
+			keyInstallationID,
+			keyOrgName,
+		), nil
 	}
 
 	if perms, ok := d.GetOk(keyPerms); ok {
-		ps.TokenOptions.Permissions = perms.(map[string]string)
+		ps.TokenRequest.Permissions = perms.(map[string]string)
 	}
 
 	if repoIDs, ok := d.GetOk(keyRepoIDs); ok {
-		ps.TokenOptions.RepositoryIDs = repoIDs.([]int)
+		ps.TokenRequest.RepositoryIDs = repoIDs.([]int)
 	}
 
 	if repos, ok := d.GetOk(keyRepos); ok {
-		ps.TokenOptions.Repositories = repos.([]string)
+		ps.TokenRequest.Repositories = repos.([]string)
 	}
 
 	// Save permissions set
