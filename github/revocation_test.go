@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -21,7 +20,7 @@ func TestBackend_Revoke(t *testing.T) {
 		b, storage := testBackend(t)
 
 		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
+			func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 
 				w.WriteHeader(http.StatusNoContent)
@@ -67,8 +66,8 @@ func TestBackend_Revoke(t *testing.T) {
 				InternalData: map[string]interface{}{"secret_type": backendSecretType},
 			},
 		})
+		assert.ErrorContains(t, err, errConfRetrieval.Error())
 		assert.Assert(t, is.Nil(r))
-		assert.ErrorContains(t, err, fmtErrConfRetrieval)
 	})
 
 	t.Run("FailedOptionsParsing", func(t *testing.T) {
@@ -107,7 +106,7 @@ func TestBackend_Revoke(t *testing.T) {
 		b, storage := testBackend(t)
 
 		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
+			func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 
 				w.WriteHeader(http.StatusForbidden)
@@ -137,7 +136,7 @@ func TestBackend_Revoke(t *testing.T) {
 				"token": testToken,
 			},
 		})
+		assert.ErrorContains(t, err, errUnableToRevokeAccessToken.Error())
 		assert.Assert(t, is.Nil(r))
-		assert.Assert(t, errors.Is(err, errUnableToRevokeAccessToken))
 	})
 }

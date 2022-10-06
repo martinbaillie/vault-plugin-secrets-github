@@ -46,11 +46,11 @@ func TestBackend_PathMetricsRead(t *testing.T) {
 			Operation: logical.ReadOperation,
 			Path:      pathPatternMetrics,
 		})
-		assert.ErrorContains(t, err, fmtErrNoMetricsToDecode)
+		assert.ErrorContains(t, err, errNoMetricsToDecode.Error())
 		assert.Assert(t, statusCode(res.Data[logical.HTTPStatusCode].(int)).Unsuccessful())
 		assert.Assert(t, strings.Contains(
 			res.Data[logical.HTTPRawBody].(string),
-			fmtErrNoMetricsToDecode),
+			errNoMetricsToDecode.Error()),
 		)
 	})
 }

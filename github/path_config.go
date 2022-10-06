@@ -13,9 +13,9 @@ import (
 const pathPatternConfig = "config"
 
 const (
-	fmtErrConfMarshal = "failed to marshal configuration to JSON"
-	fmtErrConfPersist = "failed to persist configuration to storage"
-	fmtErrConfDelete  = "failed to delete configuration from storage"
+	errConfMarshal = Error("failed to marshal configuration to JSON")
+	errConfPersist = Error("failed to persist configuration to storage")
+	errConfDelete  = Error("failed to delete configuration from storage")
 )
 
 const (
@@ -34,7 +34,7 @@ Configure the GitHub secrets plugin.
 var pathConfigHelpDesc = fmt.Sprintf(`
 Configure the GitHub secrets plugin using the above parameters.
 
-NOTE: '%s' must be in PEM PKCS#1 RSAPrivateKey format.`, keyPrvKey)
+NOTE: %q must be in PEM PKCS#1 RSAPrivateKey format.`, keyPrvKey)
 
 // pathConfig defines the /github/config base path on the backend.
 func (b *backend) pathConfig() *framework.Path {
@@ -86,7 +86,7 @@ func (b *backend) pathConfigRead(
 		return nil, err
 	}
 
-	resData := map[string]interface{}{
+	resData := map[string]any{
 		keyAppID:   c.AppID,
 		keyBaseURL: c.BaseURL,
 	}
@@ -120,14 +120,15 @@ func (b *backend) pathConfigWrite(
 
 	// Persist only if changed.
 	if changed {
-		entry, err := logical.StorageEntryJSON(pathPatternConfig, c)
-		if err != nil {
+		var entry *logical.StorageEntry
+
+		if entry, err = logical.StorageEntryJSON(pathPatternConfig, c); err != nil {
 			// NOTE: Failure scenario cannot happen.
-			return nil, fmt.Errorf("%s: %w", fmtErrConfMarshal, err)
+			return nil, fmt.Errorf("%s: %w", errConfMarshal, err)
 		}
 
-		if err := req.Storage.Put(ctx, entry); err != nil {
-			return nil, fmt.Errorf("%s: %w", fmtErrConfPersist, err)
+		if err = req.Storage.Put(ctx, entry); err != nil {
+			return nil, fmt.Errorf("%s: %w", errConfPersist, err)
 		}
 
 		// Invalidate existing client so it reads the new configuration.
@@ -144,7 +145,7 @@ func (b *backend) pathConfigDelete(
 	_ *framework.FieldData,
 ) (*logical.Response, error) {
 	if err := req.Storage.Delete(ctx, pathPatternConfig); err != nil {
-		return nil, fmt.Errorf("%s: %w", fmtErrConfDelete, err)
+		return nil, fmt.Errorf("%s: %w", errConfDelete, err)
 	}
 
 	// Invalidate existing client so it reads the new configuration.

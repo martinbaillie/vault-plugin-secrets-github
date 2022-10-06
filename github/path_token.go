@@ -32,6 +32,7 @@ const (
 	descInstallationID = "The ID of the App installation that the token should have access to."
 )
 
+//nolint:gosec // false positive.
 const pathTokenHelpSyn = `
 Create and return a token using the GitHub secrets plugin.
 `
@@ -39,20 +40,20 @@ Create and return a token using the GitHub secrets plugin.
 var pathTokenHelpDesc = fmt.Sprintf(`
 Create and return a token using the GitHub secrets plugin.
 
-NOTE: '%s' is an installation ID and '%s' is an organization name. You can
+NOTE: %q is an installation ID and %q is an organization name. You can
 provide either or both. If both, installation ID will take precedence because
 organization name results in an additional round trip to GitHub to discover the
 installation ID. Latency sensitive users should favour installation IDs.
 
 Optionally, the token can be constrained by the following parameters:
 
-* '%s' is a slice of repository names.
-These must be the short names of repositories under the organisation.
+* %q is a slice of repository names.
+These must be the short names of repositories under the organization.
 
-* '%s' is a slice of repository IDs.
+* %q is a slice of repository IDs.
 The quickest way to find a repository ID: https://stackoverflow.com/a/47223479
 
-* '%s' is a map of permission names to their access type (read or write).
+* %q is a map of permission names to their access type (read or write).
 
 Permission names taken from: https://developer.github.com/v3/apps/permissions
 `, keyInstallationID, keyOrgName, keyRepos, keyRepoIDs, keyPerms)
@@ -106,7 +107,7 @@ func (b *backend) pathTokenWrite(
 	req *logical.Request,
 	d *framework.FieldData,
 ) (res *logical.Response, err error) {
-	client, done, err := b.Client(req.Storage)
+	client, done, err := b.Client(ctx, req.Storage)
 	if err != nil {
 		return nil, err
 	}

@@ -1,3 +1,4 @@
+// Package main can be used to build the Vault GitHub secrets plugin.
 package main
 
 import (
@@ -6,6 +7,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/sdk/plugin"
+
 	"github.com/martinbaillie/vault-plugin-secrets-github/github"
 )
 

@@ -69,7 +69,7 @@ func TestBackend_PathConfigRead(t *testing.T) {
 			Operation: logical.ReadOperation,
 			Path:      pathPatternConfig,
 		})
-		assert.ErrorContains(t, err, fmtErrConfRetrieval)
+		assert.ErrorContains(t, err, errConfRetrieval.Error())
 		assert.Assert(t, is.Nil(resp))
 	})
 }
@@ -160,7 +160,7 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 			Operation: op,
 			Path:      pathPatternConfig,
 		})
-		assert.ErrorContains(t, err, fmtErrConfRetrieval)
+		assert.ErrorContains(t, err, errConfRetrieval.Error())
 		assert.Assert(t, is.Nil(resp))
 	})
 
@@ -176,7 +176,7 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 				Path:      pathPatternConfig,
 				Data:      v,
 			})
-			assert.ErrorContains(t, err, fmtErrConfPersist)
+			assert.ErrorContains(t, err, errConfPersist.Error())
 			assert.Assert(t, is.Nil(resp))
 		})
 	}
@@ -271,7 +271,7 @@ func TestBackend_PathConfigDelete(t *testing.T) {
 			Operation: logical.DeleteOperation,
 			Path:      pathPatternConfig,
 		})
-		assert.ErrorContains(t, err, fmtErrConfDelete)
+		assert.ErrorContains(t, err, errConfDelete.Error())
 		assert.Assert(t, is.Nil(resp))
 	})
 }
