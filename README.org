@@ -1,4 +1,4 @@
-[[https://github.com/martinbaillie/vault-plugin-secrets-github/actions][https://github.com/martinbaillie/vault-plugin-secrets-github/workflows/build/badge.svg]]
+[[https://github.com/martinbaillie/vault-plugin-secrets-github/actions][https://github.com/martinbaillie/vault-plugin-secrets-github/actions/workflows/build.yml/badge.svg]]
 [[https://codecov.io/gh/martinbaillie/vault-plugin-secrets-github][https://codecov.io/gh/martinbaillie/vault-plugin-secrets-github/branch/master/graph/badge.svg]]
 [[https://godoc.org/github.com/martinbaillie/vault-plugin-secrets-github][https://godoc.org/github.com/martinbaillie/vault-plugin-secrets-github?status.svg]]
 [[https://goreportcard.com/report/github.com/martinbaillie/vault-plugin-secrets-github][https://goreportcard.com/badge/github.com/martinbaillie/vault-plugin-secrets-github?status.svg]]

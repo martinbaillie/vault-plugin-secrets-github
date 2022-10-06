@@ -9,13 +9,12 @@
       in
       with pkgs; {
         devShell = mkShell {
-          nativeBuildInputs = [
+          packages = [
             bashInteractive
-            git
+            gitMinimal
             gnumake
             gnupg
-            gotestsum
-            go_1_18
+            go_1_19
             vault-bin
             unzip
             which
