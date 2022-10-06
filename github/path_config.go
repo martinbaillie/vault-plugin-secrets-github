@@ -34,7 +34,7 @@ Configure the GitHub secrets plugin.
 var pathConfigHelpDesc = fmt.Sprintf(`
 Configure the GitHub secrets plugin using the above parameters.
 
-NOTE: '%s' must be in PEM PKCS#1 RSAPrivateKey format.`, keyPrvKey)
+NOTE: %q must be in PEM PKCS#1 RSAPrivateKey format.`, keyPrvKey)
 
 // pathConfig defines the /github/config base path on the backend.
 func (b *backend) pathConfig() *framework.Path {

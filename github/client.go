@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -35,39 +36,53 @@ var (
 type Client struct {
 	*Config
 
-	// URL is the access token URL template for this client.
-	accessTokenURLTemplate string
+	// RevocationURL is the access token revocation URL for this client.
+	revocationURL *url.URL
 
-	// Transport is the HTTP transport used for token requests.
-	transport http.RoundTripper
+	// revocationClient is an HTTP client used for unauthenticated GitHub App
+	// installation token revocation requests.
+	revocationClient *http.Client
+
+	// installationsClient is an HTTP client used for authenticated GitHub App
+	// installation token requests.
+	installationsClient *http.Client
 
 	// InstallationsURL is the installations operations URL for this client.
 	installationsURL *url.URL
 
-	// RevocationURL is the access token revocation URL for this client.
-	revocationURL *url.URL
-
-	// RevocationTransport is the HTTP transport used for revocation requests.
-	revocationTransport http.RoundTripper
+	// URL is the access token URL template for this client.
+	accessTokenURLTemplate string
 }
 
-// NewClient returns a newly constructed client from the provided config. It
-// will error if it fails to validate necessary configuration formats like URIs
-// and PEM encoded private keys.
-func NewClient(config *Config) (c *Client, err error) {
+// NewClient returns a newly constructed client from the provided config and
+// with sensible default transport settings. It will error if it fails to
+// validate necessary configuration formats like URIs and PEM encoded private
+// keys.
+func NewClient(config *Config) (*Client, error) {
 	if config == nil {
 		return nil, errClientConfigNil
 	}
 
-	c = &Client{
-		revocationTransport: http.DefaultTransport,
+	// A sensible request timeout. We could make this configurable in future.
+	reqTimeout := time.Millisecond * 5000
+
+	// Initialise a new transport instead of using Go's default. This transport
+	// has explicit timeouts and sensible defaults for max connections per host
+	// (i.e. their zero values—unlimited).
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout: reqTimeout / 2,
+		}).DialContext,
+		TLSHandshakeTimeout: reqTimeout / 2,
 	}
 
-	if c.transport, err = ghinstallation.NewAppsTransport(
-		http.DefaultTransport,
+	// Create an GitHub App installation authenticated clone of transport.
+	authenticatedTransport, err := ghinstallation.NewAppsTransport(
+		transport.Clone(),
 		int64(config.AppID),
 		[]byte(config.PrvKey),
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
 
@@ -76,21 +91,28 @@ func NewClient(config *Config) (c *Client, err error) {
 		return nil, fmt.Errorf("parsing base URL: %w", err)
 	}
 
-	c.revocationURL = baseURL.ResolveReference(&url.URL{Path: "installation/token"})
-	c.installationsURL = baseURL.ResolveReference(&url.URL{Path: "app/installations"})
+	installationsURL := baseURL.ResolveReference(&url.URL{Path: "app/installations"})
 
-	c.accessTokenURLTemplate = fmt.Sprintf(
-		"%s/%%v/access_tokens",
-		strings.TrimSuffix(fmt.Sprint(c.installationsURL), "/"),
-	)
-
-	return c, nil
+	return &Client{
+		revocationURL: baseURL.ResolveReference(&url.URL{Path: "installation/token"}),
+		revocationClient: &http.Client{
+			Timeout:   reqTimeout,
+			Transport: transport,
+		},
+		installationsURL: installationsURL,
+		installationsClient: &http.Client{
+			Timeout:   reqTimeout,
+			Transport: authenticatedTransport,
+		},
+		accessTokenURLTemplate: fmt.Sprintf(
+			"%s/%%v/access_tokens",
+			strings.TrimSuffix(installationsURL.String(), "/"),
+		),
+	}, nil
 }
 
 type tokenRequest struct {
-	// InstallationID is the installation identifier of the GitHub App.
-	InstallationID int `json:"installation_id"`
-	// OrgName is the organisation name of where the GitHub app is installed.
+	// OrgName is the organization name of where the GitHub app is installed.
 	//
 	// NOTE: OrgName is not actually part of the GitHub access tokens API[1]
 	// payload. If set, we use it to indirectly lookup a real installation ID.
@@ -98,7 +120,11 @@ type tokenRequest struct {
 	// [1]: https://git.io/JsQ7n
 	OrgName string `json:"-"`
 
+	// tokenRequest embeds tokenConstraints.
 	tokenConstraints
+
+	// InstallationID is the installation identifier of the GitHub App.
+	InstallationID int `json:"installation_id"`
 }
 
 // tokenConstraints allows for constraining the access scope of a token to
@@ -153,7 +179,7 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 
 	// Marshal a request body of token constraints, if any.
 	body := new(bytes.Buffer)
-	if err := json.NewEncoder(body).Encode(tokReq.tokenConstraints); err != nil {
+	if err = json.NewEncoder(body).Encode(tokReq.tokenConstraints); err != nil {
 		return nil, err
 	}
 
@@ -165,12 +191,13 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 
 	req.Header.Set("User-Agent", projectName)
 
-	if body != nil {
+	if body.Len() > 0 {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
 	// Perform the request, re-using the shared transport.
-	res, err := c.transport.RoundTrip(req)
+	res, err := c.installationsClient.Do(req)
+	// res, err := c.transport.RoundTrip(req)
 	if err != nil {
 		return nil, fmt.Errorf("%w: RoundTrip error: %v", errUnableToCreateAccessToken, err)
 	}
@@ -236,7 +263,7 @@ func (c *Client) installationID(ctx context.Context, orgName string) (int, error
 	req.Header.Set("User-Agent", projectName)
 
 	// Perform the request, re-using the client's shared transport.
-	res, err := c.transport.RoundTrip(req)
+	res, err := c.installationsClient.Do(req)
 	if err != nil {
 		return 0, fmt.Errorf("%w: RoundTrip error: %v", errUnableToGetInstallations, err)
 	}
@@ -276,8 +303,8 @@ type (
 		Login string `json:"login"`
 	}
 	installation struct {
-		ID      int     `json:"id"`
 		Account account `json:"account"`
+		ID      int     `json:"id"`
 	}
 )
 
@@ -295,7 +322,7 @@ func (c *Client) RevokeToken(ctx context.Context, token string) (*logical.Respon
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	// Perform the request, re-using the shared transport.
-	res, err := c.revocationTransport.RoundTrip(req)
+	res, err := c.revocationClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("%w: RoundTrip error: %v", errUnableToRevokeAccessToken, err)
 	}

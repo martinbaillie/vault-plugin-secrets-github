@@ -185,6 +185,7 @@ integration-test: integration test ## Run a local development Vault and the inte
 # 	BASE_URL=https://api.github.com \
 # 	APP_ID=<your application id> \
 #	ORG_NAME=<org_name> \
+#	INSTALLATION_ID=<installation_id> \
 # 	PRV_KEY="$(cat /path/to/your/app/prv_key_file)"
 # NOTE: this will automatically skip racyness tests to avoid rate limiting.
 .PHONY: integration-test

@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package github
@@ -28,9 +29,12 @@ var (
 	vaultToken = envStrOrDefault("VAULT_TOKEN", "root")
 
 	// Overridable GitHub App configuration.
-	appID   = envIntOrDefault(keyAppID, testAppID1)
-	prvKey  = envStrOrDefault(keyPrvKey, testPrvKeyValid)
-	baseURL = envStrOrDefault(keyBaseURL, "")
+	appID  = envIntOrDefault(keyAppID, testAppID1)
+	prvKey = envStrOrDefault(keyPrvKey, testPrvKeyValid)
+
+	baseURL        = os.Getenv(keyBaseURL)
+	orgName        = os.Getenv(keyOrgName)
+	installationID = os.Getenv(keyInstallationID)
 
 	// Whether or not we are stubbing the GitHub API for this integration test
 	// run. False when the BASE_URL environment variable has been passed.
@@ -110,9 +114,9 @@ func TestIntegration(t *testing.T) {
 	t.Run("WritePermissionSet", testWritePermissionSet)
 	t.Run("ReadPermissionSet", testReadPermissionSet)
 	t.Run("ListPermissionSets", testListPermissionSets)
-	t.Run("CreateToken", testCreateToken)
+	t.Run("CreateTokenByInstallationID", testCreateTokenByInstallationID)
 	t.Run("RevokeTokens", testRevokeTokens)
-	t.Run("CreateTokenWithConstraints", testCreateTokenWithConstraints)
+	t.Run("CreateTokenWithConstraints", testCreateTokenByInstallationIDWithConstraints)
 	t.Run("WriteReadConfigPermissionSetCreateTokenWithRacyness", func(t *testing.T) {
 		if !githubAPIStubbed || testing.Short() {
 			// We do not want to smash the real GitHub API, nor do we want to
@@ -138,9 +142,9 @@ func TestIntegration(t *testing.T) {
 		go race(testWritePermissionSet)
 		go race(testReadPermissionSet)
 		go race(testListPermissionSets)
-		go race(testCreateToken)
+		go race(testCreateTokenByInstallationID)
 		go race(testCreatePermissionSetToken)
-		go race(testCreateTokenWithConstraints)
+		go race(testCreateTokenByInstallationIDWithConstraints)
 		close(start)
 		wg.Wait()
 	})
@@ -248,7 +252,8 @@ func testWritePermissionSet(t *testing.T) {
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s/test-set", pathPatternPermissionSet),
 		map[string]interface{}{
-			keyInstallationID: testInsID1,
+			keyInstallationID: installationID,
+			keyOrgName:        orgName,
 			keyRepos:          []string{testRepo1, testRepo2},
 			keyRepoIDs:        []int{testRepoID1, testRepoID2},
 			keyPerms:          testPerms,
@@ -318,14 +323,14 @@ func testListPermissionSets(t *testing.T) {
 	assert.Equal(t, keys[0], "test-set")
 }
 
-func testCreateToken(t *testing.T) {
+func testCreateTokenByInstallationID(t *testing.T) {
 	t.Helper()
 
 	res, err := vaultDo(
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s", pathPatternToken),
 		map[string]interface{}{
-			keyInstallationID: testInsID1,
+			keyInstallationID: installationID,
 		},
 	)
 	assert.NilError(t, err)
@@ -391,7 +396,7 @@ func testRevokeTokens(t *testing.T) {
 	assert.Assert(t, statusCode(res.StatusCode).Successful())
 }
 
-func testCreateTokenWithConstraints(t *testing.T) {
+func testCreateTokenByInstallationIDWithConstraints(t *testing.T) {
 	t.Helper()
 
 	if !githubAPIStubbed {
@@ -420,8 +425,6 @@ func testCreateTokenWithConstraints(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Assert(t, is.Contains(resBody, "data"))
 
-	t.Logf("HIYA %+v\n", resBody)
-
 	resData := resBody["data"].(map[string]interface{})
 	if githubAPIStubbed {
 		assert.Equal(t, resData["token"], testToken)
@@ -435,8 +438,8 @@ func testCreateTokenWithConstraints(t *testing.T) {
 func vaultDo(method, endpoint string, body map[string]interface{}) (res *http.Response, err error) {
 	var req *http.Request
 	if body != nil {
-		b, err := json.Marshal(body)
-		if err != nil {
+		var b []byte
+		if b, err = json.Marshal(body); err != nil {
 			return nil, err
 		}
 

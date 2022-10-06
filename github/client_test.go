@@ -406,7 +406,7 @@ func TestClient_Token(t *testing.T) {
 			}
 
 			if tc.transport != nil {
-				client.transport = tc.transport
+				client.installationsClient.Transport = tc.transport
 			}
 
 			res, err := client.Token(tc.ctx, tc.tokReq)
@@ -526,7 +526,7 @@ func TestClient_RevokeToken(t *testing.T) {
 			assert.NilError(t, err)
 
 			if tc.revocationTransport != nil {
-				client.revocationTransport = tc.revocationTransport
+				client.revocationClient.Transport = tc.revocationTransport
 			}
 
 			res, err := client.RevokeToken(tc.ctx, tc.token)
