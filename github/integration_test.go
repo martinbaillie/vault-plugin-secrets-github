@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
 	"os"
 	"strconv"
 	"strings"
@@ -24,6 +25,8 @@ import (
 const racynessRequests = 1000
 
 var (
+	debug = os.Getenv("DEBUG") == "true"
+
 	// Overridable Vault target.
 	vaultAddr  = envStrOrDefault("VAULT_ADDR", "http://127.0.0.1:8200")
 	vaultToken = envStrOrDefault("VAULT_TOKEN", "root")
@@ -32,9 +35,9 @@ var (
 	appID  = envIntOrDefault(keyAppID, testAppID1)
 	prvKey = envStrOrDefault(keyPrvKey, testPrvKeyValid)
 
-	baseURL        = os.Getenv(keyBaseURL)
-	orgName        = os.Getenv(keyOrgName)
-	installationID = os.Getenv(keyInstallationID)
+	baseURL        = envStrOrDefault(keyBaseURL, "")
+	orgName        = envStrOrDefault(keyOrgName, testOrgName1)
+	installationID = envIntOrDefault(keyInstallationID, testInsID1)
 
 	// Whether or not we are stubbing the GitHub API for this integration test
 	// run. False when the BASE_URL environment variable has been passed.
@@ -61,6 +64,22 @@ func TestIntegration(t *testing.T) {
 				// Handle revocation requests.
 				if r.URL.Path == "/installation/token" {
 					w.WriteHeader(http.StatusNoContent)
+					return
+				}
+
+				// Handle org name --> installation ID lookups.
+				if r.URL.Path == "/app/installations" {
+					w.Header().Set("Content-Type", "application/json")
+					body, _ := json.Marshal([]map[string]interface{}{
+						{
+							"id": installationID,
+							"account": map[string]interface{}{
+								"login": orgName,
+							},
+						},
+					})
+					w.WriteHeader(http.StatusOK)
+					w.Write(body)
 					return
 				}
 
@@ -115,10 +134,11 @@ func TestIntegration(t *testing.T) {
 	t.Run("ReadPermissionSet", testReadPermissionSet)
 	t.Run("ListPermissionSets", testListPermissionSets)
 	t.Run("CreateTokenByInstallationID", testCreateTokenByInstallationID)
+	t.Run("CreateTokenByOrgName", testCreateTokenByOrgName)
 	t.Run("RevokeTokens", testRevokeTokens)
 	t.Run("CreateTokenWithConstraints", testCreateTokenByInstallationIDWithConstraints)
 	t.Run("WriteReadConfigPermissionSetCreateTokenWithRacyness", func(t *testing.T) {
-		if !githubAPIStubbed || testing.Short() {
+		if !githubAPIStubbed || testing.Short() || debug {
 			// We do not want to smash the real GitHub API, nor do we want to
 			// delay a deliberately short test run.
 			t.SkipNow()
@@ -352,6 +372,35 @@ func testCreateTokenByInstallationID(t *testing.T) {
 	}
 }
 
+func testCreateTokenByOrgName(t *testing.T) {
+	t.Helper()
+
+	res, err := vaultDo(
+		http.MethodPost,
+		fmt.Sprintf("/v1/github/%s", pathPatternToken),
+		map[string]interface{}{
+			keyOrgName: orgName,
+		},
+	)
+	assert.NilError(t, err)
+	defer res.Body.Close()
+	assert.Assert(t, statusCode(res.StatusCode).Successful())
+
+	var resBody map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&resBody)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Contains(resBody, "data"))
+
+	resData := resBody["data"].(map[string]interface{})
+	if githubAPIStubbed {
+		assert.Equal(t, resData["token"], testToken)
+		assert.Equal(t, resData["expires_at"], testTokenExp)
+	} else {
+		assert.Assert(t, resData["token"] != "")
+		assert.Assert(t, resData["expires_at"] != "")
+	}
+}
+
 func testCreatePermissionSetToken(t *testing.T) {
 	t.Helper()
 
@@ -454,6 +503,17 @@ func vaultDo(method, endpoint string, body map[string]interface{}) (res *http.Re
 		}
 	}
 	req.Header.Set("X-Vault-Token", vaultToken)
+
+	if debug {
+		dump, _ := httputil.DumpRequest(req, true)
+		fmt.Println(string(dump))
+
+		defer func() {
+			dump, _ := httputil.DumpResponse(res, true)
+			fmt.Println(string(dump))
+		}()
+	}
+
 	return http.DefaultClient.Do(req)
 }
 

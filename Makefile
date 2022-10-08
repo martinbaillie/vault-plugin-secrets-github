@@ -37,7 +37,7 @@ NOARCHES 	=solaris-arm64 windows-arm64
 GOCILINT_VER?=v1.50.0
 GOCILINT_URL=raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
 
-GOTESTSUM_VER?=v0.4.0
+GOTESTSUM_VER?=v1.8.2
 GOTESTSUM_URL=gotest.tools/gotestsum
 
 GOTHUB_VER?=v0.7.0
@@ -101,7 +101,7 @@ endif
 .PHONY: lint
 
 test: GOTESTSUM=$(shell command -v gotestsum || \
-					(go get $(GOTESTSUM_URL)@$(GOTESTSUM_VER) && \
+					(go install $(GOTESTSUM_URL)@$(GOTESTSUM_VER) && \
 					command -v gotestsum))
 test: FORMAT=$(if $(DEBUG:-=),standard-verbose,short-verbose)
 test: ## Test (also see the 'integration' targets)
@@ -110,10 +110,10 @@ test: ## Test (also see the 'integration' targets)
 	mkdir -p test; \
 	if [ "$(CI)" = true ]; then \
 		$(GOTESTSUM) --format $(FORMAT) --junitfile test/junit.xml -- -race \
-		$(GOTAGS) -coverprofile=test/coverage.out -covermode=atomic ./...; \
+		$(GOTAGS) $(GOTESTFLAGS) -coverprofile=test/coverage.out -covermode=atomic ./...; \
 	else \
 		$(GOTESTSUM) --format $(FORMAT) --junitfile test/junit.xml -- \
-		$(GOTAGS) ./...; \
+		$(GOTAGS) $(GOTESTFLAGS) ./...; \
 	fi; \
 	! grep "FAIL" test/junit.xml &>/dev/null && \
 	exit $$lint_exit # Ensure we exit failure if linting failed
@@ -226,7 +226,7 @@ SHA256SUMS.sig: SHA256SUMS
 
 # NOTE: Needs BSD xargs.
 release: GOTHUB=$(shell command -v gothub || \
-					(go get $(GOTHUB_URL)@$(GOTHUB_VER) && \
+					(go install $(GOTHUB_URL)@$(GOTHUB_VER) && \
 					command -v gothub))
 release: GITHUB_REPO=$(PROJECT)
 release: GITHUB_USER=$(word 2,$(subst /, ,$(PACKAGE)))
