@@ -106,7 +106,7 @@ func (b *backend) pathTokenWrite(
 	req *logical.Request,
 	d *framework.FieldData,
 ) (res *logical.Response, err error) {
-	client, done, err := b.Client(req.Storage)
+	client, done, err := b.Client(ctx, req.Storage)
 	if err != nil {
 		return nil, err
 	}

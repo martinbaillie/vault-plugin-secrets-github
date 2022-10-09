@@ -15,7 +15,7 @@ import (
 func (b *backend) Revoke(
 	ctx context.Context, req *logical.Request, d *framework.FieldData,
 ) (resp *logical.Response, retErr error) {
-	client, done, err := b.Client(req.Storage)
+	client, done, err := b.Client(ctx, req.Storage)
 	if err != nil {
 		return nil, err
 	}

@@ -120,13 +120,13 @@ func (b *backend) pathConfigWrite(
 
 	// Persist only if changed.
 	if changed {
-		entry, err := logical.StorageEntryJSON(pathPatternConfig, c)
-		if err != nil {
+		var entry *logical.StorageEntry
+		if entry, err = logical.StorageEntryJSON(pathPatternConfig, c); err != nil {
 			// NOTE: Failure scenario cannot happen.
 			return nil, fmt.Errorf("%s: %w", fmtErrConfMarshal, err)
 		}
 
-		if err := req.Storage.Put(ctx, entry); err != nil {
+		if err = req.Storage.Put(ctx, entry); err != nil {
 			return nil, fmt.Errorf("%s: %w", fmtErrConfPersist, err)
 		}
 

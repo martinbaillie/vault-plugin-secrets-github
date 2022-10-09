@@ -205,8 +205,8 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 	defer res.Body.Close()
 
 	if statusCode(res.StatusCode).Unsuccessful() {
-		bodyBytes, err := io.ReadAll(res.Body)
-		if err != nil {
+		var bodyBytes []byte
+		if bodyBytes, err = io.ReadAll(res.Body); err != nil {
 			return nil, fmt.Errorf("%w: %s: error reading error response body: %v",
 				errUnableToCreateAccessToken, res.Status, err)
 		}
@@ -218,7 +218,7 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 	}
 
 	var resData map[string]any
-	if err := json.NewDecoder(res.Body).Decode(&resData); err != nil {
+	if err = json.NewDecoder(res.Body).Decode(&resData); err != nil {
 		return nil, fmt.Errorf("%w: %v", errUnableToDecodeAccessTokenRes, err)
 	}
 
@@ -233,8 +233,10 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 	// As per the issue request in https://git.io/JUhRk, return a Vault "lease"
 	// aligned to the GitHub token's `expires_at` field.
 	if expiresAt, ok := resData["expires_at"]; ok {
-		if expiresAtStr, ok := expiresAt.(string); ok {
-			if expiresAtTime, err := time.Parse(time.RFC3339, expiresAtStr); err == nil {
+		var expiresAtStr string
+		if expiresAtStr, ok = expiresAt.(string); ok {
+			var expiresAtTime time.Time
+			if expiresAtTime, err = time.Parse(time.RFC3339, expiresAtStr); err == nil {
 				tokRes.Secret = &logical.Secret{
 					InternalData: map[string]any{"secret_type": backendSecretType},
 					LeaseOptions: logical.LeaseOptions{
@@ -271,8 +273,8 @@ func (c *Client) installationID(ctx context.Context, orgName string) (int, error
 	defer res.Body.Close()
 
 	if statusCode(res.StatusCode).Unsuccessful() {
-		bodyBytes, err := io.ReadAll(res.Body)
-		if err != nil {
+		var bodyBytes []byte
+		if bodyBytes, err = io.ReadAll(res.Body); err != nil {
 			return 0, fmt.Errorf("%w: %s: error reading error response body: %v",
 				errUnableToGetInstallations, res.Status, err)
 		}
@@ -284,7 +286,7 @@ func (c *Client) installationID(ctx context.Context, orgName string) (int, error
 	}
 
 	var instResult []installation
-	if err := json.NewDecoder(res.Body).Decode(&instResult); err != nil {
+	if err = json.NewDecoder(res.Body).Decode(&instResult); err != nil {
 		return 0, fmt.Errorf("%w: %v", errUnableToDecodeInstallationsRes, err)
 	}
 
@@ -330,8 +332,8 @@ func (c *Client) RevokeToken(ctx context.Context, token string) (*logical.Respon
 	defer res.Body.Close()
 
 	if !statusCode(res.StatusCode).Revoked() {
-		bodyBytes, err := io.ReadAll(res.Body)
-		if err != nil {
+		var bodyBytes []byte
+		if bodyBytes, err = io.ReadAll(res.Body); err != nil {
 			return nil, fmt.Errorf("%w: %s: error reading error response body: %v",
 				errUnableToRevokeAccessToken, res.Status, err)
 		}

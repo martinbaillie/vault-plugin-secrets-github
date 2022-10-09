@@ -1,3 +1,4 @@
+// Package main can be used to build the Vault GitHub secrets plugin.
 package main
 
 import (

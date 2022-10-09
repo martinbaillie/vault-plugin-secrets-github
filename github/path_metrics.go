@@ -98,7 +98,7 @@ func (b *backend) pathMetricsRead(
 
 	// Write metrics as Prometheus exposition format.
 	for _, mf := range metricsFamilies {
-		if err := expfmt.NewEncoder(buf, expfmt.FmtText).Encode(mf); err != nil {
+		if err = expfmt.NewEncoder(buf, expfmt.FmtText).Encode(mf); err != nil {
 			res.Data[logical.HTTPRawBody] = fmt.Sprintf("%s: %s", fmtErrFailedMetricsEncoding, err)
 
 			return res, fmt.Errorf("%s: %w", fmtErrFailedMetricsEncoding, err)

@@ -56,6 +56,8 @@ var (
 	errPermissionSetTokenRequestEmpty = errors.New("permission set token request empty")
 )
 
+// PermissionSet models the data and methods needed for storing and retrieving
+// permission sets in Vault.
 type PermissionSet struct {
 	Name         string
 	TokenRequest *tokenRequest
@@ -101,7 +103,7 @@ func getPermissionSet(ctx context.Context, name string, s logical.Storage) (*Per
 
 	ps := &PermissionSet{}
 
-	if err := entry.DecodeJSON(ps); err != nil {
+	if err = entry.DecodeJSON(ps); err != nil {
 		return nil, err
 	}
 
@@ -211,7 +213,7 @@ func (b *backend) pathPermissionSetDelete(
 	b.permissionsetLock.Lock()
 	defer b.permissionsetLock.Unlock()
 
-	if err := req.Storage.Delete(ctx, fmt.Sprintf("permissionset/%s", nameRaw)); err != nil {
+	if err = req.Storage.Delete(ctx, fmt.Sprintf("permissionset/%s", nameRaw)); err != nil {
 		return nil, err
 	}
 
@@ -260,7 +262,7 @@ func (b *backend) pathPermissionSetCreateUpdate(
 	}
 
 	// Save permissions set
-	if err := ps.save(ctx, req.Storage); err != nil {
+	if err = ps.save(ctx, req.Storage); err != nil {
 		return logical.ErrorResponse(err.Error()), nil
 	}
 

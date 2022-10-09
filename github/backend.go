@@ -111,7 +111,7 @@ func (b *backend) Config(ctx context.Context, s logical.Storage) (*Config, error
 		return c, nil
 	}
 
-	if err := entry.DecodeJSON(&c); err != nil {
+	if err = entry.DecodeJSON(&c); err != nil {
 		return nil, fmt.Errorf("%s: %w", fmtErrConfUnmarshal, err)
 	}
 
@@ -121,7 +121,7 @@ func (b *backend) Config(ctx context.Context, s logical.Storage) (*Config, error
 // Client returns a client for interfacing the configured GitHub App. Resets due
 // to configuration updates are safely handled. Users are expected to use the
 // returned closer when finished.
-func (b *backend) Client(s logical.Storage) (*Client, func(), error) {
+func (b *backend) Client(ctx context.Context, s logical.Storage) (*Client, func(), error) {
 	b.clientLock.RLock()
 	if b.client != nil {
 		return b.client, func() { b.clientLock.RUnlock() }, nil
@@ -138,7 +138,7 @@ func (b *backend) Client(s logical.Storage) (*Client, func(), error) {
 	// Clear the client once more in case of earlier concurrent creation.
 	b.client = nil
 
-	config, err := b.Config(context.Background(), s)
+	config, err := b.Config(ctx, s)
 	if err != nil {
 		b.clientLock.Unlock()
 
