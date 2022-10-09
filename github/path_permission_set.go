@@ -184,7 +184,7 @@ func (b *backend) pathPermissionSetRead(
 		return nil, nil
 	}
 
-	data := map[string]interface{}{
+	data := map[string]any{
 		keyInstallationID: ps.TokenRequest.InstallationID,
 		keyOrgName:        ps.TokenRequest.OrgName,
 		keyRepos:          ps.TokenRequest.Repositories,

@@ -79,7 +79,7 @@ func (b *backend) pathMetricsRead(
 ) (*logical.Response, error) {
 	res := &logical.Response{
 		// Default as failure.
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			logical.HTTPContentType: "text/plain",
 			logical.HTTPStatusCode:  http.StatusBadRequest,
 		},

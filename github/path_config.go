@@ -86,7 +86,7 @@ func (b *backend) pathConfigRead(
 		return nil, err
 	}
 
-	resData := map[string]interface{}{
+	resData := map[string]any{
 		keyAppID:   c.AppID,
 		keyBaseURL: c.BaseURL,
 	}

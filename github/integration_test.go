@@ -415,10 +415,7 @@ func testCreatePermissionSetToken(t *testing.T) {
 	var resBody map[string]interface{}
 	err = json.NewDecoder(res.Body).Decode(&resBody)
 
-	t.Log(resBody)
-	t.Log(res.StatusCode)
 	assert.Assert(t, statusCode(res.StatusCode).Successful())
-
 	assert.NilError(t, err)
 	assert.Assert(t, is.Contains(resBody, "data"))
 

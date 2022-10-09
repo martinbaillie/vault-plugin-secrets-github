@@ -25,10 +25,11 @@ func (b *backend) Revoke(
 	// Safely parse the token from interface type.
 	var token string
 	{
-		tokenIface, _, err := d.GetOkErr("token")
-		if err != nil {
+		var tokenIface any
+		if tokenIface, _, err = d.GetOkErr("token"); err != nil {
 			return nil, err
 		}
+
 		token = tokenIface.(string)
 	}
 

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -205,7 +205,7 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 	defer res.Body.Close()
 
 	if statusCode(res.StatusCode).Unsuccessful() {
-		bodyBytes, err := ioutil.ReadAll(res.Body)
+		bodyBytes, err := io.ReadAll(res.Body)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s: error reading error response body: %v",
 				errUnableToCreateAccessToken, res.Status, err)
@@ -217,7 +217,7 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 			res.Status, bodyErr)
 	}
 
-	var resData map[string]interface{}
+	var resData map[string]any
 	if err := json.NewDecoder(res.Body).Decode(&resData); err != nil {
 		return nil, fmt.Errorf("%w: %v", errUnableToDecodeAccessTokenRes, err)
 	}
@@ -236,7 +236,7 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 		if expiresAtStr, ok := expiresAt.(string); ok {
 			if expiresAtTime, err := time.Parse(time.RFC3339, expiresAtStr); err == nil {
 				tokRes.Secret = &logical.Secret{
-					InternalData: map[string]interface{}{"secret_type": backendSecretType},
+					InternalData: map[string]any{"secret_type": backendSecretType},
 					LeaseOptions: logical.LeaseOptions{
 						TTL: time.Until(expiresAtTime),
 					},
@@ -271,7 +271,7 @@ func (c *Client) installationID(ctx context.Context, orgName string) (int, error
 	defer res.Body.Close()
 
 	if statusCode(res.StatusCode).Unsuccessful() {
-		bodyBytes, err := ioutil.ReadAll(res.Body)
+		bodyBytes, err := io.ReadAll(res.Body)
 		if err != nil {
 			return 0, fmt.Errorf("%w: %s: error reading error response body: %v",
 				errUnableToGetInstallations, res.Status, err)
@@ -330,7 +330,7 @@ func (c *Client) RevokeToken(ctx context.Context, token string) (*logical.Respon
 	defer res.Body.Close()
 
 	if !statusCode(res.StatusCode).Revoked() {
-		bodyBytes, err := ioutil.ReadAll(res.Body)
+		bodyBytes, err := io.ReadAll(res.Body)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s: error reading error response body: %v",
 				errUnableToRevokeAccessToken, res.Status, err)

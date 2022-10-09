@@ -29,7 +29,7 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 		b, storage := testBackend(t)
 
 		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
+			func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 
 				body, _ := json.Marshal(map[string]interface{}{
@@ -86,7 +86,7 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 		b, storage := testBackend(t)
 
 		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
+			func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 
 				body, _ := json.Marshal(map[string]interface{}{
@@ -150,7 +150,7 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 		b, storage := testBackend(t)
 
 		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
+			func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 				w.WriteHeader(http.StatusUnprocessableEntity)
 			}),

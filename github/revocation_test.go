@@ -21,7 +21,7 @@ func TestBackend_Revoke(t *testing.T) {
 		b, storage := testBackend(t)
 
 		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
+			func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 
 				w.WriteHeader(http.StatusNoContent)
@@ -107,7 +107,7 @@ func TestBackend_Revoke(t *testing.T) {
 		b, storage := testBackend(t)
 
 		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
+			func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 
 				w.WriteHeader(http.StatusForbidden)

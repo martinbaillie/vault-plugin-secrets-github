@@ -233,7 +233,7 @@ func TestClient_Token(t *testing.T) {
 			name:   "EOFResponse",
 			ctx:    context.Background(),
 			tokReq: &tokenRequest{InstallationID: testInsID1},
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler: http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 				// Simulate an empty response.
 			}),
@@ -243,7 +243,7 @@ func TestClient_Token(t *testing.T) {
 			name:   "ErrorInError",
 			ctx:    context.Background(),
 			tokReq: &tokenRequest{InstallationID: testInsID1},
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 				w.Header().Set("Content-Length", "1")
 				w.WriteHeader(http.StatusForbidden)
@@ -256,7 +256,7 @@ func TestClient_Token(t *testing.T) {
 			tokReq: &tokenRequest{
 				InstallationID: testInsID1,
 			},
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 				w.WriteHeader(http.StatusOK)
 			}),
@@ -266,7 +266,7 @@ func TestClient_Token(t *testing.T) {
 			name:   "4xxResponse",
 			ctx:    context.Background(),
 			tokReq: &tokenRequest{InstallationID: testInsID1},
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 				// 422 is the most likely GitHub Apps API 4xx response (when
 				// presented with valid auth) and it occurs when the user has
@@ -350,7 +350,7 @@ func TestClient_Token(t *testing.T) {
 			name:   "OrgNameEmptyResponse",
 			ctx:    context.Background(),
 			tokReq: &tokenRequest{OrgName: testOrgName1},
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 				w.WriteHeader(http.StatusOK)
 			}),
@@ -360,7 +360,7 @@ func TestClient_Token(t *testing.T) {
 			name:   "OrgNameForbidden",
 			ctx:    context.Background(),
 			tokReq: &tokenRequest{OrgName: testOrgName1},
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 				w.WriteHeader(http.StatusForbidden)
 			}),
@@ -370,7 +370,7 @@ func TestClient_Token(t *testing.T) {
 			name:   "OrgNameErrorInError",
 			ctx:    context.Background(),
 			tokReq: &tokenRequest{OrgName: testOrgName1},
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 				w.Header().Set("Content-Length", "1")
 				w.WriteHeader(http.StatusForbidden)
@@ -474,7 +474,7 @@ func TestClient_RevokeToken(t *testing.T) {
 		{
 			name: "ErrorInError",
 			ctx:  context.Background(),
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 				w.Header().Set("Content-Length", "1")
 				w.WriteHeader(http.StatusForbidden)
@@ -484,7 +484,7 @@ func TestClient_RevokeToken(t *testing.T) {
 		{
 			name: "401Response",
 			ctx:  context.Background(),
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 				// 401 is the most likely GitHub API 4xx response when trying to revoke and it
 				// occurs when the token is already expired or revoked. We treat this as a success
@@ -496,7 +496,7 @@ func TestClient_RevokeToken(t *testing.T) {
 		{
 			name: "403Response",
 			ctx:  context.Background(),
-			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 				w.WriteHeader(http.StatusForbidden)
 			}),
