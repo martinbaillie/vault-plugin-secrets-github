@@ -63,12 +63,13 @@ func NewClient(config *Config) (*Client, error) {
 		return nil, errClientConfigNil
 	}
 
-	// A sensible request timeout. We could make this configurable in future.
+	// A sensible request timeout.
 	reqTimeout := time.Millisecond * 5000
 
 	// Initialise a new transport instead of using Go's default. This transport
 	// has explicit timeouts and sensible defaults for max connections per host
-	// (i.e. their zero values—unlimited).
+	// (i.e. their zero values—unlimited—since the plugin typically only deals
+	// with one host).
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout: reqTimeout / 2,
@@ -159,7 +160,7 @@ func (c *Client) Token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 		return nil, errMissingTokenReq
 	}
 
-	// If installation ID is nil, presume we are looking up installation ID by
+	// If installation ID is the default value, look up installation ID by
 	// organization name first.
 	if tokReq.InstallationID == 0 {
 		var err error
@@ -197,7 +198,6 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 
 	// Perform the request, re-using the shared transport.
 	res, err := c.installationsClient.Do(req)
-	// res, err := c.transport.RoundTrip(req)
 	if err != nil {
 		return nil, fmt.Errorf("%w: RoundTrip error: %v", errUnableToCreateAccessToken, err)
 	}
