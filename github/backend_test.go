@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -122,12 +121,12 @@ func TestBackend_Config(t *testing.T) {
 		{
 			name:        "FailedStorage",
 			failStorage: []failVerb{failVerbRead, failVerbPut, failVerbList, failVerbDelete},
-			err:         errors.New(fmtErrConfRetrieval),
+			err:         errConfRetrieval,
 		},
 		{
 			name: "FailedUnmarshal",
 			new:  []byte(`{bustedJSON`),
-			err:  errors.New(fmtErrConfUnmarshal),
+			err:  errConfUnmarshal,
 		},
 	}
 
@@ -231,7 +230,7 @@ func TestBackend_Client(t *testing.T) {
 		b, storage := testBackend(t, failVerbRead)
 
 		client, _, err := b.Client(ctx, storage)
-		assert.ErrorContains(t, err, fmtErrConfRetrieval)
+		assert.ErrorContains(t, err, errConfRetrieval.Error())
 		assert.Assert(t, is.Nil(client))
 	})
 
@@ -249,7 +248,7 @@ func TestBackend_Client(t *testing.T) {
 		assert.NilError(t, storage.Put(ctx, entry))
 
 		client, _, err := b.Client(ctx, storage)
-		assert.ErrorContains(t, err, fmtErrClientCreate)
+		assert.ErrorContains(t, err, errClientCreate.Error())
 		assert.Assert(t, is.Nil(client))
 	})
 }

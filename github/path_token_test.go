@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -82,8 +81,8 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Operation: op,
 			Path:      pathPatternToken,
 		})
+		assert.ErrorContains(t, err, errConfRetrieval.Error())
 		assert.Assert(t, is.Nil(r))
-		assert.ErrorContains(t, err, fmtErrConfRetrieval)
 	})
 
 	t.Run("MissingInstallationID", func(t *testing.T) {
@@ -183,8 +182,8 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 				keyInstallationID: testInsID1,
 			},
 		})
+		assert.ErrorContains(t, err, errUnableToCreateAccessToken.Error())
 		assert.Assert(t, is.Nil(r))
-		assert.Assert(t, errors.Is(err, errUnableToCreateAccessToken))
 	})
 }
 

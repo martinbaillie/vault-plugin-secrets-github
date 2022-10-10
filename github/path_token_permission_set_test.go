@@ -140,8 +140,8 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 			Operation: op,
 			Path:      fmt.Sprintf("%s/foo", pathPatternToken),
 		})
+		assert.ErrorContains(t, err, errConfRetrieval.Error())
 		assert.Assert(t, is.Nil(r))
-		assert.ErrorContains(t, err, fmtErrConfRetrieval)
 	})
 
 	t.Run("FailedCreate", func(t *testing.T) {

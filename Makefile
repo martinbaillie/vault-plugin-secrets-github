@@ -177,6 +177,7 @@ integration: $(PROJECT)-$(GOOS)-$(GOARCH) ## Run a local development Vault
 		-plugin-name=$(PROJECT) \
 		plugin
 	$(eval GOTAGS+=-count 1 -tags integration)
+	sleep 2
 .PHONY: integration
 
 integration-test: integration test ## Run a local development Vault and the integration tests

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -17,19 +16,20 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-var (
-	errBody                           = errors.New("error body")
-	errClientConfigNil                = errors.New("client configuration was nil")
-	errMissingTokenReq                = errors.New("missing access token request")
-	errUnableToBuildAccessTokenReq    = errors.New("unable to build access token request")
-	errUnableToBuildAccessTokenRevReq = errors.New("unable to build access token revocation request")
-	errUnableToBuildAccessTokenURL    = errors.New("unable to build access token URL")
-	errUnableToCreateAccessToken      = errors.New("unable to create access token")
-	errUnableToDecodeAccessTokenRes   = errors.New("unable to decode access token response")
-	errUnableToDecodeInstallationsRes = errors.New("unable to decode installations list response")
-	errUnableToGetInstallations       = errors.New("unable to get installations")
-	errUnableToRevokeAccessToken      = errors.New("unable to revoke access token")
-	errAppNotInstalled                = errors.New("app not installed in GitHub organization")
+const (
+	errBody                           = Error("error body")
+	errClientConfigNil                = Error("client configuration was nil")
+	errMissingTokenReq                = Error("missing access token request")
+	errParsingBaseURL                 = Error("parsing base URL")
+	errUnableToBuildAccessTokenReq    = Error("unable to build access token request")
+	errUnableToBuildAccessTokenRevReq = Error("unable to build access token revocation request")
+	errUnableToBuildAccessTokenURL    = Error("unable to build access token URL")
+	errUnableToCreateAccessToken      = Error("unable to create access token")
+	errUnableToDecodeAccessTokenRes   = Error("unable to decode access token response")
+	errUnableToDecodeInstallationsRes = Error("unable to decode installations list response")
+	errUnableToGetInstallations       = Error("unable to get installations")
+	errUnableToRevokeAccessToken      = Error("unable to revoke access token")
+	errAppNotInstalled                = Error("app not installed in GitHub organization")
 )
 
 // Client encapsulates an HTTP client for talking to the configured GitHub App.
@@ -89,7 +89,7 @@ func NewClient(config *Config) (*Client, error) {
 
 	baseURL, err := url.ParseRequestURI(config.BaseURL)
 	if err != nil {
-		return nil, fmt.Errorf("parsing base URL: %w", err)
+		return nil, fmt.Errorf("%s: %w", errParsingBaseURL, err)
 	}
 
 	installationsURL := baseURL.ResolveReference(&url.URL{Path: "app/installations"})
@@ -175,7 +175,7 @@ func (c *Client) Token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Response, error) {
 	accessTokenURL, err := c.accessTokenURLForInstallationID(tokReq.InstallationID)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", errUnableToBuildAccessTokenURL, err)
+		return nil, fmt.Errorf("%s: %w", errUnableToBuildAccessTokenURL, err)
 	}
 
 	// Marshal a request body of token constraints, if any.
@@ -187,7 +187,7 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 	// Build the token HTTP request.
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, accessTokenURL.String(), body)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", errUnableToBuildAccessTokenReq, err)
+		return nil, fmt.Errorf("%s: %w", errUnableToBuildAccessTokenReq, err)
 	}
 
 	req.Header.Set("User-Agent", projectName)
@@ -199,7 +199,7 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 	// Perform the request, re-using the shared transport.
 	res, err := c.installationsClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("%w: RoundTrip error: %v", errUnableToCreateAccessToken, err)
+		return nil, fmt.Errorf("%s: %w", errUnableToCreateAccessToken, err)
 	}
 
 	defer res.Body.Close()
@@ -207,14 +207,12 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 	if statusCode(res.StatusCode).Unsuccessful() {
 		var bodyBytes []byte
 		if bodyBytes, err = io.ReadAll(res.Body); err != nil {
-			return nil, fmt.Errorf("%w: %s: error reading error response body: %v",
-				errUnableToCreateAccessToken, res.Status, err)
+			return nil, fmt.Errorf("%s: %w", errUnableToCreateAccessToken, err)
 		}
 
-		bodyErr := fmt.Errorf("%w: %v", errBody, string(bodyBytes))
+		bodyErr := fmt.Errorf("%s: %s", res.Status, string(bodyBytes))
 
-		return nil, fmt.Errorf("%w: %s: %v", errUnableToCreateAccessToken,
-			res.Status, bodyErr)
+		return nil, fmt.Errorf("%s: %w", errUnableToCreateAccessToken, bodyErr)
 	}
 
 	var resData map[string]any
@@ -267,7 +265,7 @@ func (c *Client) installationID(ctx context.Context, orgName string) (int, error
 	// Perform the request, re-using the client's shared transport.
 	res, err := c.installationsClient.Do(req)
 	if err != nil {
-		return 0, fmt.Errorf("%w: RoundTrip error: %v", errUnableToGetInstallations, err)
+		return 0, fmt.Errorf("%s: %w", errUnableToGetInstallations, err)
 	}
 
 	defer res.Body.Close()
@@ -275,19 +273,17 @@ func (c *Client) installationID(ctx context.Context, orgName string) (int, error
 	if statusCode(res.StatusCode).Unsuccessful() {
 		var bodyBytes []byte
 		if bodyBytes, err = io.ReadAll(res.Body); err != nil {
-			return 0, fmt.Errorf("%w: %s: error reading error response body: %v",
-				errUnableToGetInstallations, res.Status, err)
+			return 0, fmt.Errorf("%s: %w", errUnableToGetInstallations, err)
 		}
 
-		bodyErr := fmt.Errorf("%w: %v", errBody, string(bodyBytes))
+		bodyErr := fmt.Errorf("%s: %s", res.Status, string(bodyBytes))
 
-		return 0, fmt.Errorf("%w: %s: %v", errUnableToGetInstallations,
-			res.Status, bodyErr)
+		return 0, fmt.Errorf("%s: %w", errUnableToGetInstallations, bodyErr)
 	}
 
 	var instResult []installation
 	if err = json.NewDecoder(res.Body).Decode(&instResult); err != nil {
-		return 0, fmt.Errorf("%w: %v", errUnableToDecodeInstallationsRes, err)
+		return 0, fmt.Errorf("%s: %w", errUnableToDecodeInstallationsRes, err)
 	}
 
 	for _, v := range instResult {
@@ -317,7 +313,7 @@ func (c *Client) RevokeToken(ctx context.Context, token string) (*logical.Respon
 	// Build the revocation request.
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.revocationURL.String(), nil)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", errUnableToBuildAccessTokenRevReq, err)
+		return nil, fmt.Errorf("%s: %w", errUnableToBuildAccessTokenRevReq, err)
 	}
 
 	req.Header.Set("User-Agent", projectName)
@@ -326,7 +322,7 @@ func (c *Client) RevokeToken(ctx context.Context, token string) (*logical.Respon
 	// Perform the request, re-using the shared transport.
 	res, err := c.revocationClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("%w: RoundTrip error: %v", errUnableToRevokeAccessToken, err)
+		return nil, fmt.Errorf("%s: %w", errUnableToRevokeAccessToken, err)
 	}
 
 	defer res.Body.Close()
@@ -334,14 +330,12 @@ func (c *Client) RevokeToken(ctx context.Context, token string) (*logical.Respon
 	if !statusCode(res.StatusCode).Revoked() {
 		var bodyBytes []byte
 		if bodyBytes, err = io.ReadAll(res.Body); err != nil {
-			return nil, fmt.Errorf("%w: %s: error reading error response body: %v",
-				errUnableToRevokeAccessToken, res.Status, err)
+			return nil, fmt.Errorf("%s: %w", errUnableToRevokeAccessToken, err)
 		}
 
-		bodyErr := fmt.Errorf("%w: %v", errBody, string(bodyBytes))
+		bodyErr := fmt.Errorf("%s: %s", res.Status, string(bodyBytes))
 
-		return nil, fmt.Errorf("%w: %s: %v", errUnableToRevokeAccessToken,
-			res.Status, bodyErr)
+		return nil, fmt.Errorf("%s: %w", errUnableToRevokeAccessToken, bodyErr)
 	}
 
 	return &logical.Response{}, nil

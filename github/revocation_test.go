@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -67,8 +66,8 @@ func TestBackend_Revoke(t *testing.T) {
 				InternalData: map[string]interface{}{"secret_type": backendSecretType},
 			},
 		})
+		assert.ErrorContains(t, err, errConfRetrieval.Error())
 		assert.Assert(t, is.Nil(r))
-		assert.ErrorContains(t, err, fmtErrConfRetrieval)
 	})
 
 	t.Run("FailedOptionsParsing", func(t *testing.T) {
@@ -137,7 +136,7 @@ func TestBackend_Revoke(t *testing.T) {
 				"token": testToken,
 			},
 		})
+		assert.ErrorContains(t, err, errUnableToRevokeAccessToken.Error())
 		assert.Assert(t, is.Nil(r))
-		assert.Assert(t, errors.Is(err, errUnableToRevokeAccessToken))
 	})
 }

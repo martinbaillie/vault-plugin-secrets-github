@@ -3,7 +3,6 @@ package github
 import (
 	"crypto/x509"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -14,13 +13,10 @@ import (
 const githubPublicAPI = "https://api.github.com"
 
 const (
-	fmtErrUnableToParsePrvKey  = "unable to parse private key"
-	fmtErrUnableToParseBaseURL = "unable to parse base URL"
-)
-
-var (
-	errFieldDataNil    = errors.New("field data passed for updating was nil")
-	errKeyNotPEMFormat = errors.New("key is not a PEM formatted RSA private key")
+	errUnableToParsePrvKey  = Error("unable to parse private key")
+	errUnableToParseBaseURL = Error("unable to parse base URL")
+	errFieldDataNil         = Error("field data passed for updating was nil")
+	errKeyNotPEMFormat      = Error("key is not a PEM formatted RSA private key")
 )
 
 // Config holds all configuration for the backend.
@@ -56,7 +52,7 @@ func (c *Config) Update(d *framework.FieldData) (bool, error) {
 	if baseURL, ok := d.GetOk(keyBaseURL); ok {
 		nv, err := url.ParseRequestURI(baseURL.(string))
 		if err != nil {
-			return false, fmt.Errorf("%s: %w", fmtErrUnableToParseBaseURL, err)
+			return false, fmt.Errorf("%s: %w", errUnableToParseBaseURL, err)
 		}
 
 		if c.BaseURL != nv.String() {
@@ -93,7 +89,7 @@ func validatePrvKeyStr(k string) error {
 	}
 
 	if _, err := x509.ParsePKCS1PrivateKey(pemKey.Bytes); err != nil {
-		return fmt.Errorf("%s: %w", fmtErrUnableToParsePrvKey, err)
+		return fmt.Errorf("%s: %w", errUnableToParsePrvKey, err)
 	}
 
 	return nil

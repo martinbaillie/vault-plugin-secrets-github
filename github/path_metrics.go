@@ -17,8 +17,8 @@ import (
 const prefixMetrics = "vault_github_token"
 
 const (
-	fmtErrNoMetricsToDecode     = "no prometheus metrics could be decoded"
-	fmtErrFailedMetricsEncoding = "failed to encode metrics"
+	errNoMetricsToDecode     = Error("no prometheus metrics could be decoded")
+	errFailedMetricsEncoding = Error("failed to encode metrics")
 )
 
 const pathPatternMetrics = "metrics"
@@ -88,9 +88,9 @@ func (b *backend) pathMetricsRead(
 	// Gather metrics.
 	metricsFamilies, err := prometheus.DefaultGatherer.Gather()
 	if err != nil || len(metricsFamilies) == 0 {
-		res.Data[logical.HTTPRawBody] = fmt.Sprintf("%s: %s", fmtErrNoMetricsToDecode, err)
+		res.Data[logical.HTTPRawBody] = fmt.Sprintf("%s: %s", errNoMetricsToDecode, err)
 
-		return res, fmt.Errorf("%s: %w", fmtErrNoMetricsToDecode, err)
+		return res, fmt.Errorf("%s: %w", errNoMetricsToDecode, err)
 	}
 
 	buf := new(bytes.Buffer)
@@ -99,9 +99,9 @@ func (b *backend) pathMetricsRead(
 	// Write metrics as Prometheus exposition format.
 	for _, mf := range metricsFamilies {
 		if err = expfmt.NewEncoder(buf, expfmt.FmtText).Encode(mf); err != nil {
-			res.Data[logical.HTTPRawBody] = fmt.Sprintf("%s: %s", fmtErrFailedMetricsEncoding, err)
+			res.Data[logical.HTTPRawBody] = fmt.Sprintf("%s: %s", errFailedMetricsEncoding, err)
 
-			return res, fmt.Errorf("%s: %w", fmtErrFailedMetricsEncoding, err)
+			return res, fmt.Errorf("%s: %w", errFailedMetricsEncoding, err)
 		}
 	}
 

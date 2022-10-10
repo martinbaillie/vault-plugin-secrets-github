@@ -13,9 +13,9 @@ import (
 const pathPatternConfig = "config"
 
 const (
-	fmtErrConfMarshal = "failed to marshal configuration to JSON"
-	fmtErrConfPersist = "failed to persist configuration to storage"
-	fmtErrConfDelete  = "failed to delete configuration from storage"
+	errConfMarshal = Error("failed to marshal configuration to JSON")
+	errConfPersist = Error("failed to persist configuration to storage")
+	errConfDelete  = Error("failed to delete configuration from storage")
 )
 
 const (
@@ -123,11 +123,11 @@ func (b *backend) pathConfigWrite(
 		var entry *logical.StorageEntry
 		if entry, err = logical.StorageEntryJSON(pathPatternConfig, c); err != nil {
 			// NOTE: Failure scenario cannot happen.
-			return nil, fmt.Errorf("%s: %w", fmtErrConfMarshal, err)
+			return nil, fmt.Errorf("%s: %w", errConfMarshal, err)
 		}
 
 		if err = req.Storage.Put(ctx, entry); err != nil {
-			return nil, fmt.Errorf("%s: %w", fmtErrConfPersist, err)
+			return nil, fmt.Errorf("%s: %w", errConfPersist, err)
 		}
 
 		// Invalidate existing client so it reads the new configuration.
@@ -144,7 +144,7 @@ func (b *backend) pathConfigDelete(
 	_ *framework.FieldData,
 ) (*logical.Response, error) {
 	if err := req.Storage.Delete(ctx, pathPatternConfig); err != nil {
-		return nil, fmt.Errorf("%s: %w", fmtErrConfDelete, err)
+		return nil, fmt.Errorf("%s: %w", errConfDelete, err)
 	}
 
 	// Invalidate existing client so it reads the new configuration.
