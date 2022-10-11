@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -17,7 +16,7 @@ import (
 func TestFactory(t *testing.T) {
 	t.Parallel()
 
-	var cases = []struct {
+	cases := []struct {
 		name string
 		conf *logical.BackendConfig
 		err  error
@@ -122,12 +121,12 @@ func TestBackend_Config(t *testing.T) {
 		{
 			name:        "FailedStorage",
 			failStorage: []failVerb{failVerbRead, failVerbPut, failVerbList, failVerbDelete},
-			err:         errors.New(fmtErrConfRetrieval),
+			err:         errConfRetrieval,
 		},
 		{
 			name: "FailedUnmarshal",
 			new:  []byte(`{bustedJSON`),
-			err:  errors.New(fmtErrConfUnmarshal),
+			err:  errConfUnmarshal,
 		},
 	}
 
@@ -163,6 +162,8 @@ func TestBackend_Client(t *testing.T) {
 	t.Run("AllowConcurrentReads", func(t *testing.T) {
 		t.Parallel()
 
+		ctx := context.Background()
+
 		b, storage := testBackend(t)
 
 		entry, err := logical.StorageEntryJSON(pathPatternConfig, &Config{
@@ -172,15 +173,15 @@ func TestBackend_Client(t *testing.T) {
 		})
 		assert.NilError(t, err)
 		assert.Assert(t, entry != nil)
-		assert.NilError(t, storage.Put(context.Background(), entry))
+		assert.NilError(t, storage.Put(ctx, entry))
 
-		_, closer1, err := b.Client(storage)
+		_, closer1, err := b.Client(ctx, storage)
 		assert.NilError(t, err)
 		defer closer1()
 
 		doneCh := make(chan struct{})
 		go func() {
-			_, closer2, err := b.Client(storage)
+			_, closer2, err := b.Client(context.Background(), storage)
 			assert.NilError(t, err)
 			defer closer2()
 			close(doneCh)
@@ -196,6 +197,8 @@ func TestBackend_Client(t *testing.T) {
 	t.Run("ReusesExisting", func(t *testing.T) {
 		t.Parallel()
 
+		ctx := context.Background()
+
 		b, storage := testBackend(t)
 
 		entry, err := logical.StorageEntryJSON(pathPatternConfig, &Config{
@@ -205,13 +208,13 @@ func TestBackend_Client(t *testing.T) {
 		})
 		assert.NilError(t, err)
 		assert.Assert(t, entry != nil)
-		assert.NilError(t, storage.Put(context.Background(), entry))
+		assert.NilError(t, storage.Put(ctx, entry))
 
-		client1, closer1, err := b.Client(storage)
+		client1, closer1, err := b.Client(ctx, storage)
 		assert.NilError(t, err)
 		defer closer1()
 
-		client2, closer2, err := b.Client(storage)
+		client2, closer2, err := b.Client(ctx, storage)
 		assert.NilError(t, err)
 		defer closer2()
 
@@ -222,16 +225,19 @@ func TestBackend_Client(t *testing.T) {
 	t.Run("FailedStorage", func(t *testing.T) {
 		t.Parallel()
 
+		ctx := context.Background()
+
 		b, storage := testBackend(t, failVerbRead)
 
-		client, _, err := b.Client(storage)
-		assert.ErrorContains(t, err, fmtErrConfRetrieval)
+		client, _, err := b.Client(ctx, storage)
+		assert.ErrorContains(t, err, errConfRetrieval.Error())
 		assert.Assert(t, is.Nil(client))
 	})
 
 	t.Run("BadConfig", func(t *testing.T) {
 		t.Parallel()
 
+		ctx := context.Background()
 		b, storage := testBackend(t)
 
 		entry, err := logical.StorageEntryJSON(pathPatternConfig, &Config{
@@ -239,10 +245,10 @@ func TestBackend_Client(t *testing.T) {
 		})
 		assert.NilError(t, err)
 		assert.Assert(t, entry != nil)
-		assert.NilError(t, storage.Put(context.Background(), entry))
+		assert.NilError(t, storage.Put(ctx, entry))
 
-		client, _, err := b.Client(storage)
-		assert.ErrorContains(t, err, fmtErrClientCreate)
+		client, _, err := b.Client(ctx, storage)
+		assert.ErrorContains(t, err, errClientCreate.Error())
 		assert.Assert(t, is.Nil(client))
 	})
 }

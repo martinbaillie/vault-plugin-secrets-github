@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -29,7 +28,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 		b, storage := testBackend(t)
 
 		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
+			func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 
 				body, _ := json.Marshal(map[string]interface{}{
@@ -82,8 +81,8 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Operation: op,
 			Path:      pathPatternToken,
 		})
+		assert.ErrorContains(t, err, errConfRetrieval.Error())
 		assert.Assert(t, is.Nil(r))
-		assert.ErrorContains(t, err, fmtErrConfRetrieval)
 	})
 
 	t.Run("MissingInstallationID", func(t *testing.T) {
@@ -156,7 +155,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 		b, storage := testBackend(t)
 
 		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
+			func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 				w.WriteHeader(http.StatusUnprocessableEntity)
 			}),
@@ -183,8 +182,8 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 				keyInstallationID: testInsID1,
 			},
 		})
+		assert.ErrorContains(t, err, errUnableToCreateAccessToken.Error())
 		assert.Assert(t, is.Nil(r))
-		assert.Assert(t, errors.Is(err, errUnableToCreateAccessToken))
 	})
 }
 

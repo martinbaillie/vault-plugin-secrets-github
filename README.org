@@ -1,4 +1,4 @@
-[[https://github.com/martinbaillie/vault-plugin-secrets-github/actions][https://github.com/martinbaillie/vault-plugin-secrets-github/workflows/build/badge.svg]]
+[[https://github.com/martinbaillie/vault-plugin-secrets-github/actions][https://github.com/martinbaillie/vault-plugin-secrets-github/actions/workflows/build.yml/badge.svg]]
 [[https://codecov.io/gh/martinbaillie/vault-plugin-secrets-github][https://codecov.io/gh/martinbaillie/vault-plugin-secrets-github/branch/master/graph/badge.svg]]
 [[https://godoc.org/github.com/martinbaillie/vault-plugin-secrets-github][https://godoc.org/github.com/martinbaillie/vault-plugin-secrets-github?status.svg]]
 [[https://goreportcard.com/report/github.com/martinbaillie/vault-plugin-secrets-github][https://goreportcard.com/badge/github.com/martinbaillie/vault-plugin-secrets-github?status.svg]]
@@ -487,7 +487,7 @@ vault list /github/permissionsets
 vault read /github/token/demo-set
 
 # Delete an existing permission set.
-vault delete /github/token/demo-set
+vault delete /github/permissionset/demo-set
 #+END_SRC
 
 ** Config
@@ -580,7 +580,8 @@ make integration test
 # NOTE: Keep in mind this test configuration will create real tokens.
 make integration test \
     BASE_URL=https://api.github.com \
-    ORG_NAME=<org_name> \
+    ORG_NAME=<org name> \
+    INSTALLATION_ID=<installation id> \
     APP_ID=<app_id> \
     PRV_KEY="$(cat <private_key_file>)"
 #+END_SRC

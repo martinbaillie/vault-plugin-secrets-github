@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/hashicorp/vault/sdk/framework"
@@ -51,11 +50,14 @@ following is a sample payload:
 	pathListPermissionSetHelpDesc = `List created permission sets.`
 )
 
-var (
-	errPermissionSetNameEmpty         = errors.New("permission set name empty")
-	errPermissionSetTokenRequestEmpty = errors.New("permission set token request empty")
+const (
+	errPermissionSetNameEmpty         = Error("permission set name empty")
+	errPermissionSetTokenRequestEmpty = Error("permission set token request empty")
+	errUnableToGetPermissionSet       = Error("unable to get permission set")
 )
 
+// PermissionSet models the data and methods needed for storing and retrieving
+// permission sets in Vault.
 type PermissionSet struct {
 	Name         string
 	TokenRequest *tokenRequest
@@ -101,7 +103,7 @@ func getPermissionSet(ctx context.Context, name string, s logical.Storage) (*Per
 
 	ps := &PermissionSet{}
 
-	if err := entry.DecodeJSON(ps); err != nil {
+	if err = entry.DecodeJSON(ps); err != nil {
 		return nil, err
 	}
 
@@ -184,7 +186,7 @@ func (b *backend) pathPermissionSetRead(
 		return nil, nil
 	}
 
-	data := map[string]interface{}{
+	data := map[string]any{
 		keyInstallationID: ps.TokenRequest.InstallationID,
 		keyOrgName:        ps.TokenRequest.OrgName,
 		keyRepos:          ps.TokenRequest.Repositories,
@@ -205,13 +207,13 @@ func (b *backend) pathPermissionSetDelete(
 
 	_, err := getPermissionSet(ctx, psName, req.Storage)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get permission set %s: %w", psName, err)
+		return nil, fmt.Errorf("%s %s: %w", errUnableToGetPermissionSet, psName, err)
 	}
 
 	b.permissionsetLock.Lock()
 	defer b.permissionsetLock.Unlock()
 
-	if err := req.Storage.Delete(ctx, fmt.Sprintf("permissionset/%s", nameRaw)); err != nil {
+	if err = req.Storage.Delete(ctx, fmt.Sprintf("permissionset/%s", nameRaw)); err != nil {
 		return nil, err
 	}
 
@@ -260,7 +262,7 @@ func (b *backend) pathPermissionSetCreateUpdate(
 	}
 
 	// Save permissions set
-	if err := ps.save(ctx, req.Storage); err != nil {
+	if err = ps.save(ctx, req.Storage); err != nil {
 		return logical.ErrorResponse(err.Error()), nil
 	}
 

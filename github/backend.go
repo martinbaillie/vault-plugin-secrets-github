@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -19,12 +18,11 @@ GitHub Apps Token Backend
 const backendSecretType = "github_token"
 
 const (
-	fmtErrConfRetrieval = "failed to get configuration from storage"
-	fmtErrConfUnmarshal = "failed to unmarshal configuration from JSON"
-	fmtErrClientCreate  = "failed to create an authenticated GitHub client"
+	errBackendConfigNil = Error("backend configuration was nil")
+	errConfRetrieval    = Error("failed to get configuration from storage")
+	errConfUnmarshal    = Error("failed to unmarshal configuration from JSON")
+	errClientCreate     = Error("failed to create an authenticated GitHub client")
 )
-
-var errBackendConfigNil = errors.New("backend configuration was nil")
 
 type backend struct {
 	*framework.Backend
@@ -104,15 +102,15 @@ func (b *backend) Config(ctx context.Context, s logical.Storage) (*Config, error
 
 	entry, err := s.Get(ctx, pathPatternConfig)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", fmtErrConfRetrieval, err)
+		return nil, fmt.Errorf("%s: %w", errConfRetrieval, err)
 	}
 
 	if entry == nil || len(entry.Value) == 0 {
 		return c, nil
 	}
 
-	if err := entry.DecodeJSON(&c); err != nil {
-		return nil, fmt.Errorf("%s: %w", fmtErrConfUnmarshal, err)
+	if err = entry.DecodeJSON(&c); err != nil {
+		return nil, fmt.Errorf("%s: %w", errConfUnmarshal, err)
 	}
 
 	return c, nil
@@ -121,7 +119,7 @@ func (b *backend) Config(ctx context.Context, s logical.Storage) (*Config, error
 // Client returns a client for interfacing the configured GitHub App. Resets due
 // to configuration updates are safely handled. Users are expected to use the
 // returned closer when finished.
-func (b *backend) Client(s logical.Storage) (*Client, func(), error) {
+func (b *backend) Client(ctx context.Context, s logical.Storage) (*Client, func(), error) {
 	b.clientLock.RLock()
 	if b.client != nil {
 		return b.client, func() { b.clientLock.RUnlock() }, nil
@@ -138,7 +136,7 @@ func (b *backend) Client(s logical.Storage) (*Client, func(), error) {
 	// Clear the client once more in case of earlier concurrent creation.
 	b.client = nil
 
-	config, err := b.Config(context.Background(), s)
+	config, err := b.Config(ctx, s)
 	if err != nil {
 		b.clientLock.Unlock()
 
@@ -149,7 +147,7 @@ func (b *backend) Client(s logical.Storage) (*Client, func(), error) {
 	if err != nil {
 		b.clientLock.Unlock()
 
-		return nil, nil, fmt.Errorf("%s: %w", fmtErrClientCreate, err)
+		return nil, nil, fmt.Errorf("%s: %w", errClientCreate, err)
 	}
 
 	b.client = client

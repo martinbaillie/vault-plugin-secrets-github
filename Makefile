@@ -34,10 +34,10 @@ GOOSES		=darwin freebsd linux netbsd openbsd solaris windows
 GOARCHES 	=amd64 arm64
 NOARCHES 	=solaris-arm64 windows-arm64
 
-GOCILINT_VER?=v1.30.0
+GOCILINT_VER?=v1.50.0
 GOCILINT_URL=raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
 
-GOTESTSUM_VER?=v0.4.0
+GOTESTSUM_VER?=v1.8.2
 GOTESTSUM_URL=gotest.tools/gotestsum
 
 GOTHUB_VER?=v0.7.0
@@ -92,16 +92,16 @@ lint: ## Linting (heavyweight when `CI=true`)
 	echo >&2 "==> Linting"
 ifdef CI
 	mkdir -p test && \
-		$(GOCILINT) run --enable-all --out-format=checkstyle | \
+		$(GOCILINT) run --out-format=checkstyle | \
 		tee test/checkstyle.xml
 	! grep "error" test/checkstyle.xml &>/dev/null
 else
-	$(GOCILINT) run --enable-all --fast
+	$(GOCILINT) run --fast
 endif
 .PHONY: lint
 
 test: GOTESTSUM=$(shell command -v gotestsum || \
-					(go get $(GOTESTSUM_URL)@$(GOTESTSUM_VER) && \
+					(go install $(GOTESTSUM_URL)@$(GOTESTSUM_VER) && \
 					command -v gotestsum))
 test: FORMAT=$(if $(DEBUG:-=),standard-verbose,short-verbose)
 test: ## Test (also see the 'integration' targets)
@@ -110,10 +110,10 @@ test: ## Test (also see the 'integration' targets)
 	mkdir -p test; \
 	if [ "$(CI)" = true ]; then \
 		$(GOTESTSUM) --format $(FORMAT) --junitfile test/junit.xml -- -race \
-		$(GOTAGS) -coverprofile=test/coverage.out -covermode=atomic ./...; \
+		$(GOTAGS) $(GOTESTFLAGS) -coverprofile=test/coverage.out -covermode=atomic ./...; \
 	else \
 		$(GOTESTSUM) --format $(FORMAT) --junitfile test/junit.xml -- \
-		$(GOTAGS) ./...; \
+		$(GOTAGS) $(GOTESTFLAGS) ./...; \
 	fi; \
 	! grep "FAIL" test/junit.xml &>/dev/null && \
 	exit $$lint_exit # Ensure we exit failure if linting failed
@@ -177,6 +177,7 @@ integration: $(PROJECT)-$(GOOS)-$(GOARCH) ## Run a local development Vault
 		-plugin-name=$(PROJECT) \
 		plugin
 	$(eval GOTAGS+=-count 1 -tags integration)
+	sleep 2
 .PHONY: integration
 
 integration-test: integration test ## Run a local development Vault and the integration tests
@@ -185,6 +186,7 @@ integration-test: integration test ## Run a local development Vault and the inte
 # 	BASE_URL=https://api.github.com \
 # 	APP_ID=<your application id> \
 #	ORG_NAME=<org_name> \
+#	INSTALLATION_ID=<installation_id> \
 # 	PRV_KEY="$(cat /path/to/your/app/prv_key_file)"
 # NOTE: this will automatically skip racyness tests to avoid rate limiting.
 .PHONY: integration-test
@@ -225,7 +227,7 @@ SHA256SUMS.sig: SHA256SUMS
 
 # NOTE: Needs BSD xargs.
 release: GOTHUB=$(shell command -v gothub || \
-					(go get $(GOTHUB_URL)@$(GOTHUB_VER) && \
+					(go install $(GOTHUB_URL)@$(GOTHUB_VER) && \
 					command -v gothub))
 release: GITHUB_REPO=$(PROJECT)
 release: GITHUB_USER=$(word 2,$(subst /, ,$(PACKAGE)))

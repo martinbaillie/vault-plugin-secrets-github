@@ -3,19 +3,217 @@ run:
   tests: false
 
 linters:
-  disable:
-    - gosec
-    - gochecknoglobals
-    - gochecknoinits
-    - gomnd
-    - forcetypeassert
-    - tagliatelle
-
-issues:
-  max-same-issues: 0
-  max-per-linter: 0
+  disable-all: true
+  enable:
+    - asasalint # checks for pass []any as any in variadic func(...any)
+    - asciicheck # checks that your code does not contain non-ASCII identifiers
+    - bidichk # checks for dangerous unicode character sequences
+    - bodyclose # checks whether HTTP response body is closed successfully
+    - containedctx # detects struct contained context.Context field
+    - contextcheck # checks the function whether use a non-inherited context
+    - cyclop # checks function and package cyclomatic complexity
+    - dupl # tool for code clone detection
+    - durationcheck # checks for two durations multiplied together
+    - errcheck # checking for unchecked errors, these unchecked errors can be critical bugs in some cases
+    - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
+    - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
+    - execinquery # checks query string in Query function which reads your Go src files and warning it finds
+    - exhaustive # checks exhaustiveness of enum switch statements
+    - exportloopref # checks for pointers to enclosing loop variables
+    - forbidigo # forbids identifiers
+    - funlen # tool for detection of long functions
+    - gocognit # computes and checks the cognitive complexity of functions
+    - goconst # finds repeated strings that could be replaced by a constant
+    - gocritic # provides diagnostics that check for bugs, performance and style issues
+    - gocyclo # computes and checks the cyclomatic complexity of functions
+    - godot # checks if comments end in a period
+    - gofmt # the classic
+    - goimports # in addition to fixing imports, goimports also formats your code in the same style as gofmt
+    # - gomnd # detects magic numbers
+    - goprintffuncname # checks that printf-like functions are named with f at the end
+    - gosec # inspects source code for security problems
+    - gosimple # specializes in simplifying a code
+    - govet # reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
+    - ineffassign # detects when assignments to existing variables are not used
+    # - ireturn # accept interfaces, return concrete types
+    - lll # reports long lines
+    - makezero # finds slice declarations with non-zero initial length
+    - nakedret # finds naked returns in functions greater than a specified function length
+    - nestif # reports deeply nested if statements
+    - nilerr # finds the code that returns nil even if it checks that the error is not nil
+    # - nilnil # checks that there is no simultaneous return of nil error and an invalid value
+    - noctx # finds sending http request without context.Context
+    - nolintlint # reports ill-formed or insufficient nolint directives
+    - nosprintfhostport # checks for misuse of Sprintf to construct a host with port in a URL
+    - paralleltest # [too many false positives] detects missing usage of t.Parallel() method in your Go test
+    - predeclared # finds code that shadows one of Go's predeclared identifiers
+    - reassign # checks that package variables are not reassigned
+    - revive # fast, configurable, extensible, flexible, and beautiful linter for Go, drop-in replacement of golint
+    - staticcheck # is a go vet on steroids, applying a ton of static analysis checks
+    - stylecheck # is a replacement for golint
+    # - tagliatelle # struct tag issues
+    - tenv # detects using os.Setenv instead of t.Setenv since Go1.17
+    - testpackage # makes you use a separate _test package
+    - thelper # detects golang test helpers without t.Helper() call and checks the consistency of test helpers
+    - tparallel # detects inappropriate usage of t.Parallel() method in your Go test codes
+    - typecheck # like the front-end of a Go compiler, parses and type-checks Go code
+    - unconvert # removes unnecessary type conversions
+    - unparam # reports unused function parameters
+    - unused # checks for unused constants, variables, functions and types
+    - usestdlibvars # detects the possibility to use variables/constants from the Go standard library
+    - whitespace # detects leading and trailing whitespace
+    # - wrapcheck # checks that errors returned from external packages are wrapped
+    - wsl # cuddlemaster
 
 linters-settings:
+  cyclop:
+    # The maximal code complexity to report.
+    # Default: 10
+    max-complexity: 30
+    # The maximal average package complexity.
+    # If it's higher than 0.0 (float) the check is enabled
+    # Default: 0.0
+    package-average: 10.0
+
   funlen:
-    lines: 80
-    statements: 60
+    # Checks the number of lines in a function.
+    # If lower than 0, disable the check.
+    # Default: 60
+    lines: 100
+    # Checks the number of statements in a function.
+    # If lower than 0, disable the check.
+    # Default: 40
+    statements: 50
+
+  godot:
+    scope: all
+    capital: true
+    exclude:
+      - "^\\+*"
+
+  wrapcheck:
+    ignoreSigRegexps:
+      # Cobra handles correctly wrapping and outputting these errors.
+      - \.ExecuteContext\(
+
+  wsl:
+    allow-cuddle-declarations: true
+    allow-assign-and-anything: true
+
+  goimports:
+    # Put imports beginning with prefix after 3rd-party packages.
+    local-prefixes: github.com/martinbaillie
+
+  gocritic:
+    # The settings key is the name of a supported gocritic checker. The list of
+    # supported checkers can be find in https://go-critic.github.io/overview.
+    settings:
+      captLocal:
+        # Whether to restrict checker to params only. Default: true
+        paramsOnly: false
+      underef:
+        # Whether to skip (*x).method() calls where x is a pointer receiver.
+        # Default: true
+        skipRecvDeref: false
+
+  gofmt:
+    # Apply the rewrite rules to the source before reformatting.
+    # https://pkg.go.dev/cmd/gofmt
+    # Default: []
+    rewrite-rules:
+      - pattern: "interface{}"
+        replacement: "any"
+      - pattern: "a[b:len(a)]"
+        replacement: "a[b:]"
+
+  gomnd:
+    # Magic numbers. List of function patterns to exclude from analysis. Values
+    # always ignored: `time.Date` Default: []
+    ignored-functions:
+      - os.Chmod
+      - os.Mkdir
+      - os.MkdirAll
+      - os.OpenFile
+      - os.WriteFile
+      - strconv.FormatFloat
+      - strconv.FormatInt
+      - strconv.FormatUint
+      - strconv.ParseFloat
+      - strconv.ParseInt
+      - strconv.ParseUint
+    ignored-files:
+      - "main.go" # Where we would typically declare ports and such.
+
+  govet:
+    # Enable all analyzers. Default: false
+    enable-all: true
+    # Disable analyzers by name. Run `go tool vet help` to see all analyzers.
+    # Default: []
+    disable:
+      - fieldalignment # too strict
+    # Settings per analyzer.
+    settings:
+      shadow:
+        # Whether to be strict about shadowing; can be noisy. Default: false
+        strict: true
+
+  nakedret:
+    # Make an issue if func has more lines of code than this setting, and it has
+    # naked returns. Default: 30
+    max-func-lines: 0
+
+  nolintlint:
+    # Exclude following linters from requiring an explanation. Default: []
+    allow-no-explanation: [funlen, gocognit, lll]
+    # Enable to require an explanation of nonzero length after each nolint
+    # directive. Default: false
+    require-explanation: true
+    # Enable to require nolint directives to mention the specific linter being
+    # suppressed. Default: false
+    require-specific: true
+
+  tenv:
+    # The option `all` will run against whole test files (`_test.go`) regardless
+    # of method/function signatures. Otherwise, only methods that take
+    # `*testing.T`, `*testing.B`, and `testing.TB` as arguments are checked.
+    # Default: false
+    all: true
+
+issues:
+  # Maximum count of issues with the same text.
+  # Set to 0 to disable.
+  # Default: 3
+  max-same-issues: 50
+  exclude-use-default: false
+  exclude:
+    # EXC0001 errcheck: Almost all programs ignore errors on these functions and
+    # in most cases it's ok
+    # yamllint disable-line rule:line-length
+    - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked
+
+    # EXC0003 golint: False positive when tests are defined in package 'test'
+    # yamllint disable-line rule:line-length
+    - func name will be used as test\.Test.* by other packages, and that stutters; consider calling this
+
+    # EXC0004 govet: Common false positives
+    - (possible misuse of unsafe.Pointer|should have signature)
+
+    # EXC0005 staticcheck: Developers tend to write in C-style with an explicit
+    # 'break' in a 'switch', so it's ok to ignore
+    - ineffective break statement. Did you mean to break out of the outer loop
+
+    # EXC0006 gosec: Too many false-positives on 'unsafe' usage
+    - Use of unsafe calls should be audited
+
+    # EXC0007 gosec: Too many false-positives for parametrized shell calls
+    - Subprocess launch(ed with variable|ing should be audited)
+
+    # EXC0008 gosec: Duplicated errcheck checks
+    - (G104|G307)
+
+    # EXC0009 gosec: Too many issues in popular repos
+    - (Expect directory permissions to be 0750 or less|Expect file permissions to be 0600 or less)
+
+    # EXC0010 gosec: False positive is triggered by 'src, err :=
+    # ioutil.ReadFile(filename)'
+    - Potential file inclusion via variable

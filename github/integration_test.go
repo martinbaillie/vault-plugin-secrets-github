@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package github
@@ -8,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
 	"os"
 	"strconv"
 	"strings"
@@ -23,14 +25,19 @@ import (
 const racynessRequests = 1000
 
 var (
+	debug = os.Getenv("DEBUG") == "true"
+
 	// Overridable Vault target.
 	vaultAddr  = envStrOrDefault("VAULT_ADDR", "http://127.0.0.1:8200")
 	vaultToken = envStrOrDefault("VAULT_TOKEN", "root")
 
 	// Overridable GitHub App configuration.
-	appID   = envIntOrDefault(keyAppID, testAppID1)
-	prvKey  = envStrOrDefault(keyPrvKey, testPrvKeyValid)
-	baseURL = envStrOrDefault(keyBaseURL, "")
+	appID  = envIntOrDefault(keyAppID, testAppID1)
+	prvKey = envStrOrDefault(keyPrvKey, testPrvKeyValid)
+
+	baseURL        = envStrOrDefault(keyBaseURL, "")
+	orgName        = envStrOrDefault(keyOrgName, testOrgName1)
+	installationID = envIntOrDefault(keyInstallationID, testInsID1)
 
 	// Whether or not we are stubbing the GitHub API for this integration test
 	// run. False when the BASE_URL environment variable has been passed.
@@ -57,6 +64,22 @@ func TestIntegration(t *testing.T) {
 				// Handle revocation requests.
 				if r.URL.Path == "/installation/token" {
 					w.WriteHeader(http.StatusNoContent)
+					return
+				}
+
+				// Handle org name --> installation ID lookups.
+				if r.URL.Path == "/app/installations" {
+					w.Header().Set("Content-Type", "application/json")
+					body, _ := json.Marshal([]map[string]interface{}{
+						{
+							"id": installationID,
+							"account": map[string]interface{}{
+								"login": orgName,
+							},
+						},
+					})
+					w.WriteHeader(http.StatusOK)
+					w.Write(body)
 					return
 				}
 
@@ -110,11 +133,12 @@ func TestIntegration(t *testing.T) {
 	t.Run("WritePermissionSet", testWritePermissionSet)
 	t.Run("ReadPermissionSet", testReadPermissionSet)
 	t.Run("ListPermissionSets", testListPermissionSets)
-	t.Run("CreateToken", testCreateToken)
+	t.Run("CreateTokenByInstallationID", testCreateTokenByInstallationID)
+	t.Run("CreateTokenByOrgName", testCreateTokenByOrgName)
 	t.Run("RevokeTokens", testRevokeTokens)
-	t.Run("CreateTokenWithConstraints", testCreateTokenWithConstraints)
+	t.Run("CreateTokenWithConstraints", testCreateTokenByInstallationIDWithConstraints)
 	t.Run("WriteReadConfigPermissionSetCreateTokenWithRacyness", func(t *testing.T) {
-		if !githubAPIStubbed || testing.Short() {
+		if !githubAPIStubbed || testing.Short() || debug {
 			// We do not want to smash the real GitHub API, nor do we want to
 			// delay a deliberately short test run.
 			t.SkipNow()
@@ -138,15 +162,16 @@ func TestIntegration(t *testing.T) {
 		go race(testWritePermissionSet)
 		go race(testReadPermissionSet)
 		go race(testListPermissionSets)
-		go race(testCreateToken)
+		go race(testCreateTokenByInstallationID)
 		go race(testCreatePermissionSetToken)
-		go race(testCreateTokenWithConstraints)
+		go race(testCreateTokenByInstallationIDWithConstraints)
 		close(start)
 		wg.Wait()
 	})
 	t.Run("DeletePermissionSet", func(t *testing.T) {
 		// Delete permission set.
 		res, err := vaultDo(
+			t,
 			http.MethodDelete,
 			fmt.Sprintf("/v1/github/%s/test-set", pathPatternPermissionSet),
 			nil,
@@ -157,6 +182,7 @@ func TestIntegration(t *testing.T) {
 
 		// Confirm deleted with a read.
 		res, err = vaultDo(
+			t,
 			http.MethodGet,
 			fmt.Sprintf("/v1/github/%s/test-set", pathPatternPermissionSet),
 			nil,
@@ -172,6 +198,7 @@ func TestIntegration(t *testing.T) {
 	t.Run("DeleteConfig", func(t *testing.T) {
 		// Delete.
 		res, err := vaultDo(
+			t,
 			http.MethodDelete,
 			fmt.Sprintf("/v1/github/%s", pathPatternConfig),
 			nil,
@@ -182,6 +209,7 @@ func TestIntegration(t *testing.T) {
 
 		// Confirm deleted with a read.
 		res, err = vaultDo(
+			t,
 			http.MethodGet,
 			fmt.Sprintf("/v1/github/%s", pathPatternConfig),
 			nil,
@@ -203,9 +231,8 @@ func TestIntegration(t *testing.T) {
 }
 
 func testWriteConfig(t *testing.T) {
-	t.Helper()
-
 	res, err := vaultDo(
+		t,
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s", pathPatternConfig),
 		map[string]interface{}{
@@ -220,9 +247,8 @@ func testWriteConfig(t *testing.T) {
 }
 
 func testReadConfig(t *testing.T) {
-	t.Helper()
-
 	res, err := vaultDo(
+		t,
 		http.MethodGet,
 		fmt.Sprintf("/v1/github/%s", pathPatternConfig),
 		nil,
@@ -242,13 +268,13 @@ func testReadConfig(t *testing.T) {
 }
 
 func testWritePermissionSet(t *testing.T) {
-	t.Helper()
-
 	res, err := vaultDo(
+		t,
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s/test-set", pathPatternPermissionSet),
 		map[string]interface{}{
-			keyInstallationID: testInsID1,
+			keyInstallationID: installationID,
+			keyOrgName:        orgName,
 			keyRepos:          []string{testRepo1, testRepo2},
 			keyRepoIDs:        []int{testRepoID1, testRepoID2},
 			keyPerms:          testPerms,
@@ -260,9 +286,8 @@ func testWritePermissionSet(t *testing.T) {
 }
 
 func testReadPermissionSet(t *testing.T) {
-	t.Helper()
-
 	res, err := vaultDo(
+		t,
 		http.MethodGet,
 		fmt.Sprintf("/v1/github/%s/test-set", pathPatternPermissionSet),
 		nil,
@@ -295,9 +320,8 @@ func testReadPermissionSet(t *testing.T) {
 }
 
 func testListPermissionSets(t *testing.T) {
-	t.Helper()
-
 	res, err := vaultDo(
+		t,
 		http.MethodGet,
 		fmt.Sprintf("/v1/github/%s?list=true", pathPatternPermissionSets),
 		nil,
@@ -318,14 +342,41 @@ func testListPermissionSets(t *testing.T) {
 	assert.Equal(t, keys[0], "test-set")
 }
 
-func testCreateToken(t *testing.T) {
-	t.Helper()
-
+func testCreateTokenByInstallationID(t *testing.T) {
 	res, err := vaultDo(
+		t,
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s", pathPatternToken),
 		map[string]interface{}{
-			keyInstallationID: testInsID1,
+			keyInstallationID: installationID,
+		},
+	)
+	assert.NilError(t, err)
+	defer res.Body.Close()
+	assert.Assert(t, statusCode(res.StatusCode).Successful())
+
+	var resBody map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&resBody)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Contains(resBody, "data"))
+
+	resData := resBody["data"].(map[string]interface{})
+	if githubAPIStubbed {
+		assert.Equal(t, resData["token"], testToken)
+		assert.Equal(t, resData["expires_at"], testTokenExp)
+	} else {
+		assert.Assert(t, resData["token"] != "")
+		assert.Assert(t, resData["expires_at"] != "")
+	}
+}
+
+func testCreateTokenByOrgName(t *testing.T) {
+	res, err := vaultDo(
+		t,
+		http.MethodPost,
+		fmt.Sprintf("/v1/github/%s", pathPatternToken),
+		map[string]interface{}{
+			keyOrgName: orgName,
 		},
 	)
 	assert.NilError(t, err)
@@ -348,9 +399,8 @@ func testCreateToken(t *testing.T) {
 }
 
 func testCreatePermissionSetToken(t *testing.T) {
-	t.Helper()
-
 	res, err := vaultDo(
+		t,
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s/test-set", pathPatternToken),
 		nil,
@@ -361,10 +411,7 @@ func testCreatePermissionSetToken(t *testing.T) {
 	var resBody map[string]interface{}
 	err = json.NewDecoder(res.Body).Decode(&resBody)
 
-	t.Log(resBody)
-	t.Log(res.StatusCode)
 	assert.Assert(t, statusCode(res.StatusCode).Successful())
-
 	assert.NilError(t, err)
 	assert.Assert(t, is.Contains(resBody, "data"))
 
@@ -379,9 +426,8 @@ func testCreatePermissionSetToken(t *testing.T) {
 }
 
 func testRevokeTokens(t *testing.T) {
-	t.Helper()
-
 	res, err := vaultDo(
+		t,
 		http.MethodPut,
 		fmt.Sprintf("/v1/sys/leases/revoke-prefix/github/%s", pathPatternToken),
 		nil,
@@ -391,9 +437,7 @@ func testRevokeTokens(t *testing.T) {
 	assert.Assert(t, statusCode(res.StatusCode).Successful())
 }
 
-func testCreateTokenWithConstraints(t *testing.T) {
-	t.Helper()
-
+func testCreateTokenByInstallationIDWithConstraints(t *testing.T) {
 	if !githubAPIStubbed {
 		// We cannot validate constraints when using the real GitHub API
 		// during acceptance testing because we are not in control of the
@@ -402,6 +446,7 @@ func testCreateTokenWithConstraints(t *testing.T) {
 	}
 
 	res, err := vaultDo(
+		t,
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s", pathPatternToken),
 		map[string]interface{}{
@@ -420,8 +465,6 @@ func testCreateTokenWithConstraints(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Assert(t, is.Contains(resBody, "data"))
 
-	t.Logf("HIYA %+v\n", resBody)
-
 	resData := resBody["data"].(map[string]interface{})
 	if githubAPIStubbed {
 		assert.Equal(t, resData["token"], testToken)
@@ -432,11 +475,15 @@ func testCreateTokenWithConstraints(t *testing.T) {
 	}
 }
 
-func vaultDo(method, endpoint string, body map[string]interface{}) (res *http.Response, err error) {
+func vaultDo(
+	t *testing.T, method, endpoint string, body map[string]interface{},
+) (res *http.Response, err error) {
+	t.Helper()
+
 	var req *http.Request
 	if body != nil {
-		b, err := json.Marshal(body)
-		if err != nil {
+		var b []byte
+		if b, err = json.Marshal(body); err != nil {
 			return nil, err
 		}
 
@@ -451,6 +498,17 @@ func vaultDo(method, endpoint string, body map[string]interface{}) (res *http.Re
 		}
 	}
 	req.Header.Set("X-Vault-Token", vaultToken)
+
+	if debug {
+		dump, _ := httputil.DumpRequest(req, true)
+		fmt.Println(string(dump))
+
+		defer func() {
+			dump, _ := httputil.DumpResponse(res, true)
+			fmt.Println(string(dump))
+		}()
+	}
+
 	return http.DefaultClient.Do(req)
 }
 

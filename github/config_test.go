@@ -1,7 +1,6 @@
 package github
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
@@ -120,7 +119,7 @@ func TestConfig_Update(t *testing.T) {
 				},
 			},
 			changed: false,
-			err:     errors.New(fmtErrUnableToParseBaseURL),
+			err:     errUnableToParseBaseURL,
 		},
 		{
 			name: "PrivateKeyNotPEMEncoded",
@@ -144,7 +143,7 @@ func TestConfig_Update(t *testing.T) {
 				},
 			},
 			changed: false,
-			err:     errors.New(fmtErrUnableToParsePrvKey),
+			err:     errUnableToParsePrvKey,
 		},
 	}
 
@@ -154,7 +153,7 @@ func TestConfig_Update(t *testing.T) {
 			t.Parallel()
 
 			if tc.data != nil {
-				var b = new(backend)
+				b := new(backend)
 				tc.data.Schema = b.pathConfig().Fields
 			}
 

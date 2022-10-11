@@ -29,7 +29,7 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 		b, storage := testBackend(t)
 
 		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
+			func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 
 				body, _ := json.Marshal(map[string]interface{}{
@@ -86,7 +86,7 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 		b, storage := testBackend(t)
 
 		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
+			func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 
 				body, _ := json.Marshal(map[string]interface{}{
@@ -140,8 +140,8 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 			Operation: op,
 			Path:      fmt.Sprintf("%s/foo", pathPatternToken),
 		})
+		assert.ErrorContains(t, err, errConfRetrieval.Error())
 		assert.Assert(t, is.Nil(r))
-		assert.ErrorContains(t, err, fmtErrConfRetrieval)
 	})
 
 	t.Run("FailedCreate", func(t *testing.T) {
@@ -150,7 +150,7 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 		b, storage := testBackend(t)
 
 		ts := httptest.NewServer(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
+			func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 				w.WriteHeader(http.StatusUnprocessableEntity)
 			}),

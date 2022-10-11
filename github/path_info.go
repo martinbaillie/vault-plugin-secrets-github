@@ -44,7 +44,7 @@ func (b *backend) pathInfoRead(
 	_ *framework.FieldData,
 ) (*logical.Response, error) {
 	return &logical.Response{
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"project_name":   projectName,
 			"project_docs":   projectDocs,
 			"build_version":  version.Version,

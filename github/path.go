@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -11,9 +10,9 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-var (
-	errUnknownField  = errors.New("unknown field")
-	errUnknownFields = errors.New("unknown fields")
+const (
+	errUnknownField  = Error("unknown field")
+	errUnknownFields = Error("unknown fields")
 )
 
 // withFieldValidator wraps an OperationFunc and validates the user-supplied
