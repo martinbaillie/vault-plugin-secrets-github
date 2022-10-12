@@ -1,4 +1,4 @@
-[[https://github.com/martinbaillie/vault-plugin-secrets-github/actions][https://github.com/martinbaillie/vault-plugin-secrets-github/actions/workflows/build.yml/badge.svg]]
+[[https://github.com/martinbaillie/vault-plugin-secrets-github/actions][https://github.com/martinbaillie/vault-plugin-secrets-github/actions/workflows/test.yml/badge.svg]]
 [[https://codecov.io/gh/martinbaillie/vault-plugin-secrets-github][https://codecov.io/gh/martinbaillie/vault-plugin-secrets-github/branch/master/graph/badge.svg]]
 [[https://godoc.org/github.com/martinbaillie/vault-plugin-secrets-github][https://godoc.org/github.com/martinbaillie/vault-plugin-secrets-github?status.svg]]
 [[https://goreportcard.com/report/github.com/martinbaillie/vault-plugin-secrets-github][https://goreportcard.com/badge/github.com/martinbaillie/vault-plugin-secrets-github?status.svg]]
@@ -333,8 +333,16 @@ Instruct the plugin to create an installation access token against the configure
 
 *** Parameters
 #+begin_quote
-NOTE: All parameters are optional. Omitting them results in a token that has
-access to all of the repositories and permissions that the GitHub App has.
+NOTE: Only one of =installation_id= or =org_name= is required. If only =org_name= is
+provided, an additional lookup against the GitHub instance is performed _per
+token creation_ to discover the =installation_id=. If both are provided,
+=installation_id= takes precedence to avoid the additional round trip. Also note
+that no caching is performed so for high traffic use cases, favour
+=installation_id=.
+
+All other parameters are optional. Omitting them results in a token that has
+access to all of the repositories and permissions that the GitHub App
+installation has.
 
 When crafting Vault policy, hyper security sensitive organisations may wish to
 favour =repository_ids= (GitHub repository IDs are immutable) instead of
@@ -342,6 +350,7 @@ favour =repository_ids= (GitHub repository IDs are immutable) instead of
 #+end_quote
 
 - =installation_id= (int64) — the ID of the app installation.
+- =org_name= (string) — the organisation name.
 - =repositories= ([]string) — a list of the names of the repositories within the
   organisation that the installation token can access.
 - =repository_ids= ([]int64) — a list of the IDs of the repositories that the
@@ -427,8 +436,16 @@ Instruct the plugin to create a specific permission set.
 
 *** Parameters
 #+begin_quote
-NOTE: All parameters are optional. Omitting them results in a token that has
-access to all of the repositories and permissions that the GitHub App has.
+NOTE: Only one of =installation_id= or =org_name= is required. If only =org_name= is
+provided, an additional lookup against the GitHub instance is performed _per
+token creation_ to discover the =installation_id=. If both are provided,
+=installation_id= takes precedence to avoid the additional round trip. Also note
+that no caching is performed so for high traffic use cases, favour
+=installation_id=.
+
+All other parameters are optional. Omitting them results in a token that has
+access to all of the repositories and permissions that the GitHub App
+installation has.
 
 When crafting Vault policy, hyper security sensitive organisations may wish to
 favour =repository_ids= (GitHub repository IDs are immutable) instead of
@@ -436,6 +453,7 @@ favour =repository_ids= (GitHub repository IDs are immutable) instead of
 #+end_quote
 
 - =installation_id= (int64) — the ID of the app installation.
+- =org_name= (string) — the organisation name.
 - =repositories= ([]string) — a list of the names of the repositories within the
   organisation that the installation token can access.
 - =repository_ids= ([]int64) — a list of the IDs of the repositories that the
