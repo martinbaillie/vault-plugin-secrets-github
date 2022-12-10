@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/bradleyfalzon/ghinstallation v1.1.1
-	github.com/hashicorp/go-hclog v1.3.1
+	github.com/hashicorp/go-hclog v1.4.0
 	github.com/hashicorp/vault/api v1.8.0
 	github.com/hashicorp/vault/sdk v0.6.0
 	github.com/prometheus/client_golang v1.13.0
