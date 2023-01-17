@@ -127,11 +127,11 @@ sequenceDiagram
 #+END_COMMENT
 
 * Installation
-To begin plugin installation, either download a [[./releases][release]] or build
+To begin plugin installation, either download a [[https://github.com/martinbaillie/vault-plugin-secrets-github/releases][release]] or build
 from source for your chosen OS and architecture.
 
 ** From release
-Always download the latest stable release from the [[./releases][releases]] section.
+Always download the latest stable release from the [[https://github.com/martinbaillie/vault-plugin-secrets-github/releases][releases]] section.
 
 *** Verify
 
