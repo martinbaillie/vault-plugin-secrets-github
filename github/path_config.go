@@ -19,12 +19,15 @@ const (
 )
 
 const (
-	keyAppID    = "app_id"
-	descAppID   = "Application ID of the GitHub App."
-	keyPrvKey   = "prv_key"
-	descPrvKey  = "Private key for signing GitHub access token requests (JWTs)."
-	keyBaseURL  = "base_url"
-	descBaseURL = "Base URL for API requests (defaults to the public GitHub API)."
+	keyAppID                     = "app_id"
+	descAppID                    = "Application ID of the GitHub App."
+	keyPrvKey                    = "prv_key"
+	includeRepositoryMetadataKey = "include_repository_metadata"
+
+	descPrvKey                       = "Private key for signing GitHub access token requests (JWTs)."
+	descIncludeRepositoryMetadataKey = "If set to true, the token lease response 'data.repositories' sub-field will be minimized to 'data.repositories.*.names'"
+	keyBaseURL                       = "base_url"
+	descBaseURL                      = "Base URL for API requests (defaults to the public GitHub API)."
 )
 
 const pathConfigHelpSyn = `
@@ -50,6 +53,12 @@ func (b *backend) pathConfig() *framework.Path {
 				Type:        framework.TypeString,
 				Description: descPrvKey,
 				Required:    true,
+			},
+			includeRepositoryMetadataKey: {
+				Type:        framework.TypeBool,
+				Description: descIncludeRepositoryMetadataKey,
+				Required:    false,
+				Default:     true,
 			},
 			keyBaseURL: {
 				Type:        framework.TypeString,
@@ -87,8 +96,9 @@ func (b *backend) pathConfigRead(
 	}
 
 	resData := map[string]any{
-		keyAppID:   c.AppID,
-		keyBaseURL: c.BaseURL,
+		keyAppID:                     c.AppID,
+		keyBaseURL:                   c.BaseURL,
+		includeRepositoryMetadataKey: c.IncludeRepositoryMetadata,
 	}
 
 	// We don't return the key but indicate its presence for a better UX.

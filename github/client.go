@@ -95,6 +95,7 @@ func NewClient(config *Config) (*Client, error) {
 	installationsURL := baseURL.ResolveReference(&url.URL{Path: "app/installations"})
 
 	return &Client{
+		Config:        config,
 		revocationURL: baseURL.ResolveReference(&url.URL{Path: "installation/token"}),
 		revocationClient: &http.Client{
 			Timeout:   reqTimeout,
@@ -221,6 +222,18 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 		return nil, fmt.Errorf("%w: %v", errUnableToDecodeAccessTokenRes, err)
 	}
 
+	// Reduce memory consumption by reducing 'repositories' metadata to simple list of repository names
+	if !c.IncludeRepositoryMetadata {
+		repositoriesKey, included := resData["repositories"]
+		if included {
+			repositories := repositoriesKey.([]any)
+			var repoNames []string
+			for _, r := range repositories {
+				repoNames = append(repoNames, r.(map[string]any)["name"].(string))
+			}
+			resData["repositories"] = repoNames
+		}
+	}
 	tokRes := &logical.Response{Data: resData}
 
 	// Enrich the response with what we know about the installation.
