@@ -31,6 +31,10 @@ type Config struct {
 	// BaseURL is the base URL for API requests.
 	// Defaults to GitHub's public API.
 	BaseURL string `json:"base_url"`
+
+	// IncludeRepositoryMetadata controls filtering of the 'repositories' key returned on repository-filtered tokens
+	// Defaults to returning full repository metadata; returns a minimised list of repository names if set to false
+	IncludeRepositoryMetadata bool `json:"include_repository_metadata"`
 }
 
 // NewConfig returns a pre-configured Config struct.
@@ -75,6 +79,13 @@ func (c *Config) Update(d *framework.FieldData) (bool, error) {
 	if appID, ok := d.GetOk(keyAppID); ok {
 		if nv := appID.(int); c.AppID != nv {
 			c.AppID = nv
+			changed = true
+		}
+	}
+
+	if includeRepositoryMetadata, ok := d.GetOk(includeRepositoryMetadataKey); ok {
+		if nv := includeRepositoryMetadata.(bool); c.IncludeRepositoryMetadata != nv {
+			c.IncludeRepositoryMetadata = nv
 			changed = true
 		}
 	}
