@@ -137,7 +137,7 @@ func TestClient_Token(t *testing.T) {
 				assert.Assert(t, r.Header.Get("Authorization") != "")
 
 				w.Header().Set("Content-Type", "application/json")
-				body, _ := json.Marshal(map[string]interface{}{
+				body, _ := json.Marshal(map[string]any{
 					"token":      testToken,
 					"expires_at": testTokenExp,
 				})
@@ -145,7 +145,7 @@ func TestClient_Token(t *testing.T) {
 				w.Write(body)
 			}),
 			res: &logical.Response{
-				Data: map[string]interface{}{
+				Data: map[string]any{
 					"token":           testToken,
 					"installation_id": testInsID1,
 					"expires_at":      testTokenExp,
@@ -170,19 +170,19 @@ func TestClient_Token(t *testing.T) {
 				assert.Equal(t, r.URL.Path, fmt.Sprintf("/%s", testPath))
 				assert.Assert(t, r.Header.Get("Authorization") != "")
 
-				var reqBody map[string]interface{}
+				var reqBody map[string]any
 				assert.NilError(t, json.NewDecoder(r.Body).Decode(&reqBody))
 				assert.Assert(t, is.Contains(reqBody, keyPerms))
 				assert.Assert(t, is.Contains(reqBody, keyRepoIDs))
 				assert.Assert(t, is.Contains(reqBody, keyRepos))
 
 				w.Header().Set("Content-Type", "application/json")
-				body, _ := json.Marshal(map[string]interface{}{
+				body, _ := json.Marshal(map[string]any{
 					"token":           testToken,
 					"installation_id": testInsID1,
 					"expires_at":      testTokenExp,
 					"permissions":     testPerms,
-					"repositories": []map[string]interface{}{
+					"repositories": []map[string]any{
 						{"id": testRepoID1, "name": testRepo1},
 						{"id": testRepoID2, "name": testRepo2},
 					},
@@ -191,12 +191,12 @@ func TestClient_Token(t *testing.T) {
 				w.Write(body)
 			}),
 			res: &logical.Response{
-				Data: map[string]interface{}{
+				Data: map[string]any{
 					"token":           testToken,
 					"installation_id": testInsID1,
 					"expires_at":      testTokenExp,
 					"permissions":     testPerms,
-					"repositories": []map[string]interface{}{
+					"repositories": []map[string]any{
 						{"id": testRepoID1, "name": testRepo1},
 						{"id": testRepoID2, "name": testRepo2},
 					},
@@ -289,10 +289,10 @@ func TestClient_Token(t *testing.T) {
 					assert.Assert(t, r.Header.Get("Authorization") != "")
 
 					w.Header().Set("Content-Type", "application/json")
-					body, _ := json.Marshal([]map[string]interface{}{
+					body, _ := json.Marshal([]map[string]any{
 						{
 							"id": testInsID1,
-							"account": map[string]interface{}{
+							"account": map[string]any{
 								"login": testOrgName1,
 							},
 						},
@@ -305,7 +305,7 @@ func TestClient_Token(t *testing.T) {
 					assert.Assert(t, r.Header.Get("Authorization") != "")
 
 					w.Header().Set("Content-Type", "application/json")
-					body, _ := json.Marshal(map[string]interface{}{
+					body, _ := json.Marshal(map[string]any{
 						"token":      testToken,
 						"expires_at": testTokenExp,
 					})
@@ -314,7 +314,7 @@ func TestClient_Token(t *testing.T) {
 				}
 			}),
 			res: &logical.Response{
-				Data: map[string]interface{}{
+				Data: map[string]any{
 					"token":           testToken,
 					"installation_id": testInsID1,
 					"expires_at":      testTokenExp,
@@ -333,10 +333,10 @@ func TestClient_Token(t *testing.T) {
 				assert.Assert(t, r.Header.Get("Authorization") != "")
 
 				w.Header().Set("Content-Type", "application/json")
-				body, _ := json.Marshal([]map[string]interface{}{
+				body, _ := json.Marshal([]map[string]any{
 					{
 						"id": testInsID1,
-						"account": map[string]interface{}{
+						"account": map[string]any{
 							"login": testOrgName2,
 						},
 					},
@@ -423,13 +423,13 @@ func TestClient_Token(t *testing.T) {
 
 				if _, ok := tc.res.Data["permissions"]; ok {
 					testPerms := tc.res.Data["permissions"].(map[string]string)
-					resPerms := res.Data["permissions"].(map[string]interface{})
+					resPerms := res.Data["permissions"].(map[string]any)
 					assert.Equal(t, len(resPerms), len(testPerms))
 				}
 
 				if _, ok := tc.res.Data["repositories"]; ok {
-					testRepos := tc.res.Data["repositories"].([]map[string]interface{})
-					resRepos := res.Data["repositories"].([]interface{})
+					testRepos := tc.res.Data["repositories"].([]map[string]any)
+					resRepos := res.Data["repositories"].([]any)
 					assert.Equal(t, len(resRepos), len(testRepos))
 				}
 				assert.Equal(t, res.Data["token"], tc.res.Data["token"])

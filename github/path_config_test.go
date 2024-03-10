@@ -91,7 +91,7 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyAppID:   testAppID1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: testBaseURLValid,
@@ -106,7 +106,7 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 		assert.DeepEqual(t, testBaseURLValid, config.BaseURL)
 	})
 
-	tcConfig := map[string]map[string]interface{}{
+	tcConfig := map[string]map[string]any{
 		"Installation": {
 			keyAppID:   testAppID2,
 			keyPrvKey:  testPrvKeyValid,
@@ -190,7 +190,7 @@ func testBackendPathConfigCreateUpdate(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyPrvKey: "not a private key",
 			},
 		})

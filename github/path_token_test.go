@@ -31,7 +31,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 
-				body, _ := json.Marshal(map[string]interface{}{
+				body, _ := json.Marshal(map[string]any{
 					"token":      testToken,
 					"expires_at": testTokenExp,
 				})
@@ -45,7 +45,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyAppID:   testAppID1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
@@ -57,7 +57,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      pathPatternToken,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyInstallationID: testInsID1,
 				keyRepos:          []string{testRepo1, testRepo2},
 				keyRepoIDs:        []int{testRepoID1, testRepoID2},
@@ -94,7 +94,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyAppID:  testAppID1,
 				keyPrvKey: testPrvKeyValid,
 			},
@@ -105,7 +105,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      pathPatternToken,
-			Data:      map[string]interface{}{},
+			Data:      map[string]any{},
 		})
 
 		assert.NilError(t, err)
@@ -125,7 +125,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyAppID:  testAppID1,
 				keyPrvKey: testPrvKeyValid,
 			},
@@ -136,7 +136,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      pathPatternToken,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyInstallationID: "not an int",
 				keyRepos:          "not a string slice",
 				keyRepoIDs:        "not an int slice",
@@ -166,7 +166,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyAppID:   testAppID1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
@@ -178,7 +178,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      pathPatternToken,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyInstallationID: testInsID1,
 			},
 		})

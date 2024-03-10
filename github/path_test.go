@@ -19,7 +19,7 @@ func testFieldValidation(t *testing.T, o logical.Operation, p string) {
 		Storage:   storage,
 		Operation: o,
 		Path:      p,
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"nonexistent": true,
 		},
 	})
@@ -40,30 +40,30 @@ func TestPathValidateFields(t *testing.T) {
 
 	cases := []struct {
 		name string
-		data map[string]interface{}
+		data map[string]any
 		err  error
 	}{
 		{
 			name: "HappyPath",
-			data: map[string]interface{}{
+			data: map[string]any{
 				"testInt":    1985,
 				"testString": "Scotland",
 			},
 		},
 		{
 			name: "Empty",
-			data: map[string]interface{}{},
+			data: map[string]any{},
 		},
 		{
 			name: "UnknownField",
-			data: map[string]interface{}{
+			data: map[string]any{
 				"unknownField": 1989,
 			},
 			err: errUnknownField,
 		},
 		{
 			name: "UnknownFields",
-			data: map[string]interface{}{
+			data: map[string]any{
 				"testInt":       1985,
 				"testString":    "Scotland",
 				"unknownField1": "",

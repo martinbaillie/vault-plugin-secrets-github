@@ -84,7 +84,7 @@ func TestConfig_Update(t *testing.T) {
 				AppID: testAppID2,
 			},
 			data: &framework.FieldData{
-				Raw: map[string]interface{}{
+				Raw: map[string]any{
 					keyAppID: testAppID2,
 				},
 			},
@@ -101,7 +101,7 @@ func TestConfig_Update(t *testing.T) {
 				BaseURL: testBaseURLValid,
 			},
 			data: &framework.FieldData{
-				Raw: map[string]interface{}{
+				Raw: map[string]any{
 					keyAppID:   testAppID2,
 					keyPrvKey:  testPrvKeyValid,
 					keyBaseURL: testBaseURLValid,
@@ -114,7 +114,7 @@ func TestConfig_Update(t *testing.T) {
 			new:  &Config{},
 			exp:  &Config{},
 			data: &framework.FieldData{
-				Raw: map[string]interface{}{
+				Raw: map[string]any{
 					keyBaseURL: testBaseURLInvalid,
 				},
 			},
@@ -126,7 +126,7 @@ func TestConfig_Update(t *testing.T) {
 			new:  &Config{},
 			exp:  &Config{},
 			data: &framework.FieldData{
-				Raw: map[string]interface{}{
+				Raw: map[string]any{
 					keyPrvKey: "definitely not a PEM encoded private key",
 				},
 			},
@@ -138,7 +138,7 @@ func TestConfig_Update(t *testing.T) {
 			new:  &Config{},
 			exp:  &Config{},
 			data: &framework.FieldData{
-				Raw: map[string]interface{}{
+				Raw: map[string]any{
 					keyPrvKey: strings.Replace(testPrvKeyValid, "5", "6", 1),
 				},
 			},

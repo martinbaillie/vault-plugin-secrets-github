@@ -70,10 +70,10 @@ func TestIntegration(t *testing.T) {
 				// Handle org name --> installation ID lookups.
 				if r.URL.Path == "/app/installations" {
 					w.Header().Set("Content-Type", "application/json")
-					body, _ := json.Marshal([]map[string]interface{}{
+					body, _ := json.Marshal([]map[string]any{
 						{
 							"id": installationID,
-							"account": map[string]interface{}{
+							"account": map[string]any{
 								"login": orgName,
 							},
 						},
@@ -87,7 +87,7 @@ func TestIntegration(t *testing.T) {
 
 				// If there's body content then the request has been constrained
 				// by repository IDs and permissions.
-				var reqBody map[string]interface{}
+				var reqBody map[string]any
 				assert.NilError(t, json.NewDecoder(r.Body).Decode(&reqBody))
 				_, reqHasPerms := reqBody[keyPerms]
 				_, reqHasRepoIDs := reqBody[keyRepoIDs]
@@ -95,27 +95,27 @@ func TestIntegration(t *testing.T) {
 				retPermsRepos := reqHasPerms && reqHasRepoIDs && reqHasRepos
 				if retPermsRepos {
 					// Ensure GitHub would have received the constraints sent.
-					reqPerms := reqBody[keyPerms].(map[string]interface{})
+					reqPerms := reqBody[keyPerms].(map[string]any)
 					assert.Equal(t, len(reqPerms), len(testPerms))
-					reqRepoIDs := reqBody[keyRepoIDs].([]interface{})
+					reqRepoIDs := reqBody[keyRepoIDs].([]any)
 					assert.Equal(t, len(reqRepoIDs), 2)
-					reqRepos := reqBody[keyRepos].([]interface{})
+					reqRepos := reqBody[keyRepos].([]any)
 					assert.Equal(t, len(reqRepos), 2)
 				}
 
 				var resBody []byte
 				if retPermsRepos {
-					resBody, _ = json.Marshal(map[string]interface{}{
+					resBody, _ = json.Marshal(map[string]any{
 						"token":       testToken,
 						"expires_at":  testTokenExp,
 						"permissions": testPerms,
-						"repositories": []map[string]interface{}{
+						"repositories": []map[string]any{
 							{"id": testRepoID1, "name": testRepo1},
 							{"id": testRepoID2, "name": testRepo2},
 						},
 					})
 				} else {
-					resBody, _ = json.Marshal(map[string]interface{}{
+					resBody, _ = json.Marshal(map[string]any{
 						"token":      testToken,
 						"expires_at": testTokenExp,
 					})
@@ -191,7 +191,7 @@ func TestIntegration(t *testing.T) {
 		defer res.Body.Close()
 		assert.Equal(t, res.StatusCode, http.StatusNotFound)
 
-		var resBody map[string]interface{}
+		var resBody map[string]any
 		err = json.NewDecoder(res.Body).Decode(&resBody)
 		assert.NilError(t, err)
 	})
@@ -218,13 +218,13 @@ func TestIntegration(t *testing.T) {
 		defer res.Body.Close()
 		assert.Assert(t, statusCode(res.StatusCode).Successful())
 
-		var resBody map[string]interface{}
+		var resBody map[string]any
 		err = json.NewDecoder(res.Body).Decode(&resBody)
 		assert.NilError(t, err)
 		assert.Assert(t, is.Contains(resBody, "data"))
 
 		// Ensure default values post-delete.
-		resData := resBody["data"].(map[string]interface{})
+		resData := resBody["data"].(map[string]any)
 		assert.Equal(t, resData[keyAppID], 0.0)
 		assert.Equal(t, resData[keyBaseURL], githubPublicAPI)
 	})
@@ -235,7 +235,7 @@ func testWriteConfig(t *testing.T) {
 		t,
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s", pathPatternConfig),
-		map[string]interface{}{
+		map[string]any{
 			keyAppID:   appID,
 			keyPrvKey:  prvKey,
 			keyBaseURL: baseURL,
@@ -257,12 +257,12 @@ func testReadConfig(t *testing.T) {
 	defer res.Body.Close()
 	assert.Assert(t, statusCode(res.StatusCode).Successful())
 
-	var resBody map[string]interface{}
+	var resBody map[string]any
 	err = json.NewDecoder(res.Body).Decode(&resBody)
 	assert.NilError(t, err)
 	assert.Assert(t, is.Contains(resBody, "data"))
 
-	resData := resBody["data"].(map[string]interface{})
+	resData := resBody["data"].(map[string]any)
 	assert.Equal(t, resData[keyAppID], float64(appID))
 	assert.Equal(t, resData[keyBaseURL], baseURL)
 }
@@ -272,7 +272,7 @@ func testWritePermissionSet(t *testing.T) {
 		t,
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s/test-set", pathPatternPermissionSet),
-		map[string]interface{}{
+		map[string]any{
 			keyInstallationID: installationID,
 			keyOrgName:        orgName,
 			keyRepos:          []string{testRepo1, testRepo2},
@@ -296,24 +296,24 @@ func testReadPermissionSet(t *testing.T) {
 	defer res.Body.Close()
 	assert.Assert(t, statusCode(res.StatusCode).Successful())
 
-	var resBody map[string]interface{}
+	var resBody map[string]any
 	err = json.NewDecoder(res.Body).Decode(&resBody)
 	assert.NilError(t, err)
 	assert.Assert(t, is.Contains(resBody, "data"))
 
-	resData := resBody["data"].(map[string]interface{})
+	resData := resBody["data"].(map[string]any)
 
-	repos := resData[keyRepos].([]interface{})
+	repos := resData[keyRepos].([]any)
 	assert.Equal(t, len(repos), 2)
 	assert.Equal(t, repos[0], testRepo1)
 	assert.Equal(t, repos[1], testRepo2)
 
-	repoIds := resData[keyRepoIDs].([]interface{})
+	repoIds := resData[keyRepoIDs].([]any)
 	assert.Equal(t, len(repoIds), 2)
 	assert.Equal(t, repoIds[0], float64(testRepoID1))
 	assert.Equal(t, repoIds[1], float64(testRepoID2))
 
-	perms := resData[keyPerms].(map[string]interface{})
+	perms := resData[keyPerms].(map[string]any)
 	assert.Equal(t, len(perms), 2)
 	assert.Equal(t, perms["deployments"], testPerms["deployments"])
 	assert.Equal(t, perms["pull_requests"], testPerms["pull_requests"])
@@ -330,14 +330,14 @@ func testListPermissionSets(t *testing.T) {
 	defer res.Body.Close()
 	assert.Assert(t, statusCode(res.StatusCode).Successful())
 
-	var resBody map[string]interface{}
+	var resBody map[string]any
 	err = json.NewDecoder(res.Body).Decode(&resBody)
 	assert.NilError(t, err)
 	assert.Assert(t, is.Contains(resBody, "data"))
 
-	resData := resBody["data"].(map[string]interface{})
+	resData := resBody["data"].(map[string]any)
 
-	keys := resData["keys"].([]interface{})
+	keys := resData["keys"].([]any)
 	assert.Equal(t, len(keys), 1)
 	assert.Equal(t, keys[0], "test-set")
 }
@@ -347,7 +347,7 @@ func testCreateTokenByInstallationID(t *testing.T) {
 		t,
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s", pathPatternToken),
-		map[string]interface{}{
+		map[string]any{
 			keyInstallationID: installationID,
 		},
 	)
@@ -355,12 +355,12 @@ func testCreateTokenByInstallationID(t *testing.T) {
 	defer res.Body.Close()
 	assert.Assert(t, statusCode(res.StatusCode).Successful())
 
-	var resBody map[string]interface{}
+	var resBody map[string]any
 	err = json.NewDecoder(res.Body).Decode(&resBody)
 	assert.NilError(t, err)
 	assert.Assert(t, is.Contains(resBody, "data"))
 
-	resData := resBody["data"].(map[string]interface{})
+	resData := resBody["data"].(map[string]any)
 	if githubAPIStubbed {
 		assert.Equal(t, resData["token"], testToken)
 		assert.Equal(t, resData["expires_at"], testTokenExp)
@@ -375,7 +375,7 @@ func testCreateTokenByOrgName(t *testing.T) {
 		t,
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s", pathPatternToken),
-		map[string]interface{}{
+		map[string]any{
 			keyOrgName: orgName,
 		},
 	)
@@ -383,12 +383,12 @@ func testCreateTokenByOrgName(t *testing.T) {
 	defer res.Body.Close()
 	assert.Assert(t, statusCode(res.StatusCode).Successful())
 
-	var resBody map[string]interface{}
+	var resBody map[string]any
 	err = json.NewDecoder(res.Body).Decode(&resBody)
 	assert.NilError(t, err)
 	assert.Assert(t, is.Contains(resBody, "data"))
 
-	resData := resBody["data"].(map[string]interface{})
+	resData := resBody["data"].(map[string]any)
 	if githubAPIStubbed {
 		assert.Equal(t, resData["token"], testToken)
 		assert.Equal(t, resData["expires_at"], testTokenExp)
@@ -408,14 +408,14 @@ func testCreatePermissionSetToken(t *testing.T) {
 	assert.NilError(t, err)
 	defer res.Body.Close()
 
-	var resBody map[string]interface{}
+	var resBody map[string]any
 	err = json.NewDecoder(res.Body).Decode(&resBody)
 
 	assert.Assert(t, statusCode(res.StatusCode).Successful())
 	assert.NilError(t, err)
 	assert.Assert(t, is.Contains(resBody, "data"))
 
-	resData := resBody["data"].(map[string]interface{})
+	resData := resBody["data"].(map[string]any)
 	if githubAPIStubbed {
 		assert.Equal(t, resData["token"], testToken)
 		assert.Equal(t, resData["expires_at"], testTokenExp)
@@ -449,7 +449,7 @@ func testCreateTokenByInstallationIDWithConstraints(t *testing.T) {
 		t,
 		http.MethodPost,
 		fmt.Sprintf("/v1/github/%s", pathPatternToken),
-		map[string]interface{}{
+		map[string]any{
 			keyInstallationID: testInsID1,
 			keyRepos:          []string{testRepo1, testRepo2},
 			keyRepoIDs:        []int{testRepoID1, testRepoID2},
@@ -460,12 +460,12 @@ func testCreateTokenByInstallationIDWithConstraints(t *testing.T) {
 	defer res.Body.Close()
 	assert.Assert(t, statusCode(res.StatusCode).Successful())
 
-	var resBody map[string]interface{}
+	var resBody map[string]any
 	err = json.NewDecoder(res.Body).Decode(&resBody)
 	assert.NilError(t, err)
 	assert.Assert(t, is.Contains(resBody, "data"))
 
-	resData := resBody["data"].(map[string]interface{})
+	resData := resBody["data"].(map[string]any)
 	if githubAPIStubbed {
 		assert.Equal(t, resData["token"], testToken)
 		assert.Equal(t, resData["expires_at"], testTokenExp)
@@ -476,7 +476,7 @@ func testCreateTokenByInstallationIDWithConstraints(t *testing.T) {
 }
 
 func vaultDo(
-	t *testing.T, method, endpoint string, body map[string]interface{},
+	t *testing.T, method, endpoint string, body map[string]any,
 ) (res *http.Response, err error) {
 	t.Helper()
 

@@ -60,7 +60,7 @@ func testBackendPathPermissionSetWrite(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      "permissionset/foo",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyInstallationID: testInsID1,
 				keyRepos:          []string{testRepo1, testRepo2},
 				keyRepoIDs:        []int{testRepoID1, testRepoID2},
@@ -78,7 +78,7 @@ func testBackendPathPermissionSetWrite(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      "permissionset/foo",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyInstallationID: testInsID1,
 				keyRepos:          []string{testRepo1, testRepo2},
 				keyRepoIDs:        []int{testRepoID1, testRepoID2},
@@ -92,7 +92,7 @@ func testBackendPathPermissionSetWrite(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      "permissionset/foo",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyInstallationID: testInsID1,
 				keyRepos:          []string{testRepo1, testRepo2},
 				keyRepoIDs:        []int{testRepoID1, testRepoID2},
@@ -115,7 +115,7 @@ func testBackendPathPermissionSetDelete(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      "permissionset/foo",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyInstallationID: testInsID1,
 				keyRepos:          []string{testRepo1, testRepo2},
 				keyRepoIDs:        []int{testRepoID1, testRepoID2},
@@ -128,7 +128,7 @@ func testBackendPathPermissionSetDelete(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      "permissionset/foo",
-			Data:      map[string]interface{}{},
+			Data:      map[string]any{},
 		})
 		assert.NilError(t, err)
 	})
@@ -142,7 +142,7 @@ func testBackendPathPermissionSetDelete(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      "permissionset/doensnt-exist",
-			Data:      map[string]interface{}{},
+			Data:      map[string]any{},
 		})
 		assert.NilError(t, err)
 	})
@@ -155,7 +155,7 @@ func testBackendPathPermissionSetDelete(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      "permissionset/foo",
-			Data:      map[string]interface{}{},
+			Data:      map[string]any{},
 		})
 		assert.Assert(t, err != nil)
 
@@ -165,7 +165,7 @@ func testBackendPathPermissionSetDelete(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      "permissionset/foo",
-			Data:      map[string]interface{}{},
+			Data:      map[string]any{},
 		})
 		assert.Assert(t, err != nil)
 	})
@@ -183,7 +183,7 @@ func testBackendPathPermissionSetRead(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      "permissionset/foo",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyInstallationID: testInsID1,
 				keyRepos:          []string{testRepo1, testRepo2},
 				keyRepoIDs:        []int{testRepoID1, testRepoID2},
@@ -196,7 +196,7 @@ func testBackendPathPermissionSetRead(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      "permissionset/foo",
-			Data:      map[string]interface{}{},
+			Data:      map[string]any{},
 		})
 		assert.NilError(t, err)
 		permData := r.Data[keyPerms].(map[string]string)
@@ -218,7 +218,7 @@ func testBackendPathPermissionSetRead(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      "permissionset/bar",
-			Data:      map[string]interface{}{},
+			Data:      map[string]any{},
 		})
 		assert.NilError(t, err)
 		assert.Assert(t, r == nil)
@@ -233,7 +233,7 @@ func testBackendPathPermissionSetRead(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      "permissionset/bar",
-			Data:      map[string]interface{}{},
+			Data:      map[string]any{},
 		})
 		assert.Assert(t, err != nil)
 	})
@@ -251,7 +251,7 @@ func testBackendPathPermissionSetList(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      "permissionset/foo",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyInstallationID: testInsID1,
 				keyRepos:          []string{testRepo1, testRepo2},
 				keyRepoIDs:        []int{testRepoID1, testRepoID2},
@@ -264,7 +264,7 @@ func testBackendPathPermissionSetList(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      "permissionsets/",
-			Data:      map[string]interface{}{},
+			Data:      map[string]any{},
 		})
 		assert.NilError(t, err)
 		assert.Assert(t, r.Data != nil)
@@ -278,7 +278,7 @@ func testBackendPathPermissionSetList(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      "permissionset/foo",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyInstallationID: testInsID1,
 				keyRepos:          []string{testRepo1, testRepo2},
 				keyRepoIDs:        []int{testRepoID1, testRepoID2},
@@ -291,7 +291,7 @@ func testBackendPathPermissionSetList(t *testing.T, op logical.Operation) {
 			Storage:   storage,
 			Operation: op,
 			Path:      "permissionsets/",
-			Data:      map[string]interface{}{},
+			Data:      map[string]any{},
 		})
 		assert.Assert(t, err != nil)
 	})
