@@ -32,7 +32,7 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 			func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 
-				body, _ := json.Marshal(map[string]interface{}{
+				body, _ := json.Marshal(map[string]any{
 					"token":      testToken,
 					"expires_at": testTokenExp,
 				})
@@ -46,7 +46,7 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyAppID:   testAppID1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
@@ -58,7 +58,7 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 			Storage:   storage,
 			Operation: op,
 			Path:      "permissionset/foo",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyInstallationID: testInsID1,
 				keyRepos:          []string{testRepo1, testRepo2},
 				keyRepoIDs:        []int{testRepoID1, testRepoID2},
@@ -71,7 +71,7 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 			Storage:   storage,
 			Operation: op,
 			Path:      fmt.Sprintf("%s/foo", pathPatternToken),
-			Data:      map[string]interface{}{},
+			Data:      map[string]any{},
 		})
 		assert.NilError(t, err)
 
@@ -89,7 +89,7 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 			func(w http.ResponseWriter, _ *http.Request) {
 				t.Helper()
 
-				body, _ := json.Marshal(map[string]interface{}{
+				body, _ := json.Marshal(map[string]any{
 					"token":      testToken,
 					"expires_at": testTokenExp,
 				})
@@ -103,7 +103,7 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyAppID:   testAppID1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
@@ -115,7 +115,7 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 			Storage:   storage,
 			Operation: op,
 			Path:      "permissionset/foo",
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyRepos:   []string{testRepo1, testRepo2},
 				keyRepoIDs: []int{testRepoID1, testRepoID2},
 				keyPerms:   testPerms,
@@ -161,7 +161,7 @@ func testBackendPathTokenPermissionSetWrite(t *testing.T, op logical.Operation) 
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyAppID:   testAppID1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,

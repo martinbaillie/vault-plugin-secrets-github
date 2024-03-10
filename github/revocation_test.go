@@ -32,7 +32,7 @@ func TestBackend_Revoke(t *testing.T) {
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyAppID:   testAppID1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
@@ -44,9 +44,9 @@ func TestBackend_Revoke(t *testing.T) {
 			Storage:   storage,
 			Operation: logical.RevokeOperation,
 			Secret: &logical.Secret{
-				InternalData: map[string]interface{}{"secret_type": backendSecretType},
+				InternalData: map[string]any{"secret_type": backendSecretType},
 			},
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"token": testToken,
 			},
 		})
@@ -63,7 +63,7 @@ func TestBackend_Revoke(t *testing.T) {
 			Storage:   storage,
 			Operation: logical.RevokeOperation,
 			Secret: &logical.Secret{
-				InternalData: map[string]interface{}{"secret_type": backendSecretType},
+				InternalData: map[string]any{"secret_type": backendSecretType},
 			},
 		})
 		assert.ErrorContains(t, err, errConfRetrieval.Error())
@@ -79,7 +79,7 @@ func TestBackend_Revoke(t *testing.T) {
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyAppID:  testAppID1,
 				keyPrvKey: testPrvKeyValid,
 			},
@@ -90,9 +90,9 @@ func TestBackend_Revoke(t *testing.T) {
 			Storage:   storage,
 			Operation: logical.RevokeOperation,
 			Secret: &logical.Secret{
-				InternalData: map[string]interface{}{"secret_type": backendSecretType},
+				InternalData: map[string]any{"secret_type": backendSecretType},
 			},
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"token": struct{}{},
 			},
 		})
@@ -118,7 +118,7 @@ func TestBackend_Revoke(t *testing.T) {
 			Storage:   storage,
 			Operation: logical.CreateOperation,
 			Path:      pathPatternConfig,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				keyAppID:   testAppID1,
 				keyPrvKey:  testPrvKeyValid,
 				keyBaseURL: ts.URL,
@@ -130,9 +130,9 @@ func TestBackend_Revoke(t *testing.T) {
 			Storage:   storage,
 			Operation: logical.RevokeOperation,
 			Secret: &logical.Secret{
-				InternalData: map[string]interface{}{"secret_type": backendSecretType},
+				InternalData: map[string]any{"secret_type": backendSecretType},
 			},
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"token": testToken,
 			},
 		})
