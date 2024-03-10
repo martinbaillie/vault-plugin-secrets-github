@@ -222,15 +222,20 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 		return nil, fmt.Errorf("%w: %v", errUnableToDecodeAccessTokenRes, err)
 	}
 
-	// Reduce memory consumption by reducing 'repositories' metadata to simple list of repository names
+	// If repository metadata is disabled, reduce memory consumption by trimming
+	// it to a simple list of repository names.
 	if !c.IncludeRepositoryMetadata {
 		repositoriesKey, included := resData["repositories"]
 		if included {
-			repositories := repositoriesKey.([]any)
-			var repoNames []string
-			for _, r := range repositories {
-				repoNames = append(repoNames, r.(map[string]any)["name"].(string))
+			var (
+				repos     = repositoriesKey.([]any)
+				repoNames = make([]any, 0, len(repos))
+			)
+
+			for _, repo := range repos {
+				repoNames = append(repoNames, repo.(map[string]any)["name"])
 			}
+
 			resData["repositories"] = repoNames
 		}
 	}
