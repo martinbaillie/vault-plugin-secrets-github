@@ -65,6 +65,7 @@ func (b *backend) pathConfig() *framework.Path {
 				Description: descBaseURL,
 			},
 		},
+		ExistenceCheck: b.pathConfigExistenceCheck,
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.CreateOperation: &framework.PathOperation{
 				Callback: withFieldValidator(b.pathConfigWrite),
@@ -162,4 +163,20 @@ func (b *backend) pathConfigDelete(
 	b.Invalidate(ctx, pathPatternConfig)
 
 	return nil, nil
+}
+
+// pathConfigExistenceCheck is implemented on this path to avoid breaking user
+// backwards compatibility. The CreateOperation will likely be removed in a
+// future major version of the plugin.
+func (b *backend) pathConfigExistenceCheck(
+	ctx context.Context,
+	req *logical.Request,
+	_ *framework.FieldData,
+) (bool, error) {
+	entry, err := req.Storage.Get(ctx, pathPatternConfig)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", errConfRetrieval, err)
+	}
+
+	return entry != nil && len(entry.Value) > 0, nil
 }
