@@ -21,9 +21,6 @@ const (
 
 // Config holds all configuration for the backend.
 type Config struct {
-	// AppID is the application identifier of the GitHub App.
-	AppID int `json:"app_id"`
-
 	// PrvKey is the private for signing GitHub access token requests (JWTs).
 	// NOTE: Should be in a PEM PKCS#1 RSAPrivateKey format.
 	PrvKey string `json:"prv_key"`
@@ -32,12 +29,17 @@ type Config struct {
 	// Defaults to GitHub's public API.
 	BaseURL string `json:"base_url"`
 
-	// IncludeRepositoryMetadata controls filtering of the 'repositories' key returned on repository-filtered tokens
-	// Defaults to returning full repository metadata; returns a minimised list of repository names if set to false
-	IncludeRepositoryMetadata bool `json:"include_repository_metadata"`
+	// AppID is the application identifier of the GitHub App.
+	AppID int `json:"app_id"`
+
+	// ExcludeRepositoryMetadata controls filtering of the 'repositories' key
+	// returned on repository-filtered tokens. It defaults to returning full
+	// repository metadata but will return a minimised list of repository names
+	// if set.
+	ExcludeRepositoryMetadata bool `json:"exclude_repository_metadata"`
 }
 
-// NewConfig returns a pre-configured Config struct.
+// NewConfig returns a pre-configured Config struct with defaults.
 func NewConfig() *Config {
 	return &Config{BaseURL: githubPublicAPI}
 }
@@ -83,9 +85,9 @@ func (c *Config) Update(d *framework.FieldData) (bool, error) {
 		}
 	}
 
-	if includeRepositoryMetadata, ok := d.GetOk(includeRepositoryMetadataKey); ok {
-		if nv := includeRepositoryMetadata.(bool); c.IncludeRepositoryMetadata != nv {
-			c.IncludeRepositoryMetadata = nv
+	if irm, ok := d.GetOk(keyExcludeRepositoryMetadata); ok {
+		if nv := irm.(bool); c.ExcludeRepositoryMetadata != nv {
+			c.ExcludeRepositoryMetadata = nv
 			changed = true
 		}
 	}

@@ -51,12 +51,12 @@ func TestConfig_Update(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name    string
+		err     error
 		new     *Config
 		exp     *Config
 		data    *framework.FieldData
+		name    string
 		changed bool
-		err     error
 	}{
 		{
 			name: "Empty",
@@ -148,7 +148,6 @@ func TestConfig_Update(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
