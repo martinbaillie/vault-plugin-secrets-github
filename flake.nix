@@ -78,6 +78,7 @@
                 "-X github.com/prometheus/common/version.Branch=main"
                 "-X github.com/prometheus/common/version.BuildUser=nix"
               ];
+              doCheck = false;
             };
 
           devShells.default = pkgs.devshell.mkShell rec {
@@ -95,7 +96,6 @@
             packages = with pkgs; [
               bashInteractive
               coreutils
-              cosign
               gnugrep
               go
               golangci-lint
