@@ -10,8 +10,8 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/common/expfmt"
-	"github.com/prometheus/common/version"
 )
 
 const prefixMetrics = "vault_github_token"
@@ -96,9 +96,10 @@ func (b *backend) pathMetricsRead(
 	buf := new(bytes.Buffer)
 	defer buf.Reset()
 
+	text := expfmt.NewFormat(expfmt.TypeTextPlain)
 	// Write metrics as Prometheus exposition format.
 	for _, mf := range metricsFamilies {
-		if err = expfmt.NewEncoder(buf, expfmt.FmtText).Encode(mf); err != nil {
+		if err = expfmt.NewEncoder(buf, text).Encode(mf); err != nil {
 			res.Data[logical.HTTPRawBody] = fmt.Sprintf("%s: %s", errFailedMetricsEncoding, err)
 
 			return res, fmt.Errorf("%s: %w", errFailedMetricsEncoding, err)
@@ -106,7 +107,7 @@ func (b *backend) pathMetricsRead(
 	}
 
 	res.Data[logical.HTTPStatusCode] = http.StatusOK
-	res.Data[logical.HTTPContentType] = string(expfmt.FmtText)
+	res.Data[logical.HTTPContentType] = string(text)
 	res.Data[logical.HTTPRawBody] = buf.Bytes()
 
 	return res, nil

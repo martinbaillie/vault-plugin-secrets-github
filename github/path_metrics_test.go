@@ -26,7 +26,7 @@ func TestBackend_PathMetricsRead(t *testing.T) {
 
 		assert.NilError(t, err)
 		assert.Assert(t, statusCode(res.Data[logical.HTTPStatusCode].(int)).Successful())
-		assert.Equal(t, res.Data[logical.HTTPContentType], string(expfmt.FmtText))
+		assert.Equal(t, res.Data[logical.HTTPContentType], string(expfmt.NewFormat(expfmt.TypeTextPlain)))
 		assert.Assert(t, strings.Contains(
 			string(res.Data[logical.HTTPRawBody].([]byte)),
 			fmt.Sprintf("%s_build_info", prefixMetrics)),
