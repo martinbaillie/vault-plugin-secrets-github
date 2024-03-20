@@ -271,7 +271,7 @@ func (b *backend) pathPermissionSetCreateUpdate(
 }
 
 func (b *backend) pathPermissionSetListRead(
-	ctx context.Context, req *logical.Request, d *framework.FieldData,
+	ctx context.Context, req *logical.Request, _ *framework.FieldData,
 ) (*logical.Response, error) {
 	permissionsets, err := req.Storage.List(ctx, "permissionset/")
 	if err != nil {

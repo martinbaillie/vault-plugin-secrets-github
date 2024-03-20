@@ -26,6 +26,7 @@ func (b *backend) Revoke(
 	var token string
 	{
 		var tokenIface any
+
 		if tokenIface, _, err = d.GetOkErr("token"); err != nil {
 			return nil, err
 		}
