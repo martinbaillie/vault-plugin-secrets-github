@@ -139,6 +139,7 @@ func (b *backend) pathPermissionSet() *framework.Path {
 				Description: descPerms,
 			},
 		},
+		ExistenceCheck: b.pathPermissionSetExistenceCheck,
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.DeleteOperation: &framework.PathOperation{
 				Callback: b.pathPermissionSetDelete,
@@ -278,4 +279,21 @@ func (b *backend) pathPermissionSetListRead(
 	}
 
 	return logical.ListResponse(permissionsets), nil
+}
+
+// pathPermissionSetExistenceCheck is implemented on this path to avoid breaking
+// user backwards compatibility. The CreateOperation will likely be removed in a
+// future major version of the plugin.
+func (b *backend) pathPermissionSetExistenceCheck(
+	ctx context.Context, req *logical.Request, d *framework.FieldData,
+) (bool, error) {
+	nameRaw := d.Get("name")
+	name := nameRaw.(string)
+
+	ps, err := getPermissionSet(ctx, name, req.Storage)
+	if err != nil {
+		return false, err
+	}
+
+	return ps != nil, nil
 }

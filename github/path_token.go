@@ -83,6 +83,7 @@ func (b *backend) pathToken() *framework.Path {
 				Description: descPerms,
 			},
 		},
+		ExistenceCheck: b.pathTokenExistenceCheck,
 		Operations: map[logical.Operation]framework.OperationHandler{
 			// As per the issue request in https://git.io/JUhRk, allow Vault
 			// Reads (i.e. HTTP GET) to also write the GitHub tokens.
@@ -165,4 +166,15 @@ func (b *backend) pathTokenWrite(
 
 	// Perform the token request.
 	return client.Token(ctx, tokReq)
+}
+
+// pathTokenExistenceCheck always returns false to force the Create path. This
+// plugin predates the framework's 'ExistenceCheck' features and we wish to
+// avoid changing any contracts with the user at this stage. Tokens are created
+// regardless of whether the request is a CREATE, UPDATE or even READ (per a
+// user's request (https://git.io/JUhRk).
+func (b *backend) pathTokenExistenceCheck(
+	context.Context, *logical.Request, *framework.FieldData,
+) (bool, error) {
+	return false, nil
 }
