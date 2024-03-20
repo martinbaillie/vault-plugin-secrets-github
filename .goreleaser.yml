@@ -1,0 +1,57 @@
+gomod:
+  proxy: true
+
+report_sizes: false
+
+builds:
+  - goos:
+      - darwin
+      - windows
+      - linux
+      - freebsd
+      - netbsd
+      - openbsd
+      - solaris
+    goarch:
+      - "386"
+      - amd64
+      - arm
+      - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - -s
+      - -w
+      - -extldflags
+      - -static
+      - -X {{.ModulePath}}/github.projectName={{.ProjectName}}
+      - -X {{.ModulePath}}/github.projectDocs=https://{{.ModulePath}}
+      - -X github.com/prometheus/common/version.BuildDate={{.Date}}
+      - -X github.com/prometheus/common/version.Revision={{.Commit}}
+      - -X github.com/prometheus/common/version.Version={{.Version}}
+      - -X github.com/prometheus/common/version.Branch={{.Branch}}
+      - -X github.com/prometheus/common/version.BuildUser={{.Env.USER}}
+    no_unique_dist_dir: true
+    binary: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+
+archives:
+  - format: binary
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+
+checksum:
+  name_template: 'SHA256SUMS'
+  algorithm: sha256
+
+signs:
+  - id: sha256
+    artifacts: checksum
+
+sboms:
+  - artifacts: binary
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-rc"
+
+release:
+  draft: true

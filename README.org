@@ -152,7 +152,9 @@ shasum -a 256 -c SHA256SUMS
 
 ** From source
 #+BEGIN_QUOTE
-NOTE: You will need a [[https://golang.org/dl/][Go 1.13+ toolchain]] to build this plugin from source.
+NOTE: You will need at least a [[https://golang.org/dl/][Go 1.22+ toolchain]] to build this plugin from
+source. Ideally you will also be in the project's Nix shell. See [[Development][Development]] for
+more.
 #+END_QUOTE
 
 1. Either download the source zip/tar.gz of the latest release from the [[./releases][releases]]
@@ -164,18 +166,17 @@ NOTE: You will need a [[https://golang.org/dl/][Go 1.13+ toolchain]] to build th
         https://github.com/martinbaillie/vault-plugin-secrets-github.git
     #+END_SRC
 
-2. Build for your target OS and architecture. The [[./Makefile][Makefile]] has auto-generated
-   targets for each supported combination (see: =make help=). Examples:
+2. Build for your target OS and architecture.
 
     #+BEGIN_SRC shell
-    # Build for Linux/AMD64.
-    make vault-plugin-secrets-github-linux-amd64
-
-    # Build for OpenBSD/ARM.
-    make vault-plugin-secrets-github-openbsd-arm
-
-    # Build every supported OS and architecture combination.
-    make build
+      # Recommended for accurate release-like reproduction.
+      goreleaser build --single-target # Your current OS/Arch.
+      GOOS=darwin GOARCH=amd64 goreleaser build --single-target # Another supported OS/Arch.
+      goreleaser build # All supported OS/Arch combinations.
+      # Alternatively,
+      go build
+      # or
+      nix build
     #+END_SRC
 
 ** Setup (GitHub)
@@ -271,14 +272,18 @@ Vault plugin.
 5. Configure the plugin with the details noted from the previous section.
 
    #+BEGIN_SRC shell
-    # Write the configuration
-    vault write /github/config app_id=<app_id> prv_key=@<private_key_file>
+     # Write the configuration
+     vault write /github/config app_id=<app_id> prv_key=@<private_key_file>
 
-    # (OPTIONAL) Confirm the configuration landed as you expected.
-    vault read /github/config
+     # (OPTIONAL) Exclude repository metadata from token responses (reduces memory footprint).
+     vault write /github/config exclude_repository_metadata=true
 
-    # (OPTIONAL) Test a token creation.
-    vault read /github/token
+     # (OPTIONAL) Confirm the configuration landed as you expected.
+     vault read /github/config
+
+     # (OPTIONAL) Test a token creation.
+     vault read /github/token installation_id=<installation_id>
+     vault read /github/token org_name=<org_name> # Installation ID discovered from Org.
    #+END_SRC
 
 6. (OPTIONAL) Use Vault policy to constrain user capabilities on the GitHub
@@ -522,20 +527,24 @@ General CRUD operations against the configuration of the plugin.
 - =app_id= (int64) — the Application ID of the GitHub App.
 - =prv_key= (string) — a private key configured in the GitHub App. This private key must be in PEM PKCS#1 RSAPrivateKey format. It is not returned with read requests for security reasons but its presence or lack thereof is indicated.
 - =base_url= (string) — the base URL for API requests (defaults to the public GitHub API).
+- =exclude_repository_metadata= (bool) — reduce the verbose `repositories` array in GitHub token responses to a simple list of repository names. This significantly reduces the memory required by the plugin when used at scale.
 
 *** Examples
 #+BEGIN_SRC shell
-# Write the plugin configuration using the default base URL, and reading the key from a file.
-vault write /github/config app_id=123 prv_key=@key.pem
+  # Write the plugin configuration using the default base URL, and reading the key from a file.
+  vault write /github/config app_id=123 prv_key=@key.pem
 
-# Read the plugin configuration.
-vault read /github/config
+  # Read the plugin configuration.
+  vault read /github/config
 
-# Update the plugin configuration to a GitHub Enterprise base URL.
-vault write /github/config base_url="https://api.mygithub.org"
+  # Update the plugin configuration to a GitHub Enterprise base URL.
+  vault write /github/config base_url="https://api.mygithub.org"
 
-# Delete the plugin configuration.
-vault delete /github/config
+  # Significantly reduce memory consumed per token.
+  vault write /github/config exclude_repository_metadata=true
+
+  # Delete the plugin configuration.
+  vault delete /github/config
 #+END_SRC
 
 ** Metrics
@@ -565,43 +574,64 @@ detail and where to get help.
 | GET    | /info | application/json |
 
 * Development
-This plugin is written using modern [[https://golang.org/dl/][Go]]. You will need a Go 1.13+ toolchain and
-some common userspace tools like GNU/BSD =make=, =curl= and =git=.
+This plugin is written using modern [[https://golang.org/dl/][Go]] (1.22+). Its project infrastructure
+supports Linux and macOS aarch64/amd64 platforms and is handled by [[https://nixos.org/][Nix]].
 
-The [[./Makefile][Makefile]] endeavours to install more atypical tooling when needed.
+Nix is the only pre-requisite you need to have installed. If you do not already
+have or wish to install =nix=, consider the =nixos/nix= container image.
 
-#+BEGIN_QUOTE
-NOTE: It is also possible to run any target inside Docker by prefixing the
-target name, e.g. =make docker-test=.
-#+END_QUOTE
+The Nix [[./flake.nix][flake]] at the project root provides the Go toolchain as well as any
+ancillary tooling needed. If you use [[https://direnv.net/docs/installation.html][direnv]] (recommended) you will automatically
+be in a usable project shell after trusting it once with =direnv allow=.
 
-There is also a =shell.nix= if Nix is more your bag.
+Otherwise you will need to enter a Nix shell manually:
+#+begin_src shell
+  nix develop
+#+end_src
+
+Once in the Nix shell you should be presented with the following:
+#+begin_example
+vault-plugin-secrets-github
+menu                              - available commands
+#+end_example
+
+Proceed to browse the =menu= or learn how to test the project below.
+
 ** Tests
 This plugin is comprehensively tested by both unit and acceptance tests. Pull
 requests that do not maintain an [[https://codecov.io/gh/martinbaillie/vault-plugin-secrets-github][>90% coverage]] will *not* be accepted.
 
 #+BEGIN_SRC shell
-# Run linting and unit tests.
-make test
+  # View the developer shell menu.
+  menu
 
-# Run CI-grade linting and unit tests.
-make test CI=true
+  # Run linting.
+  lint
 
-# Run unit and acceptance tests, integrating against a local Vault and stubbed
-# GitHub API.
-make integration test
+  # Run CI-grade linting.
+  env CI=true lint
 
-# Run unit and acceptance tests, integrating against a local Vault and the real
-# GitHub API against your own GitHub App installation (you can also run these
-# tests against a GitHub Enterprise deployment). Setting `BASE_URL` causes the
-# tests to call against a real API.
-# NOTE: Keep in mind this test configuration will create real tokens.
-make integration test \
-    BASE_URL=https://api.github.com \
-    ORG_NAME=<org name> \
-    INSTALLATION_ID=<installation id> \
-    APP_ID=<app_id> \
-    PRV_KEY="$(cat <private_key_file>)"
+  # Run unit tests.
+  unit
+
+  # Run unit and acceptance tests, integrating against a local Vault and stubbed
+  # GitHub API.
+  integration
+
+  # Run integration tests with debug logging.
+  env DEBUG=true integration
+
+  # Run unit and acceptance tests, integrating against a local Vault and the real
+  # GitHub API against your own GitHub App installation (you can also run these
+  # tests against a GitHub Enterprise deployment). Setting `BASE_URL` causes the
+  # tests to call against a real API.
+  # NOTE: Keep in mind this test configuration will create real tokens.
+  env \
+      BASE_URL=https://api.github.com \
+      APP_ID=<your application id> \
+      ORG_NAME=<org_name> \
+      INSTALLATION_ID=<installation_id> \
+      PRV_KEY="$(cat /path/to/your/app/prv_key_file)" integration
 #+END_SRC
 
 * Security
