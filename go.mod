@@ -5,7 +5,7 @@ go 1.22.0
 require (
 	github.com/bradleyfalzon/ghinstallation v1.1.1
 	github.com/hashicorp/go-hclog v1.6.2
-	github.com/hashicorp/vault/api v1.12.1
+	github.com/hashicorp/vault/api v1.13.0
 	github.com/hashicorp/vault/sdk v0.11.1
 	github.com/prometheus/client_golang v1.19.0
 	github.com/prometheus/common v0.50.0
@@ -28,7 +28,7 @@ require (
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/frankban/quicktest v1.14.3 // indirect
-	github.com/go-jose/go-jose/v3 v3.0.1 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
