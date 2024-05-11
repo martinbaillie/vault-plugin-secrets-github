@@ -7,7 +7,7 @@ require (
 	github.com/hashicorp/go-hclog v1.6.2
 	github.com/hashicorp/vault/api v1.12.1
 	github.com/hashicorp/vault/sdk v0.11.1
-	github.com/prometheus/client_golang v1.19.0
+	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/common v0.50.0
 	gotest.tools v2.2.0+incompatible
 )
