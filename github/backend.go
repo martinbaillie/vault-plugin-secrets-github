@@ -24,6 +24,8 @@ const (
 	errClientCreate     = Error("failed to create an authenticated GitHub client")
 )
 
+var PluginVersion = "v0.0.0"
+
 type backend struct {
 	*framework.Backend
 
@@ -42,6 +44,7 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 	b.Backend = &framework.Backend{
 		Help:        strings.TrimSpace(backendHelp),
 		BackendType: logical.TypeLogical,
+		RunningVersion: PluginVersion,
 		PathsSpecial: &logical.Paths{
 			Unauthenticated: []string{pathPatternInfo, pathPatternMetrics},
 		},

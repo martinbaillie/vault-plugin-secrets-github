@@ -25,6 +25,7 @@ builds:
       - -w
       - -extldflags
       - -static
+      - -X '{{.ModulePath}}/github.PluginVersion=v{{ .Version }}'
       - -X {{.ModulePath}}/github.projectName={{.ProjectName}}
       - -X {{.ModulePath}}/github.projectDocs=https://{{.ModulePath}}
       - -X github.com/prometheus/common/version.BuildDate={{.Date}}
