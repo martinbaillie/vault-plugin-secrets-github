@@ -22,9 +22,9 @@ builds:
       - -w
       - -extldflags
       - -static
-      - -X '{{.ModulePath}}/github.PluginVersion=v{{ .Version }}'
-      - -X {{.ModulePath}}/github.projectName={{.ProjectName}}
-      - -X {{.ModulePath}}/github.projectDocs=https://{{.ModulePath}}
+      - -X {{.ModulePath}}/github.PluginVersion=v{{ .Version }}
+      - -X {{.ModulePath}}/github.projectName={{.ModulePath}}
+      - -X {{.ModulePath}}/github.projectDocs=https://github.com/arnecls/{{.ModulePath}}
       - -X github.com/prometheus/common/version.BuildDate={{.Date}}
       - -X github.com/prometheus/common/version.Revision={{.Commit}}
       - -X github.com/prometheus/common/version.Version={{.Version}}
