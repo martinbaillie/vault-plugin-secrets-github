@@ -1,7 +1,9 @@
 report_sizes: false
 
 builds:
-  - goos:
+  - env:
+      - CGO_ENABLED=0
+    goos:
       - darwin
       - windows
       - linux
