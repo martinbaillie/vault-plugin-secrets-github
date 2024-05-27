@@ -1,4 +1,4 @@
-module github.com/martinbaillie/vault-plugin-secrets-github
+module vault-plugin-secrets-github
 
 go 1.22.0
 
