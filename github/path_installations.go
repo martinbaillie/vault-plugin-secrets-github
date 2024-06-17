@@ -62,7 +62,7 @@ func (b *backend) pathInstallationsWrite(
 			"took", duration.String(),
 			"err", err,
 		)
-		requestDuration.With(prometheus.Labels{
+		installationsDuration.With(prometheus.Labels{
 			"success": strconv.FormatBool(err == nil),
 		}).Observe(duration.Seconds())
 	}(time.Now())
