@@ -272,39 +272,26 @@ func (c *Client) accessTokenURLForInstallationID(installationID int) (*url.URL, 
 	return url.ParseRequestURI(fmt.Sprintf(c.accessTokenURLTemplate, installationID))
 }
 
+func (c *Client) ListInstallations(ctx context.Context) (*logical.Response, error) {
+	instResult, err := c.fetchInstallations(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	installations := make(map[string]interface{})
+	for _, v := range instResult {
+		installations[v.Account.Login] = v.ID
+	}
+
+	return &logical.Response{Data: installations}, nil
+}
+
 // installationID makes a round trip to the configured GitHub API in an attempt to get the
 // installation ID of the App.
 func (c *Client) installationID(ctx context.Context, orgName string) (int, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.installationsURL.String(), nil)
+	instResult, err := c.fetchInstallations(ctx)
 	if err != nil {
 		return 0, err
-	}
-
-	req.Header.Set("User-Agent", projectName)
-
-	// Perform the request, re-using the client's shared transport.
-	res, err := c.installationsClient.Do(req)
-	if err != nil {
-		return 0, fmt.Errorf("%s: %w", errUnableToGetInstallations, err)
-	}
-
-	defer res.Body.Close()
-
-	if statusCode(res.StatusCode).Unsuccessful() {
-		var bodyBytes []byte
-
-		if bodyBytes, err = io.ReadAll(res.Body); err != nil {
-			return 0, fmt.Errorf("%s: %w", errUnableToGetInstallations, err)
-		}
-
-		bodyErr := fmt.Errorf("%s: %s", res.Status, string(bodyBytes))
-
-		return 0, fmt.Errorf("%s: %w", errUnableToGetInstallations, bodyErr)
-	}
-
-	var instResult []installation
-	if err = json.NewDecoder(res.Body).Decode(&instResult); err != nil {
-		return 0, fmt.Errorf("%s: %w", errUnableToDecodeInstallationsRes, err)
 	}
 
 	for _, v := range instResult {
@@ -314,6 +301,43 @@ func (c *Client) installationID(ctx context.Context, orgName string) (int, error
 	}
 
 	return 0, errAppNotInstalled
+}
+
+// fetchInstallations makes a request to the GitHub API to fetch the installations.
+func (c *Client) fetchInstallations(ctx context.Context) ([]installation, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.installationsURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("User-Agent", projectName)
+
+	// Perform the request, re-using the client's shared transport.
+	res, err := c.installationsClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", errUnableToGetInstallations, err)
+	}
+
+	defer res.Body.Close()
+
+	if statusCode(res.StatusCode).Unsuccessful() {
+		var bodyBytes []byte
+
+		if bodyBytes, err = io.ReadAll(res.Body); err != nil {
+			return nil, fmt.Errorf("%s: %w", errUnableToGetInstallations, err)
+		}
+
+		bodyErr := fmt.Errorf("%s: %s", res.Status, string(bodyBytes))
+
+		return nil, fmt.Errorf("%s: %w", errUnableToGetInstallations, bodyErr)
+	}
+
+	var instResult []installation
+	if err = json.NewDecoder(res.Body).Decode(&instResult); err != nil {
+		return nil, fmt.Errorf("%s: %w", errUnableToDecodeInstallationsRes, err)
+	}
+
+	return instResult, nil
 }
 
 // Model the parts of a installations list response that we care about.
