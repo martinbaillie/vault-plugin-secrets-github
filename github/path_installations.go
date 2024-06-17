@@ -35,12 +35,6 @@ func (b *backend) pathInstallations() *framework.Path {
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: withFieldValidator(b.pathInstallationsWrite),
 			},
-			logical.CreateOperation: &framework.PathOperation{
-				Callback: withFieldValidator(b.pathInstallationsWrite),
-			},
-			logical.UpdateOperation: &framework.PathOperation{
-				Callback: withFieldValidator(b.pathInstallationsWrite),
-			},
 		},
 		HelpSynopsis:    pathInstallationsHelpSyn,
 		HelpDescription: pathInstallationsHelpDesc,

@@ -50,6 +50,7 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 		},
 		Paths: []*framework.Path{
 			b.pathInfo(),
+			b.pathInstallations(),
 			b.pathMetrics(),
 			b.pathConfig(),
 			b.pathToken(),
