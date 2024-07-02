@@ -305,39 +305,73 @@ func (c *Client) installationID(ctx context.Context, orgName string) (int, error
 
 // fetchInstallations makes a request to the GitHub API to fetch the installations.
 func (c *Client) fetchInstallations(ctx context.Context) ([]installation, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.installationsURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
+	var allInstallations []installation
+	url := c.installationsURL.String()
 
-	req.Header.Set("User-Agent", projectName)
+	for url != "" {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return nil, err
+		}
 
-	// Perform the request, re-using the client's shared transport.
-	res, err := c.installationsClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", errUnableToGetInstallations, err)
-	}
+		req.Header.Set("User-Agent", projectName)
 
-	defer res.Body.Close()
-
-	if statusCode(res.StatusCode).Unsuccessful() {
-		var bodyBytes []byte
-
-		if bodyBytes, err = io.ReadAll(res.Body); err != nil {
+		// Perform the request, re-using the client's shared transport.
+		res, err := c.installationsClient.Do(req)
+		if err != nil {
 			return nil, fmt.Errorf("%s: %w", errUnableToGetInstallations, err)
 		}
 
-		bodyErr := fmt.Errorf("%s: %s", res.Status, string(bodyBytes))
+		defer res.Body.Close()
 
-		return nil, fmt.Errorf("%s: %w", errUnableToGetInstallations, bodyErr)
+		if statusCode(res.StatusCode).Unsuccessful() {
+			var bodyBytes []byte
+
+			if bodyBytes, err = io.ReadAll(res.Body); err != nil {
+				return nil, fmt.Errorf("%s: %w", errUnableToGetInstallations, err)
+			}
+
+			bodyErr := fmt.Errorf("%s: %s", res.Status, string(bodyBytes))
+
+			return nil, fmt.Errorf("%s: %w", errUnableToGetInstallations, bodyErr)
+		}
+
+		var instResult []installation
+		if err = json.NewDecoder(res.Body).Decode(&instResult); err != nil {
+			return nil, fmt.Errorf("%s: %w", errUnableToDecodeInstallationsRes, err)
+		}
+
+		allInstallations = append(allInstallations, instResult...)
+
+		// Check for pagination
+		url = getNextPageURL(res.Header.Get("Link"))
 	}
 
-	var instResult []installation
-	if err = json.NewDecoder(res.Body).Decode(&instResult); err != nil {
-		return nil, fmt.Errorf("%s: %w", errUnableToDecodeInstallationsRes, err)
+	return allInstallations, nil
+}
+
+// getNextPageURL parses the Link header to find the URL for the next page.
+func getNextPageURL(linkHeader string) string {
+	if linkHeader == "" {
+		return ""
 	}
 
-	return instResult, nil
+	links := strings.Split(linkHeader, ",")
+	for _, link := range links {
+		parts := strings.Split(strings.TrimSpace(link), ";")
+		if len(parts) < 2 {
+			continue
+		}
+
+		urlPart := strings.Trim(parts[0], "<>")
+		relPart := strings.TrimSpace(parts[1])
+
+		if relPart == `rel="next"` {
+			return urlPart
+		}
+	}
+
+	return ""
 }
 
 // Model the parts of a installations list response that we care about.
