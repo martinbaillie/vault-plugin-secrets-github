@@ -11,6 +11,9 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
+// Linker-provided project/build information.
+var projectVersion string
+
 const backendHelp = `
 GitHub Apps Token Backend
 `
@@ -68,6 +71,7 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 			// Renew:
 		}},
 		Invalidate: b.Invalidate,
+		RunningVersion: projectVersion,
 	}
 
 	if conf == nil {
