@@ -10,11 +10,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    gomod2nix = {
-      url = "github:nix-community/gomod2nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     gitignore = {
       url = "github:hercules-ci/gitignore.nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -27,7 +22,6 @@
       nixpkgs,
       flake-parts,
       devshell,
-      gomod2nix,
       gitignore,
       ...
     }:
@@ -52,7 +46,6 @@
           rev = self.rev or "dirty";
           ver = if self ? "dirtyRev" then self.dirtyShortRev else self.shortRev;
           date = self.lastModifiedDate or "19700101";
-          go = pkgs.go_1_22;
         in
         {
           _module.args.pkgs = import nixpkgs {
@@ -60,25 +53,20 @@
             config.allowUnfree = true; # BSL2... Hashicorp...
             overlays = [
               devshell.overlays.default
-              gomod2nix.overlays.default
             ];
           };
 
-          packages.default = gomod2nix.legacyPackages.${system}.buildGoApplication {
-            inherit name go;
+          packages.default = pkgs.buildGo123Module {
+            inherit name;
             src = gitignore.lib.gitignoreSource ./.;
-            # Must be added due to bug:
-            # https://github.com/nix-community/gomod2nix/issues/120
-            pwd = ./.;
-            modules = ./gomod2nix.toml;
+            env.CGO_ENABLED = 0;
+            vendorHash = "sha256-hscwOZhaVL17HPUGfs8uYSQt80D4HK4W6kNdkSmsQdA=";
             flags = [ "-trimpath" ];
-            # CGO_ENABLED = 0;
             ldflags = [
               "-s"
               "-w"
               "-extld ld"
-              "-extldflags"
-              "-static"
+              "-extldflags -static"
               "-X ${package}/github.projectName=${name}"
               "-X ${package}/github.projectDocs=https://${package}"
               "-X github.com/prometheus/common/version.BuildDate=${date}"
@@ -88,7 +76,6 @@
               "-X github.com/prometheus/common/version.Branch=main"
               "-X github.com/prometheus/common/version.BuildUser=nix"
             ];
-            doCheck = false;
           };
 
           devShells.default = pkgs.devshell.mkShell rec {
@@ -112,7 +99,6 @@
               gnugrep
               go
               golangci-lint
-              gomod2nix.legacyPackages.${system}.gomod2nix
               goreleaser
               syft
               vault-bin
@@ -161,7 +147,7 @@
                     prjRoot
                     + ''
                       echo >&2 "==> Tidying modules"
-                      go mod tidy && gomod2nix
+                      go mod tidy
                     '';
                   help = "clean transient files";
                 }
