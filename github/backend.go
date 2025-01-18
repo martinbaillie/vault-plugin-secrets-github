@@ -70,7 +70,7 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 			// NOTE: Unfortunately GitHub has no mechanism for renewing tokens.
 			// Renew:
 		}},
-		Invalidate: b.Invalidate,
+		Invalidate:     b.Invalidate,
 		RunningVersion: projectVersion,
 	}
 
