@@ -8,7 +8,7 @@ jobs:
     - uses: DeterminateSystems/nix-installer-action@main
     - uses: DeterminateSystems/magic-nix-cache-action@main
     - run: nix develop --command bash -c "lint && integration"
-    - uses: codecov/codecov-action@v4.5.0
+    - uses: codecov/codecov-action@v5.1.2
       with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: test/coverage.out
