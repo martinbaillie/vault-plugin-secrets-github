@@ -282,7 +282,7 @@ func (c *Client) ListInstallations(ctx context.Context) (*logical.Response, erro
 		return nil, err
 	}
 
-	installations := make(map[string]interface{})
+	installations := make(map[string]any, len(instResult))
 	for _, v := range instResult {
 		installations[v.Account.Login] = v.ID
 	}
