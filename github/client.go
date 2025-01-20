@@ -272,6 +272,10 @@ func (c *Client) accessTokenURLForInstallationID(installationID int) (*url.URL, 
 	return url.ParseRequestURI(fmt.Sprintf(c.accessTokenURLTemplate, installationID))
 }
 
+// ListInstallations retrieves a list of App installations associated with the
+// client. It returns a logical.Response containing a map where the keys are
+// account names and the values are corresponding installation IDs. In case of
+// an error during the fetch operation, it returns nil and the error.
 func (c *Client) ListInstallations(ctx context.Context) (*logical.Response, error) {
 	instResult, err := c.fetchInstallations(ctx)
 	if err != nil {
@@ -286,8 +290,8 @@ func (c *Client) ListInstallations(ctx context.Context) (*logical.Response, erro
 	return &logical.Response{Data: installations}, nil
 }
 
-// installationID makes a round trip to the configured GitHub API in an attempt to get the
-// installation ID of the App.
+// installationID makes a round trip to the configured GitHub API in an attempt
+// to get the installation ID of the App.
 func (c *Client) installationID(ctx context.Context, orgName string) (int, error) {
 	instResult, err := c.fetchInstallations(ctx)
 	if err != nil {

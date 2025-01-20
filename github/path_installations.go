@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -11,18 +10,22 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// pathPatternInstallation is the string used to define the base path of the installation
-// endpoint.
+// pathPatternInstallation is the string used to define the base path of the
+// installations endpoint.
 const pathPatternInstallations = "installations"
 
-//nolint:gosec // false positive.
-const pathInstallationsHelpSyn = `
-List App Installations using the GitHub secrets plugin.
+const (
+	pathInstallationsHelpSyn = `
+List GitHub App installations associated with this plugin's configuration.
 `
-
-var pathInstallationsHelpDesc = fmt.Sprintf(`
-Return Installations of the GitHub App using the GitHub secrets plugin.
-`)
+	pathInstallationsHelpDesc = `
+This endpoint returns a mapping of GitHub organization names to their
+corresponding installation IDs for the App associated with this plugin's
+configuration. It automatically handles GitHub API pagination, combining results
+from all pages into a single response. This ensures complete results even for
+GitHub Apps installed on many organizations.
+`
+)
 
 func (b *backend) pathInstallations() *framework.Path {
 	return &framework.Path{
@@ -31,7 +34,7 @@ func (b *backend) pathInstallations() *framework.Path {
 		ExistenceCheck: b.pathInstallationsExistenceCheck,
 		Operations: map[logical.Operation]framework.OperationHandler{
 			// As per the issue request in https://git.io/JUhRk, allow Vault
-			// Reads (i.e. HTTP GET) to also write the GitHub Installationss.
+			// Reads (i.e. HTTP GET) to also write the GitHub installations.
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: withFieldValidator(b.pathInstallationsWrite),
 			},
@@ -41,11 +44,11 @@ func (b *backend) pathInstallations() *framework.Path {
 	}
 }
 
-// pathInstallationsWrite corresponds to READ, CREATE and UPDATE on /github/Installations.
+// pathInstallationsWrite corresponds to READ, CREATE and UPDATE on /github/installations.
 func (b *backend) pathInstallationsWrite(
 	ctx context.Context,
 	req *logical.Request,
-	d *framework.FieldData,
+	_ *framework.FieldData,
 ) (res *logical.Response, err error) {
 	client, done, err := b.Client(ctx, req.Storage)
 	if err != nil {
@@ -54,7 +57,7 @@ func (b *backend) pathInstallationsWrite(
 
 	defer done()
 
-	// Instrument and log the Installations API call, recording status, duration and
+	// Instrument and log the installations API call, recording status, duration and
 	// whether any constraints (permissions, repository IDs) were requested.
 	defer func(begin time.Time) {
 		duration := time.Since(begin)
@@ -67,7 +70,7 @@ func (b *backend) pathInstallationsWrite(
 		}).Observe(duration.Seconds())
 	}(time.Now())
 
-	// Perform the Installations request.
+	// Perform the installations request.
 	return client.ListInstallations(ctx)
 }
 
