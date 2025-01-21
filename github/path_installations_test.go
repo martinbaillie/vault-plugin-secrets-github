@@ -2,11 +2,12 @@ package github
 
 import (
 	"context"
-	"github.com/hashicorp/vault/sdk/logical"
-	"gotest.tools/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/hashicorp/vault/sdk/logical"
+	"gotest.tools/assert"
 )
 
 const installationsJSON = `
@@ -151,6 +152,76 @@ func testBackendPathInstallations(t *testing.T, op logical.Operation) {
 		})
 		assert.ErrorContains(t, err, "500 Internal Server Error")
 		assert.Assert(t, r == nil)
+	})
+
+	t.Run("Pagination", func(t *testing.T) {
+		t.Parallel()
+
+		b, storage := testBackend(t)
+
+		firstPage := `[{
+		    "id": 1,
+		    "account": {
+		    "login": "octocat",
+		    "id": 1
+		    }
+		}]`
+
+		secondPage := `[{
+		    "id": 2,
+		    "account": {
+		    "login": "octodog",
+		    "id": 2
+		    }
+		}]`
+
+		var ts *httptest.Server
+		ts = httptest.NewServer(http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+
+				linkHeader := `<` + ts.URL + `?page=2>; rel="next"`
+				if r.URL.Query().Get("page") == "2" {
+					linkHeader = ``
+				}
+				w.Header().Set("Link", linkHeader)
+
+				switch r.URL.Query().Get("page") {
+				case "2":
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(secondPage))
+				default:
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(firstPage))
+				}
+			}),
+		)
+		defer ts.Close()
+
+		_, err := b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: logical.CreateOperation,
+			Path:      pathPatternConfig,
+			Data: map[string]any{
+				keyAppID:   testAppID1,
+				keyPrvKey:  testPrvKeyValid,
+				keyBaseURL: ts.URL,
+			},
+		})
+		assert.NilError(t, err)
+
+		r, err := b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: logical.ReadOperation,
+			Path:      pathPatternInstallations,
+		})
+		assert.NilError(t, err)
+
+		// Ensure both pages were combined correctly.
+		assert.Assert(t, r != nil)
+		assert.Assert(t, len(r.Data) == 2)
+		assert.Equal(t, r.Data["octocat"], 1)
+		assert.Equal(t, r.Data["octodog"], 2)
 	})
 }
 
