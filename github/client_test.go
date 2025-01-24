@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/hashicorp/vault/sdk/logical"
 	"gotest.tools/assert"
 
@@ -540,4 +542,36 @@ func TestClient_RevokeToken(t *testing.T) {
 			assert.DeepEqual(t, res, tc.res)
 		})
 	}
+}
+
+func TestNewClient_WithProxy(t *testing.T) {
+	t.Parallel()
+
+	proxyURL := "http://proxy.example.com:8080"
+	os.Setenv("HTTP_PROXY", proxyURL)
+	os.Setenv("HTTPS_PROXY", proxyURL)
+	os.Setenv("NO_PROXY", "localhost,127.0.0.1")
+	defer os.Unsetenv("HTTP_PROXY")
+	defer os.Unsetenv("HTTPS_PROXY")
+	defer os.Unsetenv("NO_PROXY")
+
+	conf := &Config{
+		AppID:   testAppID1,
+		PrvKey:  testPrvKeyValid,
+		BaseURL: testBaseURLValid,
+	}
+
+	client, err := NewClient(conf)
+	assert.NilError(t, err)
+
+	// checks that the Transport wrapped by the client with a AppsTransport handles Proxy properly
+	appTransport, ok := client.installationsClient.Transport.(*ghinstallation.AppsTransport)
+	transport := appTransport.Client.(*http.Client).Transport.(*http.Transport)
+	assert.Assert(t, ok)
+	assert.Assert(t, appTransport != nil)
+
+	req, _ := http.NewRequest("GET", "http://example.com", nil)
+	proxy, err := transport.Proxy(req)
+	assert.NilError(t, err)
+	assert.Equal(t, proxy.String(), proxyURL)
 }
