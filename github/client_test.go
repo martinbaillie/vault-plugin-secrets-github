@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/hashicorp/vault/sdk/logical"
 	"gotest.tools/assert"
 
@@ -91,7 +93,6 @@ func TestNewClient(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -387,7 +388,6 @@ func TestClient_Token(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -511,7 +511,6 @@ func TestClient_RevokeToken(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -540,4 +539,49 @@ func TestClient_RevokeToken(t *testing.T) {
 			assert.DeepEqual(t, res, tc.res)
 		})
 	}
+}
+
+func TestNewClient_WithProxy(t *testing.T) {
+	t.Parallel()
+
+	proxyURL := "http://proxy.example.com:8080"
+	os.Setenv("HTTP_PROXY", proxyURL)
+	os.Setenv("HTTPS_PROXY", proxyURL)
+	os.Setenv("NO_PROXY", "localhost,127.0.0.1")
+	defer os.Unsetenv("HTTP_PROXY")
+	defer os.Unsetenv("HTTPS_PROXY")
+	defer os.Unsetenv("NO_PROXY")
+
+	conf := &Config{
+		AppID:   testAppID1,
+		PrvKey:  testPrvKeyValid,
+		BaseURL: testBaseURLValid,
+	}
+
+	client, err := NewClient(conf)
+	assert.NilError(t, err)
+
+	appTransport, ok := client.installationsClient.Transport.(*ghinstallation.AppsTransport)
+	if !ok {
+		t.Fatalf("Expected *ghinstallation.AppsTransport, got %T", client.installationsClient.Transport)
+	}
+	assert.Assert(t, appTransport != nil)
+
+	httpClient, ok := appTransport.Client.(*http.Client)
+	if !ok {
+		t.Fatalf("Expected *http.Client, got %T", appTransport.Client)
+	}
+
+	// Safely assert that httpClient.Transport is of the correct type
+	transport, ok := httpClient.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("Expected *http.Transport, got %T", httpClient.Transport)
+	}
+
+	req, err := http.NewRequest("GET", "http://example.com", nil)
+	assert.NilError(t, err)
+
+	proxy, err := transport.Proxy(req)
+	assert.NilError(t, err)
+	assert.Equal(t, proxy.String(), proxyURL)
 }
