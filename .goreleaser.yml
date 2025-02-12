@@ -25,7 +25,7 @@ builds:
       - -extldflags -static
       - -X {{.ModulePath}}/github.projectName={{.ProjectName}}
       - -X {{.ModulePath}}/github.projectDocs=https://{{.ModulePath}}
-      - -X {{.ModulePath}}/github.projectVersion={{.Version}}
+      - -X {{.ModulePath}}/github.projectVersion=v{{.Version}}
       - -X github.com/prometheus/common/version.BuildDate={{.Date}}
       - -X github.com/prometheus/common/version.Revision={{.Commit}}
       - -X github.com/prometheus/common/version.Version={{.Version}}
