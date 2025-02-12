@@ -93,7 +93,6 @@ func TestNewClient(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -389,7 +388,6 @@ func TestClient_Token(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -513,7 +511,6 @@ func TestClient_RevokeToken(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -564,13 +561,26 @@ func TestNewClient_WithProxy(t *testing.T) {
 	client, err := NewClient(conf)
 	assert.NilError(t, err)
 
-	// checks that the Transport wrapped by the client with a AppsTransport handles Proxy properly
 	appTransport, ok := client.installationsClient.Transport.(*ghinstallation.AppsTransport)
-	transport := appTransport.Client.(*http.Client).Transport.(*http.Transport)
-	assert.Assert(t, ok)
+	if !ok {
+		t.Fatalf("Expected *ghinstallation.AppsTransport, got %T", client.installationsClient.Transport)
+	}
 	assert.Assert(t, appTransport != nil)
 
-	req, _ := http.NewRequest("GET", "http://example.com", nil)
+	httpClient, ok := appTransport.Client.(*http.Client)
+	if !ok {
+		t.Fatalf("Expected *http.Client, got %T", appTransport.Client)
+	}
+
+	// Safely assert that httpClient.Transport is of the correct type
+	transport, ok := httpClient.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("Expected *http.Transport, got %T", httpClient.Transport)
+	}
+
+	req, err := http.NewRequest("GET", "http://example.com", nil)
+	assert.NilError(t, err)
+
 	proxy, err := transport.Proxy(req)
 	assert.NilError(t, err)
 	assert.Equal(t, proxy.String(), proxyURL)
