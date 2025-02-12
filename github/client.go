@@ -75,6 +75,7 @@ func NewClient(config *Config) (*Client, error) {
 			Timeout: reqTimeout / 2,
 		}).DialContext,
 		TLSHandshakeTimeout: reqTimeout / 2,
+		Proxy:               http.ProxyFromEnvironment,
 	}
 
 	// Create an GitHub App installation authenticated clone of transport.
