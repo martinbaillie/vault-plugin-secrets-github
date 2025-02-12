@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
@@ -542,15 +541,9 @@ func TestClient_RevokeToken(t *testing.T) {
 }
 
 func TestNewClient_WithProxy(t *testing.T) {
-	t.Parallel()
-
 	proxyURL := "http://proxy.example.com:8080"
-	os.Setenv("HTTP_PROXY", proxyURL)
-	os.Setenv("HTTPS_PROXY", proxyURL)
-	os.Setenv("NO_PROXY", "localhost,127.0.0.1")
-	defer os.Unsetenv("HTTP_PROXY")
-	defer os.Unsetenv("HTTPS_PROXY")
-	defer os.Unsetenv("NO_PROXY")
+	t.Setenv("HTTP_PROXY", proxyURL)
+	t.Setenv("HTTPS_PROXY", proxyURL)
 
 	conf := &Config{
 		AppID:   testAppID1,
@@ -572,7 +565,6 @@ func TestNewClient_WithProxy(t *testing.T) {
 		t.Fatalf("Expected *http.Client, got %T", appTransport.Client)
 	}
 
-	// Safely assert that httpClient.Transport is of the correct type
 	transport, ok := httpClient.Transport.(*http.Transport)
 	if !ok {
 		t.Fatalf("Expected *http.Transport, got %T", httpClient.Transport)
