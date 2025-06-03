@@ -300,7 +300,7 @@ func (c *Client) installationID(ctx context.Context, orgName string) (int, error
 	}
 
 	for _, v := range instResult {
-		if v.Account.Login == orgName {
+		if strings.EqualFold(v.Account.Login, orgName) {
 			return v.ID, nil
 		}
 	}
