@@ -174,7 +174,7 @@ func (c *Client) Token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 	return c.token(ctx, tokReq)
 }
 
-func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Response, error) {
+func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Response, error) { //nolint:cyclop,funlen
 	accessTokenURL, err := c.accessTokenURLForInstallationID(tokReq.InstallationID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", errUnableToBuildAccessTokenURL, err)
@@ -204,7 +204,7 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 		return nil, fmt.Errorf("%s: %w", errUnableToCreateAccessToken, err)
 	}
 
-	defer res.Body.Close()
+	defer res.Body.Close() //nolint:errcheck
 
 	if statusCode(res.StatusCode).Unsuccessful() {
 		var bodyBytes []byte
@@ -239,10 +239,11 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 			resData["repositories"] = repoNames
 		}
 	}
-	tokRes := &logical.Response{Data: resData}
 
 	// Enrich the response with what we know about the installation.
+	tokRes := &logical.Response{Data: resData}
 	tokRes.Data["installation_id"] = tokReq.InstallationID
+
 	if tokReq.OrgName != "" {
 		tokRes.Data["org_name"] = tokReq.OrgName
 	}
@@ -311,8 +312,8 @@ func (c *Client) installationID(ctx context.Context, orgName string) (int, error
 // fetchInstallations makes a request to the GitHub API to fetch the installations.
 func (c *Client) fetchInstallations(ctx context.Context) ([]installation, error) {
 	var allInstallations []installation
-	url := c.installationsURL.String()
 
+	url := c.installationsURL.String()
 	for url != "" {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
@@ -327,7 +328,7 @@ func (c *Client) fetchInstallations(ctx context.Context) ([]installation, error)
 			return nil, fmt.Errorf("%s: %w", errUnableToGetInstallations, err)
 		}
 
-		defer res.Body.Close()
+		defer res.Body.Close() //nolint:errcheck
 
 		if statusCode(res.StatusCode).Unsuccessful() {
 			var bodyBytes []byte
@@ -409,7 +410,7 @@ func (c *Client) RevokeToken(ctx context.Context, token string) (*logical.Respon
 		return nil, fmt.Errorf("%s: %w", errUnableToRevokeAccessToken, err)
 	}
 
-	defer res.Body.Close()
+	defer res.Body.Close() //nolint:errcheck
 
 	if !statusCode(res.StatusCode).Revoked() {
 		var bodyBytes []byte

@@ -46,7 +46,7 @@ func NewConfig() *Config {
 
 // Update updates the configuration from the given field data only when the data
 // is different.
-func (c *Config) Update(d *framework.FieldData) (bool, error) {
+func (c *Config) Update(d *framework.FieldData) (bool, error) { //nolint:cyclop
 	if d == nil {
 		// NOTE: Use of the path framework ensures `d` is never nil.
 		return false, errFieldDataNil
