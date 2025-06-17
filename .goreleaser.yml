@@ -1,4 +1,5 @@
 report_sizes: false
+version: 2
 
 builds:
   - env:
@@ -35,7 +36,7 @@ builds:
     binary: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
 
 archives:
-  - format: binary
+  - formats: [binary]
     name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
 
 checksum:
@@ -50,7 +51,7 @@ sboms:
   - artifacts: binary
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-rc"
+  version_template: "{{ incpatch .Version }}-rc"
 
 release:
   draft: true
