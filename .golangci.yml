@@ -1,6 +1,22 @@
 ---
+version: 2
 run:
   tests: false
+formatters: 
+  settings:
+    gofmt:
+      # Apply the rewrite rules to the source before reformatting.
+      # https://pkg.go.dev/cmd/gofmt
+      # Default: []
+      rewrite-rules:
+        - pattern: "interface{}"
+          replacement: "any"
+        - pattern: "a[b:len(a)]"
+          replacement: "a[b:]"
+    goimports:
+      # Put imports beginning with prefix after 3rd-party packages.
+      local-prefixes:
+        - github.com/martinbaillie
 
 linters:
   disable-all: true
@@ -24,12 +40,9 @@ linters:
     - gocritic # provides diagnostics that check for bugs, performance and style issues
     - gocyclo # computes and checks the cyclomatic complexity of functions
     - godot # checks if comments end in a period
-    - gofmt # the classic
-    - goimports # in addition to fixing imports, goimports also formats your code in the same style as gofmt
     # - gomnd # detects magic numbers
     - goprintffuncname # checks that printf-like functions are named with f at the end
     - gosec # inspects source code for security problems
-    - gosimple # specializes in simplifying a code
     - govet # reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
     - ineffassign # detects when assignments to existing variables are not used
     # - ireturn # accept interfaces, return concrete types
@@ -47,13 +60,10 @@ linters:
     - reassign # checks that package variables are not reassigned
     - revive # fast, configurable, extensible, flexible, and beautiful linter for Go, drop-in replacement of golint
     - staticcheck # is a go vet on steroids, applying a ton of static analysis checks
-    - stylecheck # is a replacement for golint
     # - tagliatelle # struct tag issues
-    - tenv # detects using os.Setenv instead of t.Setenv since Go1.17
     - testpackage # makes you use a separate _test package
     - thelper # detects golang test helpers without t.Helper() call and checks the consistency of test helpers
     - tparallel # detects inappropriate usage of t.Parallel() method in your Go test codes
-    - typecheck # like the front-end of a Go compiler, parses and type-checks Go code
     - unconvert # removes unnecessary type conversions
     - unparam # reports unused function parameters
     - unused # checks for unused constants, variables, functions and types
@@ -97,10 +107,6 @@ linters-settings:
     allow-cuddle-declarations: true
     allow-assign-and-anything: true
 
-  goimports:
-    # Put imports beginning with prefix after 3rd-party packages.
-    local-prefixes: github.com/martinbaillie
-
   gocritic:
     # The settings key is the name of a supported gocritic checker. The list of
     # supported checkers can be find in https://go-critic.github.io/overview.
@@ -112,16 +118,6 @@ linters-settings:
         # Whether to skip (*x).method() calls where x is a pointer receiver.
         # Default: true
         skipRecvDeref: false
-
-  gofmt:
-    # Apply the rewrite rules to the source before reformatting.
-    # https://pkg.go.dev/cmd/gofmt
-    # Default: []
-    rewrite-rules:
-      - pattern: "interface{}"
-        replacement: "any"
-      - pattern: "a[b:len(a)]"
-        replacement: "a[b:]"
 
   gomnd:
     # Magic numbers. List of function patterns to exclude from analysis. Values
@@ -161,7 +157,7 @@ linters-settings:
 
   nolintlint:
     # Exclude following linters from requiring an explanation. Default: []
-    allow-no-explanation: [funlen, gocognit, lll]
+    allow-no-explanation: [ funlen, gocognit, lll ]
     # Enable to require an explanation of nonzero length after each nolint
     # directive. Default: false
     require-explanation: true

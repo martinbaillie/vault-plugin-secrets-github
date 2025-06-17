@@ -160,9 +160,9 @@
                       if [ -v CI ]; then
                         mkdir -p test
                         ${golangci-lint}/bin/golangci-lint run \
-                            --out-format=checkstyle | tee test/checkstyle.xml
+                            --output.checkstyle.path stdout | tee test/checkstyle.xml
                       else
-                        ${golangci-lint}/bin/golangci-lint run --fast
+                        ${golangci-lint}/bin/golangci-lint run --fast-only
                       fi
                     '';
                   help = "lint the project (heavyweight when CI=true)";
