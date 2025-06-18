@@ -98,7 +98,6 @@
               bashInteractive
               coreutils
               gnugrep
-              go
               golangci-lint
               goreleaser
               syft
