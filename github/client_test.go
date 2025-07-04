@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bradleyfalzon/ghinstallation"
+	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/hashicorp/vault/sdk/logical"
 	"gotest.tools/assert"
 
