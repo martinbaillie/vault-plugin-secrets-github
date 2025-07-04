@@ -2,6 +2,8 @@ module github.com/martinbaillie/vault-plugin-secrets-github/v2
 
 go 1.23.4
 
+toolchain go1.23.10
+
 require (
 	github.com/bradleyfalzon/ghinstallation v1.1.1
 	github.com/hashicorp/go-hclog v1.6.3
