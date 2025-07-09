@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -300,6 +301,50 @@ func TestClient_Token(t *testing.T) {
 					w.WriteHeader(http.StatusOK)
 					w.Write(body)
 
+				case http.MethodPost:
+					assert.Equal(t, r.URL.Path, fmt.Sprintf("/%s", testPath))
+					assert.Assert(t, r.Header.Get("Authorization") != "")
+
+					w.Header().Set("Content-Type", "application/json")
+					body, _ := json.Marshal(map[string]any{
+						"token":      testToken,
+						"expires_at": testTokenExp,
+					})
+					w.WriteHeader(http.StatusCreated)
+					w.Write(body)
+				}
+			}),
+			res: &logical.Response{
+				Data: map[string]any{
+					"token":           testToken,
+					"installation_id": testInsID1,
+					"expires_at":      testTokenExp,
+				},
+			},
+		},
+		{
+			name:   "OrgNameLookupIsCaseInsensitive",
+			ctx:    context.Background(),
+			tokReq: &tokenRequest{OrgName: strings.ToLower(testOrgName1)},
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Helper()
+
+				switch r.Method {
+				case http.MethodGet:
+					assert.Equal(t, r.URL.Path, "/app/installations")
+					assert.Assert(t, r.Header.Get("Authorization") != "")
+
+					w.Header().Set("Content-Type", "application/json")
+					body, _ := json.Marshal([]map[string]any{
+						{
+							"id": testInsID1,
+							"account": map[string]any{
+								"login": strings.ToUpper(testOrgName1),
+							},
+						},
+					})
+					w.WriteHeader(http.StatusOK)
+					w.Write(body)
 				case http.MethodPost:
 					assert.Equal(t, r.URL.Path, fmt.Sprintf("/%s", testPath))
 					assert.Assert(t, r.Header.Get("Authorization") != "")
