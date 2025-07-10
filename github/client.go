@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bradleyfalzon/ghinstallation"
+	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
