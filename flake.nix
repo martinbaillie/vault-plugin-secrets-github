@@ -35,7 +35,6 @@
 
       perSystem =
         {
-          config,
           pkgs,
           system,
           ...
@@ -56,11 +55,11 @@
             ];
           };
 
-          packages.default = pkgs.buildGo123Module {
+          packages.default = pkgs.buildGoModule {
             inherit name;
             src = gitignore.lib.gitignoreSource ./.;
             env.CGO_ENABLED = 0;
-            vendorHash = "sha256-GE/6E/I/IbfLw+oikUqfA/8qDv91nbjoOl0dSSh5lJg=";
+            vendorHash = "sha256-Xebjfaz3XKHIMJkgiounNkYTacdqwSXRBooJutwgms4=";
             flags = [ "-trimpath" ];
             ldflags = [
               "-s"
@@ -196,8 +195,9 @@
                       echo >&2 "==> Integration server"
                       [ -v DEBUG ] && lvl=trace || lvl=error
                       [ ! -f "result/bin/vault-plugin-secrets-github" ] && build
-                      pkill vault && sleep 2 || true
-                      rm -f test/vault.pid
+                      pkill -F test/vault.pid 2>/dev/null || true
+                      mkdir -p test
+                      sleep 2
                       (
                       trap 'rm -f test/vault.pid' EXIT
                       ${vault-bin}/bin/vault server \
