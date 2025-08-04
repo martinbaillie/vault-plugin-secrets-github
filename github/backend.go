@@ -126,9 +126,11 @@ func (b *backend) Config(ctx context.Context, s logical.Storage) (*Config, error
 // returned closer when finished.
 func (b *backend) Client(ctx context.Context, s logical.Storage) (*Client, func(), error) {
 	b.clientLock.RLock()
+
 	if b.client != nil {
 		return b.client, func() { b.clientLock.RUnlock() }, nil
 	}
+
 	b.clientLock.RUnlock()
 
 	// Acquire a globally exclusive lock to close any connections and create a

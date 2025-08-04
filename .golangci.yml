@@ -70,7 +70,7 @@ linters:
     - usestdlibvars # detects the possibility to use variables/constants from the Go standard library
     - whitespace # detects leading and trailing whitespace
     # - wrapcheck # checks that errors returned from external packages are wrapped
-    - wsl # cuddlemaster
+    - wsl_v5
 
 linters-settings:
   cyclop:
@@ -172,6 +172,10 @@ linters-settings:
     # Default: false
     all: true
 
+  wsl_v5:
+    allow-first-in-block: true
+    allow-whole-block: false
+    branch-max-lines: 2
 issues:
   # Maximum count of issues with the same text.
   # Set to 0 to disable.
