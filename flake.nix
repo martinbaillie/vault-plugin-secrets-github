@@ -59,7 +59,7 @@
             inherit name;
             src = gitignore.lib.gitignoreSource ./.;
             env.CGO_ENABLED = 0;
-            vendorHash = "sha256-Xebjfaz3XKHIMJkgiounNkYTacdqwSXRBooJutwgms4=";
+            vendorHash = "sha256-YELxGfVh2XVt7DXeISZg7/uf9B+/zEa43TTCTVHON4g=";
             flags = [ "-trimpath" ];
             ldflags = [
               "-s"
@@ -97,7 +97,7 @@
               bashInteractive
               coreutils
               gnugrep
-              go
+              go_1_25
               golangci-lint
               goreleaser
               syft
@@ -122,98 +122,86 @@
                 }
                 {
                   name = "todo";
-                  command =
-                    prjRoot
-                    + ''
-                      ${gnugrep}/bin/grep --exclude=flake.nix \
-                        --exclude-dir=.direnv --color=auto --text \
-                        -InRo -E ' TODO.*' .
-                    '';
+                  command = prjRoot + ''
+                    ${gnugrep}/bin/grep --exclude=flake.nix \
+                      --exclude-dir=.direnv --color=auto --text \
+                      -InRo -E ' TODO.*' .
+                  '';
                   help = "show project TODO items";
                 }
                 {
                   name = "clean";
-                  command =
-                    prjRoot
-                    + ''
-                      echo >&2 "==> Cleaning"
-                      rm -rf test result
-                    '';
+                  command = prjRoot + ''
+                    echo >&2 "==> Cleaning"
+                    rm -rf test result
+                  '';
                   help = "clean transient files";
                 }
                 {
                   name = "tidy";
-                  command =
-                    prjRoot
-                    + ''
-                      echo >&2 "==> Tidying modules"
-                      go mod tidy
-                    '';
+                  command = prjRoot + ''
+                    echo >&2 "==> Tidying modules"
+                    go mod tidy
+                  '';
                   help = "clean transient files";
                 }
                 {
                   name = "lint";
-                  command =
-                    prjRoot
-                    + ''
-                      echo >&2 "==> Linting"
-                      if [ -v CI ]; then
-                        mkdir -p test
-                        ${golangci-lint}/bin/golangci-lint run \
-                            --output.checkstyle.path stdout | tee test/checkstyle.xml
-                      else
-                        ${golangci-lint}/bin/golangci-lint run --fast-only
-                      fi
-                    '';
+                  command = prjRoot + ''
+                    echo >&2 "==> Linting"
+                    if [ -v CI ]; then
+                      mkdir -p test
+                      ${golangci-lint}/bin/golangci-lint run \
+                          --output.checkstyle.path stdout | tee test/checkstyle.xml
+                    else
+                      ${golangci-lint}/bin/golangci-lint run --fast-only
+                    fi
+                  '';
                   help = "lint the project (heavyweight when CI=true)";
                 }
                 {
                   name = "unit";
-                  command =
-                    prjRoot
-                    + ''
-                      [[ $# -eq 0 ]] && set -- "./..."
-                      echo >&2 "==> Unit testing"
-                      [ -v DEBUG ] && fmt=standard-verbose || fmt=short-verbose
-                      mkdir -p test
-                      if [ -v CI ]; then
-                        ${gotestsum}/bin/gotestsum \
-                            --format $fmt --junitfile test/junit.xml -- -race \
-                            -coverprofile=test/coverage.out -covermode=atomic $@
-                      else
-                        ${gotestsum}/bin/gotestsum \
-                            --format $fmt --junitfile test/junit.xml -- $@
-                      fi
-                    '';
+                  command = prjRoot + ''
+                    [[ $# -eq 0 ]] && set -- "./..."
+                    echo >&2 "==> Unit testing"
+                    [ -v DEBUG ] && fmt=standard-verbose || fmt=short-verbose
+                    mkdir -p test
+                    if [ -v CI ]; then
+                      ${gotestsum}/bin/gotestsum \
+                          --format $fmt --junitfile test/junit.xml -- -race \
+                          -coverprofile=test/coverage.out -covermode=atomic $@
+                    else
+                      ${gotestsum}/bin/gotestsum \
+                          --format $fmt --junitfile test/junit.xml -- $@
+                    fi
+                  '';
                   help = "unit test the project";
                 }
                 {
                   name = "integration-server";
-                  command =
-                    prjRoot
-                    + ''
-                      echo >&2 "==> Integration server"
-                      [ -v DEBUG ] && lvl=trace || lvl=error
-                      [ ! -f "result/bin/vault-plugin-secrets-github" ] && build
-                      pkill -F test/vault.pid 2>/dev/null || true
-                      mkdir -p test
-                      sleep 2
-                      (
-                      trap 'rm -f test/vault.pid' EXIT
-                      ${vault-bin}/bin/vault server \
-                          -dev \
-                          -dev-plugin-dir=$(${coreutils}/bin/realpath result/bin) \
-                          -dev-root-token-id=root \
-                          -log-level=$lvl
-                      ) &
-                      echo $! > test/vault.pid
-                      sleep 2
-                      ${vault-bin}/bin/vault write sys/plugins/catalog/${name} \
-                          sha_256=$(${coreutils}/bin/sha256sum result/bin/${name} |
-                                    cut -d' ' -f1) command=${name}
-                      ${vault-bin}/bin/vault secrets enable \
-                          -path=github -plugin-name=${name} plugin
-                    '';
+                  command = prjRoot + ''
+                    echo >&2 "==> Integration server"
+                    [ -v DEBUG ] && lvl=trace || lvl=error
+                    [ ! -f "result/bin/vault-plugin-secrets-github" ] && build
+                    pkill -F test/vault.pid 2>/dev/null || true
+                    mkdir -p test
+                    sleep 2
+                    (
+                    trap 'rm -f test/vault.pid' EXIT
+                    ${vault-bin}/bin/vault server \
+                        -dev \
+                        -dev-plugin-dir=$(${coreutils}/bin/realpath result/bin) \
+                        -dev-root-token-id=root \
+                        -log-level=$lvl
+                    ) &
+                    echo $! > test/vault.pid
+                    sleep 2
+                    ${vault-bin}/bin/vault write sys/plugins/catalog/${name} \
+                        sha_256=$(${coreutils}/bin/sha256sum result/bin/${name} |
+                                  cut -d' ' -f1) command=${name}
+                    ${vault-bin}/bin/vault secrets enable \
+                        -path=github -plugin-name=${name} plugin
+                  '';
                   help = "run a background Vault with the plugin enabled";
                 }
                 {
@@ -229,13 +217,11 @@
                   #
                   # NOTE: this will automatically skip racyness tests to avoid
                   # GitHub API rate limiting.
-                  command =
-                    prjRoot
-                    + ''
-                      echo >&2 "==> Integration testing"
-                      [ ! -f "test/vault.pid" ] && integration-server
-                      unit -count 1 -tags integration ./...
-                    '';
+                  command = prjRoot + ''
+                    echo >&2 "==> Integration testing"
+                    [ ! -f "test/vault.pid" ] && integration-server
+                    unit -count 1 -tags integration ./...
+                  '';
                   help = "unit and integration test the project";
                 }
               ];
