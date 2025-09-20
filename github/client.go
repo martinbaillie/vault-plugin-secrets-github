@@ -64,7 +64,7 @@ func NewClient(config *Config) (*Client, error) {
 	}
 
 	// A sensible request timeout.
-	reqTimeout := time.Millisecond * 5000
+	reqTimeout := time.Millisecond * 10000
 
 	// Initialise a new transport instead of using Go's default. This transport
 	// has explicit timeouts and sensible defaults for max connections per host
@@ -72,9 +72,9 @@ func NewClient(config *Config) (*Client, error) {
 	// with one host).
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
-			Timeout: reqTimeout / 2,
+			Timeout: reqTimeout / 4,
 		}).DialContext,
-		TLSHandshakeTimeout: reqTimeout / 2,
+		TLSHandshakeTimeout: reqTimeout / 4,
 		Proxy:               http.ProxyFromEnvironment,
 	}
 
