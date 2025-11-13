@@ -69,6 +69,7 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 		assert.Assert(t, r != nil)
 		assert.Equal(t, r.Data["expires_at"].(string), testTokenExp)
 		assert.Equal(t, r.Data["token"].(string), testToken)
+		assert.Equal(t, r.Data["hashed_token"].(string), testTokenHash)
 	})
 
 	t.Run("FailedClient", func(t *testing.T) {

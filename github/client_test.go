@@ -19,11 +19,12 @@ import (
 )
 
 const (
-	testRepo1   = "vault-plugin-secrets-github"
-	testRepo2   = "hashitalkaunz"
-	testRepoID1 = 223704264
-	testRepoID2 = 360447594
-	testToken   = "ghs_1aRGyjpfMQ98l0rnji5dstEEg10rOY3lenzG"
+	testRepo1     = "vault-plugin-secrets-github"
+	testRepo2     = "hashitalkaunz"
+	testRepoID1   = 223704264
+	testRepoID2   = 360447594
+	testToken     = "ghs_1aRGyjpfMQ98l0rnji5dstEEg10rOY3lenzG"
+	testTokenHash = "p/q8OhHzX3aiPGHBmqq6IfTS1bYVqOCj1ct2oSJekGg=" // echo -n testToken | openssl dgst -sha256 -binary | base64
 )
 
 var (
@@ -147,6 +148,7 @@ func TestClient_Token(t *testing.T) {
 			}),
 			res: &logical.Response{
 				Data: map[string]any{
+					"hashed_token":    testTokenHash,
 					"token":           testToken,
 					"installation_id": testInsID1,
 					"expires_at":      testTokenExp,
@@ -193,6 +195,7 @@ func TestClient_Token(t *testing.T) {
 			}),
 			res: &logical.Response{
 				Data: map[string]any{
+					"hashed_token":    testTokenHash,
 					"token":           testToken,
 					"installation_id": testInsID1,
 					"expires_at":      testTokenExp,
@@ -316,6 +319,7 @@ func TestClient_Token(t *testing.T) {
 			}),
 			res: &logical.Response{
 				Data: map[string]any{
+					"hashed_token":    testTokenHash,
 					"token":           testToken,
 					"installation_id": testInsID1,
 					"expires_at":      testTokenExp,
@@ -360,6 +364,7 @@ func TestClient_Token(t *testing.T) {
 			}),
 			res: &logical.Response{
 				Data: map[string]any{
+					"hashed_token":    testTokenHash,
 					"token":           testToken,
 					"installation_id": testInsID1,
 					"expires_at":      testTokenExp,
@@ -464,6 +469,7 @@ func TestClient_Token(t *testing.T) {
 			if tc.res != nil && tc.res.Data != nil {
 				assert.Equal(t, res.Data["expires_at"], tc.res.Data["expires_at"])
 				assert.Equal(t, res.Data["token"], tc.res.Data["token"])
+				assert.Equal(t, res.Data["hashed_token"], tc.res.Data["hashed_token"])
 
 				if _, ok := tc.res.Data["permissions"]; ok {
 					testPerms := tc.res.Data["permissions"].(map[string]string)
@@ -476,7 +482,6 @@ func TestClient_Token(t *testing.T) {
 					resRepos := res.Data["repositories"].([]any)
 					assert.Equal(t, len(resRepos), len(testRepos))
 				}
-				assert.Equal(t, res.Data["token"], tc.res.Data["token"])
 			}
 		})
 	}

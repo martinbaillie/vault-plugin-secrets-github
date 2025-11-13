@@ -3,6 +3,8 @@ package github
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -240,6 +242,10 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 		}
 	}
 
+	if hashedToken, ok := hashedTokenFromValue(resData["token"]); ok {
+		resData["hashed_token"] = hashedToken
+	}
+
 	// Enrich the response with what we know about the installation.
 	tokRes := &logical.Response{Data: resData}
 	tokRes.Data["installation_id"] = tokReq.InstallationID
@@ -272,6 +278,17 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 
 func (c *Client) accessTokenURLForInstallationID(installationID int) (*url.URL, error) {
 	return url.ParseRequestURI(fmt.Sprintf(c.accessTokenURLTemplate, installationID))
+}
+
+func hashedTokenFromValue(token any) (string, bool) {
+	tokenStr, ok := token.(string)
+	if !ok || tokenStr == "" {
+		return "", false
+	}
+
+	hash := sha256.Sum256([]byte(tokenStr))
+
+	return base64.StdEncoding.EncodeToString(hash[:]), true
 }
 
 // ListInstallations retrieves a list of App installations associated with the

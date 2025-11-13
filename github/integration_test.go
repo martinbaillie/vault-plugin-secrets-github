@@ -368,6 +368,8 @@ func testCreateTokenByInstallationID(t *testing.T) {
 		assert.Assert(t, resData["token"] != "")
 		assert.Assert(t, resData["expires_at"] != "")
 	}
+
+	assertHashedTokenMatchesToken(t, resData)
 }
 
 func testCreateTokenByOrgName(t *testing.T) {
@@ -396,6 +398,8 @@ func testCreateTokenByOrgName(t *testing.T) {
 		assert.Assert(t, resData["token"] != "")
 		assert.Assert(t, resData["expires_at"] != "")
 	}
+
+	assertHashedTokenMatchesToken(t, resData)
 }
 
 func testCreatePermissionSetToken(t *testing.T) {
@@ -423,6 +427,8 @@ func testCreatePermissionSetToken(t *testing.T) {
 		assert.Assert(t, resData["token"] != "")
 		assert.Assert(t, resData["expires_at"] != "")
 	}
+
+	assertHashedTokenMatchesToken(t, resData)
 }
 
 func testRevokeTokens(t *testing.T) {
@@ -473,6 +479,24 @@ func testCreateTokenByInstallationIDWithConstraints(t *testing.T) {
 		assert.Assert(t, resData["token"] != "")
 		assert.Assert(t, resData["expires_at"] != "")
 	}
+
+	assertHashedTokenMatchesToken(t, resData)
+}
+
+func assertHashedTokenMatchesToken(t *testing.T, resData map[string]any) {
+	t.Helper()
+
+	token, ok := resData["token"].(string)
+	assert.Assert(t, ok, "response missing token string: %#v", resData)
+	assert.Assert(t, token != "")
+
+	hashedToken, ok := resData["hashed_token"].(string)
+	assert.Assert(t, ok, "response missing hashed_token string: %#v", resData)
+	assert.Assert(t, hashedToken != "")
+
+	expectedHash, ok := hashedTokenFromValue(token)
+	assert.Assert(t, ok)
+	assert.Equal(t, hashedToken, expectedHash)
 }
 
 func vaultDo(

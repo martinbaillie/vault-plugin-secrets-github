@@ -354,6 +354,15 @@ favour =repository_ids= (GitHub repository IDs are immutable) instead of
 =repositories= (GitHub repository names are mutable).
 #+end_quote
 
+#+begin_quote
+NOTE: All token responses (including those from permission sets) include
+=hashed_token=, a base64-encoded SHA-256 hash of the returned token that matches
+GitHub's [[https://docs.github.com/en/enterprise-cloud@latest/admin/monitoring-activity-in-your-enterprise/reviewing-audit-logs-for-your-enterprise/identifying-audit-log-events-performed-by-an-access-token#token-data-in-audit-log-events][audit log]] =hashed_token= field. This value is safe to log and enables
+correlation between Vault-issued tokens and GitHub audit events by searching for
+=hashed_token:"VALUE"=. You can verify the hash yourself with:
+=echo -n TOKEN | openssl dgst -sha256 -binary | base64=.
+#+end_quote
+
 - =installation_id= (int64) — the ID of the app installation.
 - =org_name= (string) — the organisation name.
 - =repositories= ([]string) — a list of the names of the repositories within the
