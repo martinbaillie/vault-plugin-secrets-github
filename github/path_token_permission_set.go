@@ -115,7 +115,10 @@ func (b *backend) pathTokenPermissionSetWrite(
 	}(time.Now())
 
 	// Perform the token request.
-	return client.Token(ctx, opts)
+	res, err = client.Token(ctx, opts)
+	b.recordSkippedRepositories(res, opts)
+
+	return res, err
 }
 
 // pathTokenPermissionSetExistenceCheck always returns false to force the Create

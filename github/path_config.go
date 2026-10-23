@@ -19,14 +19,18 @@ const (
 )
 
 const (
-	keyAppID                      = "app_id"
-	descAppID                     = "Application ID of the GitHub App."
-	keyPrvKey                     = "prv_key"
-	descPrvKey                    = "Private key for signing GitHub access token requests (JWTs)."
-	keyBaseURL                    = "base_url"
-	descBaseURL                   = "Base URL for API requests (defaults to the public GitHub API)."
-	keyExcludeRepositoryMetadata  = "exclude_repository_metadata"
-	descExcludeRepositoryMetadata = "Minimise token response 'data.repositories' content to 'data.repositories.*.names'"
+	keyAppID                         = "app_id"
+	descAppID                        = "Application ID of the GitHub App."
+	keyPrvKey                        = "prv_key"
+	descPrvKey                       = "Private key for signing GitHub access token requests (JWTs)."
+	keyBaseURL                       = "base_url"
+	descBaseURL                      = "Base URL for API requests (defaults to the public GitHub API)."
+	keyExcludeRepositoryMetadata     = "exclude_repository_metadata"
+	descExcludeRepositoryMetadata    = "Minimise token response 'data.repositories' content to 'data.repositories.*.names'"
+	keySkipInaccessibleRepositories  = "skip_inaccessible_repositories"
+	descSkipInaccessibleRepositories = "Drop repositories the App cannot access (or that no longer exist) from " +
+		"repository-constrained token requests instead of failing them. Dropped names are returned in " +
+		"'data.skipped_repositories'."
 )
 
 const pathConfigHelpSyn = `
@@ -56,6 +60,12 @@ func (b *backend) pathConfig() *framework.Path {
 			keyExcludeRepositoryMetadata: {
 				Type:        framework.TypeBool,
 				Description: descExcludeRepositoryMetadata,
+				Required:    false,
+				Default:     false,
+			},
+			keySkipInaccessibleRepositories: {
+				Type:        framework.TypeBool,
+				Description: descSkipInaccessibleRepositories,
 				Required:    false,
 				Default:     false,
 			},
@@ -96,9 +106,10 @@ func (b *backend) pathConfigRead(
 	}
 
 	resData := map[string]any{
-		keyAppID:                     c.AppID,
-		keyBaseURL:                   c.BaseURL,
-		keyExcludeRepositoryMetadata: c.ExcludeRepositoryMetadata,
+		keyAppID:                        c.AppID,
+		keyBaseURL:                      c.BaseURL,
+		keyExcludeRepositoryMetadata:    c.ExcludeRepositoryMetadata,
+		keySkipInaccessibleRepositories: c.SkipInaccessibleRepositories,
 	}
 
 	// We don't return the key but indicate its presence for a better UX.

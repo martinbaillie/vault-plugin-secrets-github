@@ -103,7 +103,7 @@ func (b *backend) pathToken() *framework.Path {
 }
 
 // pathTokenWrite corresponds to READ, CREATE and UPDATE on /github/token.
-func (b *backend) pathTokenWrite(
+func (b *backend) pathTokenWrite( //nolint:funlen
 	ctx context.Context,
 	req *logical.Request,
 	d *framework.FieldData,
@@ -157,7 +157,32 @@ func (b *backend) pathTokenWrite(
 	}(time.Now())
 
 	// Perform the token request.
-	return client.Token(ctx, tokReq)
+	res, err = client.Token(ctx, tokReq)
+	b.recordSkippedRepositories(res, tokReq)
+
+	return res, err
+}
+
+// recordSkippedRepositories logs and counts any repositories the client dropped
+// from a token request, so a narrower-than-requested token is never silent.
+func (b *backend) recordSkippedRepositories(res *logical.Response, tokReq *tokenRequest) {
+	if res == nil {
+		return
+	}
+
+	skipped, ok := res.Data["skipped_repositories"].([]string)
+	if !ok || len(skipped) == 0 {
+		return
+	}
+
+	b.Logger().Warn("skipped repositories inaccessible to the installation",
+		"skipped_repositories", fmt.Sprint(skipped),
+		"org_name", tokReq.OrgName,
+		"installation_id", fmt.Sprint(tokReq.InstallationID),
+	)
+	skippedRepositories.With(prometheus.Labels{
+		keyInstallationID: fmt.Sprint(tokReq.InstallationID),
+	}).Add(float64(len(skipped)))
 }
 
 // pathTokenExistenceCheck always returns false to force the Create path. This

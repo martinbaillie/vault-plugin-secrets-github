@@ -541,6 +541,7 @@ General CRUD operations against the configuration of the plugin.
 - =prv_key= (string) — a private key configured in the GitHub App. This private key must be in PEM PKCS#1 RSAPrivateKey format. It is not returned with read requests for security reasons but its presence or lack thereof is indicated.
 - =base_url= (string) — the base URL for API requests (defaults to the public GitHub API). If a private key is already configured, =prv_key= must be sent again when =base_url= changes.
 - =exclude_repository_metadata= (bool) — reduce the verbose `repositories` array in GitHub token responses to a simple list of repository names. This significantly reduces the memory required by the plugin when used at scale.
+- =skip_inaccessible_repositories= (bool, default false) — tolerate repositories that GitHub rejects as nonexistent or not accessible to the installation. Normally a single such repository makes the whole token request fail with a 422. When enabled and a request constrained by =repositories= fails with a 422, the plugin checks each requested repository with GitHub's ~GET /repos/{org}/{repo}/installation~ endpoint, drops those that return 404, and retries with the rest. The names that were dropped are returned in =skipped_repositories=, logged as a warning, and counted in the =vault_github_token_skipped_repositories_total= metric. If no repository can be dropped, or any check fails for another reason, the original error is returned unchanged. Requests constrained by =repository_ids= are not filtered. The organisation is taken from =org_name=, or looked up from the installation when only =installation_id= is set. The resulting token can only ever be narrower than the request, never wider.
 
 *** Examples
 #+BEGIN_SRC shell
@@ -556,6 +557,9 @@ General CRUD operations against the configuration of the plugin.
 
   # Significantly reduce memory consumed per token.
   vault write /github/config exclude_repository_metadata=true
+
+  # Let token requests succeed when some requested repositories are inaccessible.
+  vault write /github/config skip_inaccessible_repositories=true
 
   # Delete the plugin configuration.
   vault delete /github/config
@@ -573,6 +577,7 @@ In addition to standard Go metrics, the following custom metrics are exposed:
 - =vault_github_token_request_duration_seconds= — a summary of token request latency and status.
 - =vault_github_token_installations_duration_seconds= — a summary of installations request latency and status.
 - =vault_github_token_revocation_request_duration_seconds= — a summary of token revocation request latency and status.
+- =vault_github_token_skipped_repositories_total= — a counter of repositories dropped from token requests as inaccessible (see =skip_inaccessible_repositories=).
 - =vault_github_token_build_info= — a constant with useful build information.
 
 *** Sample Dashboard

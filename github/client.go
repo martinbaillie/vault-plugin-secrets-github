@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
@@ -32,6 +33,9 @@ const (
 	errUnableToGetInstallations       = Error("unable to get installations")
 	errUnableToRevokeAccessToken      = Error("unable to revoke access token")
 	errAppNotInstalled                = Error("app not installed in GitHub organization")
+	errNoAccessibleRepositories       = Error("none of the requested repositories are accessible to the installation")
+	errUnableToProbeRepository        = Error("unable to probe repository installation")
+	errInstallationNotFound           = Error("installation not found")
 )
 
 // Client encapsulates an HTTP client for talking to the configured GitHub App.
@@ -54,6 +58,9 @@ type Client struct {
 
 	// URL is the access token URL template for this client.
 	accessTokenURLTemplate string
+
+	// baseURL is the parsed base URL for GitHub API requests.
+	baseURL *url.URL
 }
 
 // NewClient returns a newly constructed client from the provided config and
@@ -104,6 +111,7 @@ func NewClient(config *Config) (*Client, error) {
 			Timeout:   reqTimeout,
 			Transport: transport,
 		},
+		baseURL:          baseURL,
 		installationsURL: installationsURL,
 		installationsClient: &http.Client{
 			Timeout:   reqTimeout,
@@ -176,22 +184,64 @@ func (c *Client) Token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 	return c.token(ctx, tokReq)
 }
 
-func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Response, error) { //nolint:cyclop,funlen
+// token requests an access token. If SkipInaccessibleRepositories is enabled
+// and GitHub rejects a repository-constrained request with a 422, it probes
+// the requested repositories, drops those the App cannot reach and retries
+// with the remainder. Any failure to do so returns the original error.
+func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Response, error) {
+	res, status, err := c.mint(ctx, tokReq)
+	if err == nil ||
+		status != http.StatusUnprocessableEntity ||
+		!c.SkipInaccessibleRepositories ||
+		len(tokReq.Repositories) == 0 {
+		return res, err
+	}
+
+	kept, skipped, probeErr := c.accessibleRepositories(ctx, tokReq)
+	if probeErr != nil || len(skipped) == 0 {
+		return nil, err
+	}
+
+	if len(kept) == 0 {
+		return nil, fmt.Errorf("%w: %s", err, errNoAccessibleRepositories)
+	}
+
+	// Retry on a copy so the caller's request (e.g. a stored permission set)
+	// is not modified.
+	retry := *tokReq
+	retry.Repositories = kept
+
+	res, _, err = c.mint(ctx, &retry)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Data["skipped_repositories"] = skipped
+
+	return res, nil
+}
+
+// mint performs a single access token request. The returned status is the HTTP
+// status code of the response, or zero if no response was received.
+func (c *Client) mint( //nolint:cyclop,funlen
+	ctx context.Context,
+	tokReq *tokenRequest,
+) (*logical.Response, int, error) {
 	accessTokenURL, err := c.accessTokenURLForInstallationID(tokReq.InstallationID)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", errUnableToBuildAccessTokenURL, err)
+		return nil, 0, fmt.Errorf("%s: %w", errUnableToBuildAccessTokenURL, err)
 	}
 
 	// Marshal a request body of token constraints, if any.
 	body := new(bytes.Buffer)
 	if err = json.NewEncoder(body).Encode(tokReq.tokenConstraints); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	// Build the token HTTP request.
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, accessTokenURL.String(), body)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", errUnableToBuildAccessTokenReq, err)
+		return nil, 0, fmt.Errorf("%s: %w", errUnableToBuildAccessTokenReq, err)
 	}
 
 	req.Header.Set("User-Agent", projectName)
@@ -203,7 +253,7 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 	// Perform the request, re-using the shared transport.
 	res, err := c.installationsClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", errUnableToCreateAccessToken, err)
+		return nil, 0, fmt.Errorf("%s: %w", errUnableToCreateAccessToken, err)
 	}
 
 	defer res.Body.Close() //nolint:errcheck
@@ -212,17 +262,17 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 		var bodyBytes []byte
 
 		if bodyBytes, err = io.ReadAll(res.Body); err != nil {
-			return nil, fmt.Errorf("%s: %w", errUnableToCreateAccessToken, err)
+			return nil, res.StatusCode, fmt.Errorf("%s: %w", errUnableToCreateAccessToken, err)
 		}
 
 		bodyErr := fmt.Errorf("%s: %s", res.Status, string(bodyBytes))
 
-		return nil, fmt.Errorf("%s: %w", errUnableToCreateAccessToken, bodyErr)
+		return nil, res.StatusCode, fmt.Errorf("%s: %w", errUnableToCreateAccessToken, bodyErr)
 	}
 
 	var resData map[string]any
 	if err = json.NewDecoder(res.Body).Decode(&resData); err != nil {
-		return nil, fmt.Errorf("%w: %v", errUnableToDecodeAccessTokenRes, err)
+		return nil, res.StatusCode, fmt.Errorf("%w: %v", errUnableToDecodeAccessTokenRes, err)
 	}
 
 	// If excluding repository metadata, reduce memory consumption by trimming
@@ -273,7 +323,7 @@ func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 		}
 	}
 
-	return tokRes, nil
+	return tokRes, res.StatusCode, nil
 }
 
 func (c *Client) accessTokenURLForInstallationID(installationID int) (*url.URL, error) {
@@ -407,6 +457,108 @@ type (
 		ID      int     `json:"id"`
 	}
 )
+
+// repositoryProbeConcurrency bounds the number of concurrent repository probes.
+const repositoryProbeConcurrency = 8
+
+// accessibleRepositories splits the requested repositories into those the App
+// is installed on and those it is not. A repository is skipped only when GitHub
+// answers 404 for it; any other response aborts the probe with an error so that
+// callers fall back to the original token request error.
+func (c *Client) accessibleRepositories(
+	ctx context.Context,
+	tokReq *tokenRequest,
+) (kept, skipped []string, err error) {
+	org, err := c.installationOrg(ctx, tokReq)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var (
+		accessible = make([]bool, len(tokReq.Repositories))
+		errs       = make([]error, len(tokReq.Repositories))
+		sem        = make(chan struct{}, repositoryProbeConcurrency)
+		wg         sync.WaitGroup
+	)
+
+	for i, repo := range tokReq.Repositories {
+		wg.Add(1)
+
+		sem <- struct{}{}
+
+		go func() {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			accessible[i], errs[i] = c.repositoryInstalled(ctx, org, repo)
+		}()
+	}
+
+	wg.Wait()
+
+	for i, repo := range tokReq.Repositories {
+		switch {
+		case errs[i] != nil:
+			return nil, nil, errs[i]
+		case accessible[i]:
+			kept = append(kept, repo)
+		default:
+			skipped = append(skipped, repo)
+		}
+	}
+
+	return kept, skipped, nil
+}
+
+// installationOrg returns the organization name for the token request,
+// resolving it from the installation ID when it was not provided.
+func (c *Client) installationOrg(ctx context.Context, tokReq *tokenRequest) (string, error) {
+	if tokReq.OrgName != "" {
+		return tokReq.OrgName, nil
+	}
+
+	installations, err := c.fetchInstallations(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	for _, v := range installations {
+		if v.ID == tokReq.InstallationID {
+			return v.Account.Login, nil
+		}
+	}
+
+	return "", errInstallationNotFound
+}
+
+// repositoryInstalled reports whether the App is installed on the repository,
+// using the App-authenticated repository installation endpoint.
+func (c *Client) repositoryInstalled(ctx context.Context, org, repo string) (bool, error) {
+	u := c.baseURL.JoinPath("repos", org, repo, "installation")
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", errUnableToProbeRepository, err)
+	}
+
+	req.Header.Set("User-Agent", projectName)
+
+	res, err := c.installationsClient.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", errUnableToProbeRepository, err)
+	}
+
+	defer res.Body.Close() //nolint:errcheck
+
+	switch {
+	case statusCode(res.StatusCode).Successful():
+		return true, nil
+	case res.StatusCode == http.StatusNotFound:
+		return false, nil
+	default:
+		return false, fmt.Errorf("%s: %s", errUnableToProbeRepository, res.Status)
+	}
+}
 
 // RevokeToken takes a valid access token and performs a revocation against
 // GitHub's APIs. If there are any failures on the wire or parsing request
