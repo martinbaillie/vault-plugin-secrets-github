@@ -17,6 +17,7 @@ const (
 	errUnableToParseBaseURL = Error("unable to parse base URL")
 	errFieldDataNil         = Error("field data passed for updating was nil")
 	errKeyNotPEMFormat      = Error("key is not a PEM formatted RSA private key")
+	errBaseURLNeedsPrvKey   = Error("prv_key must be provided when changing base_url")
 )
 
 // Config holds all configuration for the backend.
@@ -62,6 +63,14 @@ func (c *Config) Update(d *framework.FieldData) (bool, error) { //nolint:cyclop
 		}
 
 		if c.BaseURL != nv.String() {
+			// The client signs JWTs with the stored key and sends them to the
+			// base URL. Require the key with a new base URL so that a caller
+			// who cannot read the key cannot redirect a valid JWT to a host
+			// they control.
+			if _, ok := d.GetOk(keyPrvKey); !ok && c.PrvKey != "" {
+				return false, errBaseURLNeedsPrvKey
+			}
+
 			c.BaseURL = nv.String()
 			changed = true
 		}

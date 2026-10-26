@@ -44,6 +44,7 @@ WW+XkxRkmQ3GiAFzrwM/aI/86E2+ZNQNHvKQ+3MYh0/npuJgumszNWlmwWfxZV5o
 VLzTE2sMc4ivGY2f9WcCvOIVXwYnKbDOTDJ0GicdWPljnRsZSNBxKQ==
 -----END RSA PRIVATE KEY-----`
 	testBaseURLValid   = githubPublicAPI
+	testBaseURLOther   = "https://github.example.com/api/v3"
 	testBaseURLInvalid = "not a valid url"
 )
 
@@ -120,6 +121,74 @@ func TestConfig_Update(t *testing.T) {
 			},
 			changed: false,
 			err:     errUnableToParseBaseURL,
+		},
+		{
+			name: "BaseURLChangeWithoutPrvKey",
+			new: &Config{
+				PrvKey:  testPrvKeyValid,
+				BaseURL: testBaseURLValid,
+			},
+			exp: &Config{
+				PrvKey:  testPrvKeyValid,
+				BaseURL: testBaseURLValid,
+			},
+			data: &framework.FieldData{
+				Raw: map[string]any{
+					keyBaseURL: testBaseURLOther,
+				},
+			},
+			changed: false,
+			err:     errBaseURLNeedsPrvKey,
+		},
+		{
+			name: "BaseURLChangeWithPrvKey",
+			new: &Config{
+				PrvKey:  testPrvKeyValid,
+				BaseURL: testBaseURLValid,
+			},
+			exp: &Config{
+				PrvKey:  testPrvKeyValid,
+				BaseURL: testBaseURLOther,
+			},
+			data: &framework.FieldData{
+				Raw: map[string]any{
+					keyBaseURL: testBaseURLOther,
+					keyPrvKey:  testPrvKeyValid,
+				},
+			},
+			changed: true,
+		},
+		{
+			name: "BaseURLChangeWithoutStoredPrvKey",
+			new: &Config{
+				BaseURL: testBaseURLValid,
+			},
+			exp: &Config{
+				BaseURL: testBaseURLOther,
+			},
+			data: &framework.FieldData{
+				Raw: map[string]any{
+					keyBaseURL: testBaseURLOther,
+				},
+			},
+			changed: true,
+		},
+		{
+			name: "BaseURLUnchangedWithoutPrvKey",
+			new: &Config{
+				PrvKey:  testPrvKeyValid,
+				BaseURL: testBaseURLValid,
+			},
+			exp: &Config{
+				PrvKey:  testPrvKeyValid,
+				BaseURL: testBaseURLValid,
+			},
+			data: &framework.FieldData{
+				Raw: map[string]any{
+					keyBaseURL: testBaseURLValid,
+				},
+			},
+			changed: false,
 		},
 		{
 			name: "PrivateKeyNotPEMEncoded",

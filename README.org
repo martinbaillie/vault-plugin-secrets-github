@@ -535,7 +535,7 @@ General CRUD operations against the configuration of the plugin.
 *** Parameters
 - =app_id= (int64) — the Application ID of the GitHub App.
 - =prv_key= (string) — a private key configured in the GitHub App. This private key must be in PEM PKCS#1 RSAPrivateKey format. It is not returned with read requests for security reasons but its presence or lack thereof is indicated.
-- =base_url= (string) — the base URL for API requests (defaults to the public GitHub API).
+- =base_url= (string) — the base URL for API requests (defaults to the public GitHub API). If a private key is already configured, =prv_key= must be sent again when =base_url= changes.
 - =exclude_repository_metadata= (bool) — reduce the verbose `repositories` array in GitHub token responses to a simple list of repository names. This significantly reduces the memory required by the plugin when used at scale.
 
 *** Examples
@@ -546,8 +546,9 @@ General CRUD operations against the configuration of the plugin.
   # Read the plugin configuration.
   vault read /github/config
 
-  # Update the plugin configuration to a GitHub Enterprise base URL.
-  vault write /github/config base_url="https://api.mygithub.org"
+  # Update the plugin configuration to a GitHub Enterprise base URL. The private
+  # key must be sent again when the base URL changes.
+  vault write /github/config base_url="https://api.mygithub.org" prv_key=@key.pem
 
   # Significantly reduce memory consumed per token.
   vault write /github/config exclude_repository_metadata=true
@@ -566,6 +567,7 @@ Prometheus/OpenMetrics formatted metrics exposition.
 *** Metrics
 In addition to standard Go metrics, the following custom metrics are exposed:
 - =vault_github_token_request_duration_seconds= — a summary of token request latency and status.
+- =vault_github_token_installations_duration_seconds= — a summary of installations request latency and status.
 - =vault_github_token_revocation_request_duration_seconds= — a summary of token revocation request latency and status.
 - =vault_github_token_build_info= — a constant with useful build information.
 

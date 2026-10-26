@@ -37,8 +37,10 @@ Display GitHub secrets plugin metrics in a Prometheus exposition format.
 
 In addition to standard Go metrics, the following custom metrics are exposed:
 - %s_request_duration_seconds: a summary of token request latency and status
+- %s_installations_duration_seconds: a summary of installations request latency and status
+- %s_revocation_request_duration_seconds: a summary of token revocation request latency and status
 - %s_build_info: a constant with useful build information
-`, prefixMetrics, prefixMetrics)
+`, prefixMetrics, prefixMetrics, prefixMetrics, prefixMetrics)
 
 // requestDuration records useful metric data about backend token requests.
 var requestDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
@@ -67,6 +69,7 @@ func init() {
 		version.NewCollector(prefixMetrics),
 		collectors.NewBuildInfoCollector(),
 		requestDuration,
+		installationsDuration,
 		revokeDuration,
 	)
 }
