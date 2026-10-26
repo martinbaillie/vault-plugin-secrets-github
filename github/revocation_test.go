@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/assert"
 	is "gotest.tools/assert/cmp"
 )
@@ -126,6 +127,8 @@ func TestBackend_Revoke(t *testing.T) {
 		})
 		assert.NilError(t, err)
 
+		failures := testRevokeFailures(t)
+
 		r, err := b.HandleRequest(context.Background(), &logical.Request{
 			Storage:   storage,
 			Operation: logical.RevokeOperation,
@@ -138,5 +141,32 @@ func TestBackend_Revoke(t *testing.T) {
 		})
 		assert.ErrorContains(t, err, errUnableToRevokeAccessToken.Error())
 		assert.Assert(t, is.Nil(r))
+
+		// The failure must be recorded as a failure.
+		assert.Assert(t, testRevokeFailures(t) > failures)
 	})
+}
+
+// testRevokeFailures returns the number of revocations recorded as failed.
+func testRevokeFailures(t *testing.T) uint64 {
+	t.Helper()
+
+	families, err := prometheus.DefaultGatherer.Gather()
+	assert.NilError(t, err)
+
+	for _, mf := range families {
+		if mf.GetName() != prefixMetrics+"_revocation_request_duration_seconds" {
+			continue
+		}
+
+		for _, m := range mf.GetMetric() {
+			for _, l := range m.GetLabel() {
+				if l.GetName() == labelSuccess && l.GetValue() == "false" {
+					return m.GetSummary().GetSampleCount()
+				}
+			}
+		}
+	}
+
+	return 0
 }

@@ -39,10 +39,10 @@ func (b *backend) Revoke(
 		duration := time.Since(begin)
 		b.Logger().Debug("attempted to revoke an installation token",
 			"took", duration.String(),
-			"err", err,
+			"err", retErr,
 		)
 		revokeDuration.With(prometheus.Labels{
-			labelSuccess: strconv.FormatBool(err == nil),
+			labelSuccess: strconv.FormatBool(retErr == nil),
 		}).Observe(duration.Seconds())
 	}(time.Now())
 
