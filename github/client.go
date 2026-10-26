@@ -38,6 +38,11 @@ const (
 	errInstallationNotFound           = Error("installation not found")
 )
 
+// inaccessibleRepositoryMessage is the fragment of GitHub's 422 message for a
+// repository that does not exist or is not accessible to the installation. A
+// 422 is also returned for other problems, such as over-requested permissions.
+const inaccessibleRepositoryMessage = "not accessible"
+
 // Client encapsulates an HTTP client for talking to the configured GitHub App.
 type Client struct {
 	*Config
@@ -138,6 +143,11 @@ type tokenRequest struct {
 
 	// InstallationID is the installation identifier of the GitHub App.
 	InstallationID int `json:"installation_id"`
+
+	// SkipInaccessibleRepositories makes the plugin tolerate repositories that
+	// GitHub rejects as nonexistent or not accessible to the installation. It
+	// is set per permission set and is not part of the GitHub API payload.
+	SkipInaccessibleRepositories bool `json:"skip_inaccessible_repositories"`
 }
 
 // tokenConstraints allows for constraining the access scope of a token to
@@ -184,15 +194,16 @@ func (c *Client) Token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 	return c.token(ctx, tokReq)
 }
 
-// token requests an access token. If SkipInaccessibleRepositories is enabled
-// and GitHub rejects a repository-constrained request with a 422, it probes
-// the requested repositories, drops those the App cannot reach and retries
-// with the remainder. Any failure to do so returns the original error.
+// token requests an access token. If the request has SkipInaccessibleRepositories set
+// and GitHub rejects a repository-constrained request with a 422 saying a
+// repository is not accessible, it probes the requested repositories, drops
+// those the App cannot reach and retries with the remainder. Any failure to do so returns the original error.
 func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Response, error) {
 	res, status, err := c.mint(ctx, tokReq)
 	if err == nil ||
 		status != http.StatusUnprocessableEntity ||
-		!c.SkipInaccessibleRepositories ||
+		!strings.Contains(err.Error(), inaccessibleRepositoryMessage) ||
+		!tokReq.SkipInaccessibleRepositories ||
 		len(tokReq.Repositories) == 0 {
 		return res, err
 	}

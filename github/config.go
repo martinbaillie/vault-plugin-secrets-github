@@ -38,15 +38,6 @@ type Config struct {
 	// repository metadata but will return a minimised list of repository names
 	// if set.
 	ExcludeRepositoryMetadata bool `json:"exclude_repository_metadata"`
-
-	// SkipInaccessibleRepositories makes the plugin tolerate repositories that
-	// GitHub rejects as nonexistent or not accessible to the installation. When
-	// a repository-constrained token request fails with a 422, the plugin
-	// probes each requested repository, drops those the App is not installed
-	// on, and retries with the rest. Dropped repositories are reported in the
-	// response under 'skipped_repositories'. Disabled by default, in which case
-	// the 422 is returned as an error.
-	SkipInaccessibleRepositories bool `json:"skip_inaccessible_repositories"`
 }
 
 // NewConfig returns a pre-configured Config struct with defaults.
@@ -106,13 +97,6 @@ func (c *Config) Update(d *framework.FieldData) (bool, error) { //nolint:cyclop
 	if irm, ok := d.GetOk(keyExcludeRepositoryMetadata); ok {
 		if nv := irm.(bool); c.ExcludeRepositoryMetadata != nv {
 			c.ExcludeRepositoryMetadata = nv
-			changed = true
-		}
-	}
-
-	if sir, ok := d.GetOk(keySkipInaccessibleRepositories); ok {
-		if nv := sir.(bool); c.SkipInaccessibleRepositories != nv {
-			c.SkipInaccessibleRepositories = nv
 			changed = true
 		}
 	}

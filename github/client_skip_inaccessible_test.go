@@ -1,6 +1,7 @@
 package github
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,7 +12,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/hashicorp/vault/sdk/framework"
+	"github.com/hashicorp/vault/sdk/logical"
 	"gotest.tools/assert"
 
 	is "gotest.tools/assert/cmp"
@@ -26,6 +27,8 @@ type skipFixture struct {
 	probeStatus map[string]int
 	// tokenStatus overrides the access token response status for every POST.
 	tokenStatus int
+	// tokenMessage is the message body served with tokenStatus.
+	tokenMessage string
 	// installations is the installation list served at /app/installations.
 	installations []map[string]any
 
@@ -56,7 +59,8 @@ func (f *skipFixture) handler(t *testing.T) http.HandlerFunc {
 
 			if f.tokenStatus != 0 {
 				w.WriteHeader(f.tokenStatus)
-				w.Write([]byte(`{"message":"forced"}`))
+				msg, _ := json.Marshal(map[string]string{"message": cmp.Or(f.tokenMessage, "forced")})
+				w.Write(msg)
 
 				return
 			}
@@ -159,10 +163,18 @@ func TestClient_Token_SkipInaccessibleRepositories(t *testing.T) {
 			name:       "AllRequestedAccessibleButStill422ReturnsOriginalError",
 			skip:       true,
 			tokReq:     &tokenRequest{OrgName: testOrgName1, InstallationID: testInsID1, tokenConstraints: tokenConstraints{Repositories: []string{"alpha"}}},
-			fixture:    &skipFixture{tokenStatus: http.StatusUnprocessableEntity},
-			err:        "forced",
+			fixture:    &skipFixture{tokenStatus: http.StatusUnprocessableEntity, tokenMessage: "repository not accessible"},
+			err:        "not accessible",
 			tokenCalls: 1,
 			probeCalls: 1,
+		},
+		{
+			name:       "Other422DoesNotProbe",
+			skip:       true,
+			tokReq:     &tokenRequest{OrgName: testOrgName1, InstallationID: testInsID1, tokenConstraints: tokenConstraints{Repositories: repos}},
+			fixture:    &skipFixture{tokenStatus: http.StatusUnprocessableEntity, tokenMessage: "permissions requested exceed the installation"},
+			err:        "permissions requested",
+			tokenCalls: 1,
 		},
 		{
 			name:       "NoneAccessibleReturnsError",
@@ -235,12 +247,13 @@ func TestClient_Token_SkipInaccessibleRepositories(t *testing.T) {
 			defer ts.Close()
 
 			client, err := NewClient(&Config{
-				AppID:                        testAppID1,
-				PrvKey:                       testPrvKeyValid,
-				BaseURL:                      ts.URL,
-				SkipInaccessibleRepositories: tc.skip,
+				AppID:   testAppID1,
+				PrvKey:  testPrvKeyValid,
+				BaseURL: ts.URL,
 			})
 			assert.NilError(t, err)
+
+			tc.tokReq.SkipInaccessibleRepositories = tc.skip
 
 			original := append([]string(nil), tc.tokReq.Repositories...)
 
@@ -280,25 +293,41 @@ func TestClient_Token_SkipInaccessibleRepositories(t *testing.T) {
 	}
 }
 
-func TestConfig_UpdateSkipInaccessibleRepositories(t *testing.T) {
+func TestPermissionSet_SkipInaccessibleRepositories(t *testing.T) {
 	t.Parallel()
 
-	c := NewConfig()
-	assert.Assert(t, !c.SkipInaccessibleRepositories)
+	for _, tc := range []struct {
+		name string
+		data map[string]any
+		want bool
+	}{
+		{"DefaultsToFalse", map[string]any{keyInstallationID: testInsID1}, false},
+		{"OptIn", map[string]any{keyInstallationID: testInsID1, keySkipInaccessibleRepositories: true}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	b, _ := testBackend(t)
-	d := &framework.FieldData{
-		Raw:    map[string]any{keySkipInaccessibleRepositories: true},
-		Schema: b.pathConfig().Fields,
+			b, storage := testBackend(t)
+
+			_, err := b.HandleRequest(context.Background(), &logical.Request{
+				Storage:   storage,
+				Operation: logical.UpdateOperation,
+				Path:      "permissionset/foo",
+				Data:      tc.data,
+			})
+			assert.NilError(t, err)
+
+			res, err := b.HandleRequest(context.Background(), &logical.Request{
+				Storage:   storage,
+				Operation: logical.ReadOperation,
+				Path:      "permissionset/foo",
+			})
+			assert.NilError(t, err)
+			assert.Equal(t, res.Data[keySkipInaccessibleRepositories], tc.want)
+
+			ps, err := getPermissionSet(context.Background(), "foo", storage)
+			assert.NilError(t, err)
+			assert.Equal(t, ps.TokenRequest.SkipInaccessibleRepositories, tc.want)
+		})
 	}
-
-	changed, err := c.Update(d)
-	assert.NilError(t, err)
-	assert.Assert(t, changed)
-	assert.Assert(t, c.SkipInaccessibleRepositories)
-
-	// Re-applying the same value is not a change.
-	changed, err = c.Update(d)
-	assert.NilError(t, err)
-	assert.Assert(t, !changed)
 }

@@ -20,14 +20,18 @@ const (
 	// names for ease of marshalling.
 	//
 	// [1]: https://git.io/JsQ7n
-	keyRepos           = "repositories"
-	descRepos          = "The repository names that the token should have access to."
-	keyRepoIDs         = "repository_ids"
-	descRepoIDs        = "The IDs of the repositories that the token can access."
-	keyOrgName         = "org_name" // NOTE: Not a real API attribute.
-	descOrgName        = "The organization name with App installation."
-	keyPerms           = "permissions"
-	descPerms          = "The permissions granted to the token."
+	keyRepos                         = "repositories"
+	descRepos                        = "The repository names that the token should have access to."
+	keyRepoIDs                       = "repository_ids"
+	descRepoIDs                      = "The IDs of the repositories that the token can access."
+	keyOrgName                       = "org_name" // NOTE: Not a real API attribute.
+	descOrgName                      = "The organization name with App installation."
+	keyPerms                         = "permissions"
+	descPerms                        = "The permissions granted to the token."
+	keySkipInaccessibleRepositories  = "skip_inaccessible_repositories"
+	descSkipInaccessibleRepositories = "Drop repositories the App cannot access (or that no longer exist) from " +
+		"the repository-constrained token request instead of failing it. Dropped names are returned in " +
+		"'data.skipped_repositories'."
 	keyInstallationID  = "installation_id"
 	descInstallationID = "The ID of the App installation that the token should have access to."
 )
