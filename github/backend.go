@@ -133,38 +133,47 @@ func (b *backend) Client(ctx context.Context, s logical.Storage) (*Client, func(
 
 	b.clientLock.RUnlock()
 
+	client, err := b.createClient(ctx, s)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	b.clientLock.RLock()
+
+	return client, func() { b.clientLock.RUnlock() }, nil
+}
+
+// createClient returns the current client, or creates one from the stored
+// configuration if there is none.
+func (b *backend) createClient(ctx context.Context, s logical.Storage) (*Client, error) {
 	// Acquire a globally exclusive lock to close any connections and create a
 	// new client.
 	//
-	// NOTE: Since all invocations of this method acquire a read lock and defer
+	// NOTE: Since all invocations of Client acquire a read lock and defer
 	// release, this will block until all clients are no longer in use.
 	b.clientLock.Lock()
+	defer b.clientLock.Unlock()
 
-	// Clear the client once more in case of earlier concurrent creation.
-	b.client = nil
+	if b.client != nil {
+		return b.client, nil
+	}
 
 	config, err := b.Config(ctx, s)
 	if err != nil {
-		b.clientLock.Unlock()
-
-		return nil, nil, err
+		return nil, err
 	}
 
 	client, err := NewClient(config)
 	if err != nil {
-		b.clientLock.Unlock()
-
-		return nil, nil, fmt.Errorf("%s: %w", errClientCreate, err)
+		return nil, fmt.Errorf("%s: %w", errClientCreate, err)
 	}
 
 	b.client = client
 
-	b.clientLock.Unlock()
 	b.Logger().Debug("created GitHub App installation client",
 		"base_url", config.BaseURL,
 		"app_id", strconv.Itoa(config.AppID),
 	)
-	b.clientLock.RLock()
 
-	return b.client, func() { b.clientLock.RUnlock() }, nil
+	return client, nil
 }

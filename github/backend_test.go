@@ -3,6 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -220,6 +222,74 @@ func TestBackend_Client(t *testing.T) {
 
 		// NOTE: actually checking equality here.
 		assert.Equal(t, client1, client2)
+	})
+
+	t.Run("ConcurrentInvalidate", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := context.Background()
+
+		b, storage := testBackend(t)
+
+		entry, err := logical.StorageEntryJSON(pathPatternConfig, &Config{
+			AppID:   testAppID1,
+			PrvKey:  testPrvKeyValid,
+			BaseURL: testBaseURLValid,
+		})
+		assert.NilError(t, err)
+		assert.Assert(t, entry != nil)
+		assert.NilError(t, storage.Put(ctx, entry))
+
+		// Invalidate the client while other goroutines get it. Client must
+		// never return a nil client without an error.
+		var (
+			clients sync.WaitGroup
+			nils    atomic.Int64
+			stop    = make(chan struct{})
+			stopped = make(chan struct{})
+		)
+
+		go func() {
+			defer close(stopped)
+
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+					b.Invalidate(ctx, pathPatternConfig)
+				}
+			}
+		}()
+
+		for range 8 {
+			clients.Add(1)
+
+			go func() {
+				defer clients.Done()
+
+				for range 500 {
+					client, closer, err := b.Client(ctx, storage)
+					if err != nil {
+						t.Error(err)
+
+						return
+					}
+
+					if client == nil {
+						nils.Add(1)
+					}
+
+					closer()
+				}
+			}()
+		}
+
+		clients.Wait()
+		close(stop)
+		<-stopped
+
+		assert.Equal(t, nils.Load(), int64(0))
 	})
 
 	t.Run("FailedStorage", func(t *testing.T) {
