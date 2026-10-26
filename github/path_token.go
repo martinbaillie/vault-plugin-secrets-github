@@ -107,7 +107,7 @@ func (b *backend) pathToken() *framework.Path {
 }
 
 // pathTokenWrite corresponds to READ, CREATE and UPDATE on /github/token.
-func (b *backend) pathTokenWrite( //nolint:funlen
+func (b *backend) pathTokenWrite(
 	ctx context.Context,
 	req *logical.Request,
 	d *framework.FieldData,
