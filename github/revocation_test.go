@@ -151,7 +151,11 @@ func TestBackend_Revoke(t *testing.T) {
 func testRevokeFailures(t *testing.T) uint64 {
 	t.Helper()
 
-	families, err := prometheus.DefaultGatherer.Gather()
+	// Gather from a private registry. Other tests swap the global gatherer.
+	reg := prometheus.NewRegistry()
+	assert.NilError(t, reg.Register(revokeDuration))
+
+	families, err := reg.Gather()
 	assert.NilError(t, err)
 
 	for _, mf := range families {
