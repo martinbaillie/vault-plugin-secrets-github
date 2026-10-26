@@ -129,16 +129,8 @@ func (b *backend) pathTokenWrite(
 		), nil
 	}
 
-	if perms, ok := d.GetOk(keyPerms); ok {
-		tokReq.Permissions = perms.(map[string]string)
-	}
-
-	if repoIDs, ok := d.GetOk(keyRepoIDs); ok {
-		tokReq.RepositoryIDs = repoIDs.([]int)
-	}
-
-	if repos, ok := d.GetOk(keyRepos); ok {
-		tokReq.Repositories = repos.([]string)
+	if err = setConstraints(d, &tokReq.tokenConstraints); err != nil {
+		return logical.ErrorResponse(err.Error()), nil
 	}
 
 	// Instrument and log the token API call, recording status, duration and

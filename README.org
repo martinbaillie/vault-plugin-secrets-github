@@ -348,6 +348,8 @@ that no caching is performed so for high traffic use cases, favour
 All other parameters are optional. Omitting them results in a token that has
 access to all of the repositories and permissions that the GitHub App
 installation has.
+Sending one of them with an empty value is an error, so an empty list cannot
+get around a Vault policy that limits them.
 
 When crafting Vault policy, hyper security sensitive organisations may wish to
 favour =repository_ids= (GitHub repository IDs are immutable) instead of
@@ -460,6 +462,8 @@ that no caching is performed so for high traffic use cases, favour
 All other parameters are optional. Omitting them results in a token that has
 access to all of the repositories and permissions that the GitHub App
 installation has.
+Sending one of them with an empty value is an error, so an empty list cannot
+get around a Vault policy that limits them.
 
 When crafting Vault policy, hyper security sensitive organisations may wish to
 favour =repository_ids= (GitHub repository IDs are immutable) instead of

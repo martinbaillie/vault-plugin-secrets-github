@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	errUnknownField  = Error("unknown field")
-	errUnknownFields = Error("unknown fields")
+	errUnknownField    = Error("unknown field")
+	errUnknownFields   = Error("unknown fields")
+	errEmptyConstraint = Error("cannot be empty")
 )
 
 // withFieldValidator wraps an OperationFunc and validates the user-supplied
@@ -47,4 +48,34 @@ func validateFields(req *logical.Request, data *framework.FieldData) error {
 
 		return fmt.Errorf("%w: %s", errUnknownFields, strings.Join(unknownFields, ", "))
 	}
+}
+
+// setConstraints copies the token constraints sent in d to c. Constraints that
+// are not sent are left as they are.
+//
+// It rejects constraints that are sent but empty. GitHub treats a missing
+// constraint as no constraint, and the plugin drops empty constraints from its
+// request to GitHub. An empty value would therefore mint a token with all of
+// the installation's access. Vault policy 'allowed_parameters' accepts an empty
+// list, so policy does not stop this.
+func setConstraints(d *framework.FieldData, c *tokenConstraints) error {
+	if v, ok := d.GetOk(keyPerms); ok {
+		if c.Permissions = v.(map[string]string); len(c.Permissions) == 0 {
+			return fmt.Errorf("%s %w", keyPerms, errEmptyConstraint)
+		}
+	}
+
+	if v, ok := d.GetOk(keyRepoIDs); ok {
+		if c.RepositoryIDs = v.([]int); len(c.RepositoryIDs) == 0 {
+			return fmt.Errorf("%s %w", keyRepoIDs, errEmptyConstraint)
+		}
+	}
+
+	if v, ok := d.GetOk(keyRepos); ok {
+		if c.Repositories = v.([]string); len(c.Repositories) == 0 {
+			return fmt.Errorf("%s %w", keyRepos, errEmptyConstraint)
+		}
+	}
+
+	return nil
 }

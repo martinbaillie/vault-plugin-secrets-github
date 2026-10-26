@@ -250,16 +250,8 @@ func (b *backend) pathPermissionSetCreateUpdate(
 		), nil
 	}
 
-	if perms, ok := d.GetOk(keyPerms); ok {
-		ps.TokenRequest.Permissions = perms.(map[string]string)
-	}
-
-	if repoIDs, ok := d.GetOk(keyRepoIDs); ok {
-		ps.TokenRequest.RepositoryIDs = repoIDs.([]int)
-	}
-
-	if repos, ok := d.GetOk(keyRepos); ok {
-		ps.TokenRequest.Repositories = repos.([]string)
+	if err = setConstraints(d, &ps.TokenRequest.tokenConstraints); err != nil {
+		return logical.ErrorResponse(err.Error()), nil
 	}
 
 	// Save permissions set

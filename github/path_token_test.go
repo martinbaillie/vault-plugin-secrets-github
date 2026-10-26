@@ -117,6 +117,50 @@ func testBackendPathTokenWrite(t *testing.T, op logical.Operation) {
 		))
 	})
 
+	t.Run("EmptyConstraints", func(t *testing.T) {
+		t.Parallel()
+
+		b, storage := testBackend(t)
+
+		ts := httptest.NewServer(http.HandlerFunc(
+			func(_ http.ResponseWriter, _ *http.Request) {
+				t.Error("empty constraints must not reach GitHub")
+			}),
+		)
+		defer ts.Close()
+
+		_, err := b.HandleRequest(context.Background(), &logical.Request{
+			Storage:   storage,
+			Operation: logical.CreateOperation,
+			Path:      pathPatternConfig,
+			Data: map[string]any{
+				keyAppID:   testAppID1,
+				keyPrvKey:  testPrvKeyValid,
+				keyBaseURL: ts.URL,
+			},
+		})
+		assert.NilError(t, err)
+
+		for _, key := range []string{keyRepos, keyRepoIDs, keyPerms} {
+			for _, value := range []any{[]any{}, nil} {
+				r, err := b.HandleRequest(context.Background(), &logical.Request{
+					Storage:   storage,
+					Operation: op,
+					Path:      pathPatternToken,
+					Data: map[string]any{
+						keyInstallationID: testInsID1,
+						key:               value,
+					},
+				})
+
+				assert.NilError(t, err)
+				assert.Assert(t, r != nil)
+				assert.Assert(t, r.IsError())
+				assert.ErrorContains(t, r.Error(), key+" "+errEmptyConstraint.Error())
+			}
+		}
+	})
+
 	t.Run("FailedOptionsParsing", func(t *testing.T) {
 		t.Parallel()
 
