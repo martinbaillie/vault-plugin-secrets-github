@@ -294,7 +294,7 @@ Vault plugin.
 # pull requests to a single repository.
 vault policy write github-only-prs -<<EOF
 path "github/token" {
-  capabilities = ["update"]
+  capabilities = ["create", "update"]
   required_parameters = ["installation_id","permissions","repository_ids"]
   allowed_parameters = {
     "installation_id" = ["987654"]
