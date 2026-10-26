@@ -105,7 +105,7 @@ func (b *backend) pathTokenPermissionSetWrite(
 			"repositories", fmt.Sprint(opts.Repositories),
 		)
 		requestDuration.With(prometheus.Labels{
-			"success":         strconv.FormatBool(err == nil),
+			labelSuccess:      strconv.FormatBool(err == nil),
 			keyOrgName:        opts.OrgName,
 			keyInstallationID: fmt.Sprint(opts.InstallationID),
 			keyPerms:          strconv.FormatBool(len(opts.Permissions) > 0),

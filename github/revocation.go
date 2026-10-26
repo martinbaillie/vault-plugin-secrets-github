@@ -42,7 +42,7 @@ func (b *backend) Revoke(
 			"err", err,
 		)
 		revokeDuration.With(prometheus.Labels{
-			"success": strconv.FormatBool(err == nil),
+			labelSuccess: strconv.FormatBool(err == nil),
 		}).Observe(duration.Seconds())
 	}(time.Now())
 

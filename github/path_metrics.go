@@ -14,7 +14,12 @@ import (
 	"github.com/prometheus/common/expfmt"
 )
 
-const prefixMetrics = "vault_github_token"
+const (
+	prefixMetrics = "vault_github_token"
+
+	// labelSuccess is the metric label for whether a request succeeded.
+	labelSuccess = "success"
+)
 
 const (
 	errNoMetricsToDecode     = Error("no prometheus metrics could be decoded")
@@ -40,21 +45,21 @@ var requestDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 	Name:       fmt.Sprintf("%s_request_duration_seconds", prefixMetrics),
 	Help:       "Total duration of Vault GitHub token requests in seconds.",
 	Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
-}, []string{"success", keyInstallationID, keyOrgName, keyPerms, keyRepoIDs, keyRepos})
+}, []string{labelSuccess, keyInstallationID, keyOrgName, keyPerms, keyRepoIDs, keyRepos})
 
 // installationsDuration records useful metric data about installation requests.
 var installationsDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 	Name:       fmt.Sprintf("%s_installations_duration_seconds", prefixMetrics),
 	Help:       "Total duration of Vault GitHub installation requests in seconds.",
 	Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
-}, []string{"success"})
+}, []string{labelSuccess})
 
 // revokeDuration records useful metric data about backend token revocations.
 var revokeDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 	Name:       fmt.Sprintf("%s_revocation_request_duration_seconds", prefixMetrics),
 	Help:       "Total duration of Vault GitHub token revocation requests in seconds.",
 	Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
-}, []string{"success"})
+}, []string{labelSuccess})
 
 func init() {
 	// Register standard and custom metric collectors globally.

@@ -55,11 +55,11 @@
             ];
           };
 
-          packages.default = pkgs.buildGoModule {
+          packages.default = pkgs.buildGo127Module {
             inherit name;
             src = gitignore.lib.gitignoreSource ./.;
             env.CGO_ENABLED = 0;
-            vendorHash = "sha256-YELxGfVh2XVt7DXeISZg7/uf9B+/zEa43TTCTVHON4g=";
+            vendorHash = "sha256-3vdkdElbszTaNTKX7PXA/zN9hAHYyvdfL7F/YQy+jLA=";
             flags = [ "-trimpath" ];
             ldflags = [
               "-s"
@@ -97,7 +97,7 @@
               bashInteractive
               coreutils
               gnugrep
-              go_1_25
+              go_1_27
               golangci-lint
               goreleaser
               syft
