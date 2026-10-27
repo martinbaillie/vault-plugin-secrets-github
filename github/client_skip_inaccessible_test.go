@@ -11,6 +11,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/vault/sdk/logical"
 	"gotest.tools/assert"
@@ -291,6 +292,44 @@ func TestClient_Token_SkipInaccessibleRepositories(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestClient_Token_UninstalledRepositoryCache(t *testing.T) {
+	t.Parallel()
+
+	fixture := &skipFixture{goneRepos: map[string]bool{"gone": true}}
+
+	ts := httptest.NewServer(fixture.handler(t))
+	defer ts.Close()
+
+	client, err := NewClient(&Config{AppID: testAppID1, PrvKey: testPrvKeyValid, BaseURL: ts.URL})
+	assert.NilError(t, err)
+
+	mint := func() {
+		t.Helper()
+
+		res, err := client.Token(context.Background(), &tokenRequest{
+			OrgName:          testOrgName1,
+			InstallationID:   testInsID1,
+			tokenConstraints: tokenConstraints{Repositories: []string{"alpha", "gone"}},
+
+			SkipInaccessibleRepositories: true,
+		})
+		assert.NilError(t, err)
+		assert.DeepEqual(t, res.Data["skipped_repositories"], []string{"gone"})
+	}
+
+	mint()
+	assert.Equal(t, fixture.probeCalls.Load(), int32(2))
+
+	// Within the TTL only the repository not known to be uninstalled is probed.
+	mint()
+	assert.Equal(t, fixture.probeCalls.Load(), int32(3))
+
+	client.uninstalledRepos.Store(testOrgName1+"/gone", time.Now().Add(-time.Second))
+
+	mint()
+	assert.Equal(t, fixture.probeCalls.Load(), int32(5))
 }
 
 func TestPermissionSet_SkipInaccessibleRepositories(t *testing.T) {

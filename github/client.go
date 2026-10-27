@@ -43,6 +43,10 @@ const (
 // 422 is also returned for other problems, such as over-requested permissions.
 const inaccessibleRepositoryMessage = "not accessible"
 
+// uninstalledRepositoryTTL is how long a repository found uninstalled by a probe
+// is remembered. A repository added to the installation is skipped until then.
+const uninstalledRepositoryTTL = 60 * time.Second
+
 // Client encapsulates an HTTP client for talking to the configured GitHub App.
 type Client struct {
 	*Config
@@ -66,6 +70,11 @@ type Client struct {
 
 	// baseURL is the parsed base URL for GitHub API requests.
 	baseURL *url.URL
+
+	// uninstalledRepos remembers repositories a probe found uninstalled until
+	// the stored expiry (a time.Time), so repeated token requests do not probe
+	// them again. The client is rebuilt on a config change, which clears it.
+	uninstalledRepos sync.Map
 }
 
 // NewClient returns a newly constructed client from the provided config and
@@ -545,6 +554,16 @@ func (c *Client) installationOrg(ctx context.Context, tokReq *tokenRequest) (str
 // repositoryInstalled reports whether the App is installed on the repository,
 // using the App-authenticated repository installation endpoint.
 func (c *Client) repositoryInstalled(ctx context.Context, org, repo string) (bool, error) {
+	key := org + "/" + repo
+
+	if expiry, ok := c.uninstalledRepos.Load(key); ok {
+		if time.Now().Before(expiry.(time.Time)) { //nolint:forcetypeassert
+			return false, nil
+		}
+
+		c.uninstalledRepos.Delete(key)
+	}
+
 	u := c.baseURL.JoinPath("repos", org, repo, "installation")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
@@ -565,6 +584,8 @@ func (c *Client) repositoryInstalled(ctx context.Context, org, repo string) (boo
 	case statusCode(res.StatusCode).Successful():
 		return true, nil
 	case res.StatusCode == http.StatusNotFound:
+		c.uninstalledRepos.Store(key, time.Now().Add(uninstalledRepositoryTTL))
+
 		return false, nil
 	default:
 		return false, fmt.Errorf("%s: %s", errUnableToProbeRepository, res.Status)
