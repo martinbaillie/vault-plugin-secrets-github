@@ -10,9 +10,9 @@ import (
 	"gotest.tools/assert"
 )
 
+// TestBackend_PathInfoRead is not parallel because it writes package globals
+// that parallel tests read, such as projectName in every GitHub request.
 func TestBackend_PathInfoRead(t *testing.T) {
-	t.Parallel()
-
 	testInfo := map[string]string{
 		"project_name":   "testProjectName",
 		"project_docs":   "https://test.project.docs.com",
