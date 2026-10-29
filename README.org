@@ -480,6 +480,7 @@ favour =repository_ids= (GitHub repository IDs are immutable) instead of
 - =permissions= (map[string]string) — a key value map of permission names to
   their access type (read or write). See [[https://developer.github.com/v3/apps/permissions][GitHub's documentation]] on permission
   names and access types.
+- =skip_inaccessible_repositories= (bool, default false) — set per permission set. Tolerate repositories that GitHub rejects as nonexistent or not accessible to the installation. Normally a single such repository makes the whole token request fail with a 422. When enabled and a token request constrained by =repositories= fails with a 422, the plugin checks each requested repository with GitHub's ~GET /repos/{org}/{repo}/installation~ endpoint, drops those that return 404, and retries with the rest. The names that were dropped are returned in =skipped_repositories=, logged as a warning, and counted in the =vault_github_token_skipped_repositories_total= metric. If no repository can be dropped, or any check fails for another reason, the original error is returned unchanged. Requests constrained by =repository_ids= are not filtered. The organisation is taken from =org_name=, or looked up from the installation when only =installation_id= is set. The resulting token can only ever be narrower than the request, never wider.
 
 *** Request a token from a permission set
 Similar to the [[#token][token]] flow in the previous section, you can instruct the plugin
@@ -518,6 +519,12 @@ vault read /github/permissionset/demo-set
 
 # List all permission sets.
 vault list /github/permissionsets
+
+# Let tokens from a permission set succeed when some of its repositories are
+# inaccessible to the installation.
+vault write /github/permissionset/demo-set installation_id=987 \
+	repositories=demo-repo repositories=other-repo \
+	skip_inaccessible_repositories=true
 
 # Create a token automatically constrained by the permission set.
 vault read /github/token/demo-set
@@ -573,6 +580,7 @@ In addition to standard Go metrics, the following custom metrics are exposed:
 - =vault_github_token_request_duration_seconds= — a summary of token request latency and status.
 - =vault_github_token_installations_duration_seconds= — a summary of installations request latency and status.
 - =vault_github_token_revocation_request_duration_seconds= — a summary of token revocation request latency and status.
+- =vault_github_token_skipped_repositories_total= — a counter of repositories dropped from token requests as inaccessible (see =skip_inaccessible_repositories= on permission sets).
 - =vault_github_token_build_info= — a constant with useful build information.
 
 *** Sample Dashboard
