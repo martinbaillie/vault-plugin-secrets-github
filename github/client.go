@@ -71,9 +71,9 @@ type Client struct {
 	// baseURL is the parsed base URL for GitHub API requests.
 	baseURL *url.URL
 
-	// uninstalledRepos remembers repositories a probe found uninstalled until
-	// the stored expiry (a time.Time), so repeated token requests do not probe
-	// them again. The client is rebuilt on a config change, which clears it.
+	// uninstalledRepos remembers, per installation, repositories a probe found
+	// uninstalled until the stored expiry (a time.Time), so later token requests
+	// drop them up front. The client is rebuilt on a config change, which clears it.
 	uninstalledRepos sync.Map
 }
 
@@ -203,11 +203,47 @@ func (c *Client) Token(ctx context.Context, tokReq *tokenRequest) (*logical.Resp
 	return c.token(ctx, tokReq)
 }
 
-// token requests an access token. If the request has SkipInaccessibleRepositories set
-// and GitHub rejects a repository-constrained request with a 422 saying a
-// repository is not accessible, it probes the requested repositories, drops
-// those the App cannot reach and retries with the remainder. Any failure to do so returns the original error.
+// token requests an access token. If the request has SkipInaccessibleRepositories
+// set, repositories recently found uninstalled are dropped before the first
+// attempt, and are reported in skipped_repositories.
 func (c *Client) token(ctx context.Context, tokReq *tokenRequest) (*logical.Response, error) {
+	if !tokReq.SkipInaccessibleRepositories || len(tokReq.Repositories) == 0 {
+		return c.tokenSkippingInaccessible(ctx, tokReq)
+	}
+
+	kept, remembered := c.dropUninstalled(tokReq.InstallationID, tokReq.Repositories)
+	if len(kept) == 0 {
+		// Never mint with no repositories: GitHub would grant access to all of them.
+		return nil, errNoAccessibleRepositories
+	}
+
+	if len(remembered) == 0 {
+		return c.tokenSkippingInaccessible(ctx, tokReq)
+	}
+
+	filtered := *tokReq
+	filtered.Repositories = kept
+
+	res, err := c.tokenSkippingInaccessible(ctx, &filtered)
+	if err != nil {
+		return nil, err
+	}
+
+	probed, _ := res.Data["skipped_repositories"].([]string)
+	res.Data["skipped_repositories"] = append(remembered, probed...)
+
+	return res, nil
+}
+
+// tokenSkippingInaccessible requests an access token. If the request has
+// SkipInaccessibleRepositories set and GitHub rejects a repository-constrained
+// request with a 422 saying a repository is not accessible, it probes the
+// requested repositories, drops those the App cannot reach and retries with the
+// remainder. Any failure to do so returns the original error.
+func (c *Client) tokenSkippingInaccessible(
+	ctx context.Context,
+	tokReq *tokenRequest,
+) (*logical.Response, error) {
 	res, status, err := c.mint(ctx, tokReq)
 	if err == nil ||
 		status != http.StatusUnprocessableEntity ||
@@ -524,10 +560,37 @@ func (c *Client) accessibleRepositories(
 			kept = append(kept, repo)
 		default:
 			skipped = append(skipped, repo)
+			c.uninstalledRepos.Store(uninstalledKey(tokReq.InstallationID, repo), time.Now().Add(uninstalledRepositoryTTL))
 		}
 	}
 
 	return kept, skipped, nil
+}
+
+func uninstalledKey(installationID int, repo string) string {
+	return fmt.Sprintf("%d/%s", installationID, repo)
+}
+
+// dropUninstalled splits repos into those not remembered as uninstalled and
+// those that are, discarding expired entries.
+func (c *Client) dropUninstalled(installationID int, repos []string) (kept, remembered []string) {
+	for _, repo := range repos {
+		key := uninstalledKey(installationID, repo)
+
+		if expiry, ok := c.uninstalledRepos.Load(key); ok {
+			if time.Now().Before(expiry.(time.Time)) { //nolint:forcetypeassert
+				remembered = append(remembered, repo)
+
+				continue
+			}
+
+			c.uninstalledRepos.Delete(key)
+		}
+
+		kept = append(kept, repo)
+	}
+
+	return kept, remembered
 }
 
 // installationOrg returns the organization name for the token request,
@@ -554,16 +617,6 @@ func (c *Client) installationOrg(ctx context.Context, tokReq *tokenRequest) (str
 // repositoryInstalled reports whether the App is installed on the repository,
 // using the App-authenticated repository installation endpoint.
 func (c *Client) repositoryInstalled(ctx context.Context, org, repo string) (bool, error) {
-	key := org + "/" + repo
-
-	if expiry, ok := c.uninstalledRepos.Load(key); ok {
-		if time.Now().Before(expiry.(time.Time)) { //nolint:forcetypeassert
-			return false, nil
-		}
-
-		c.uninstalledRepos.Delete(key)
-	}
-
 	u := c.baseURL.JoinPath("repos", org, repo, "installation")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
@@ -584,8 +637,6 @@ func (c *Client) repositoryInstalled(ctx context.Context, org, repo string) (boo
 	case statusCode(res.StatusCode).Successful():
 		return true, nil
 	case res.StatusCode == http.StatusNotFound:
-		c.uninstalledRepos.Store(key, time.Now().Add(uninstalledRepositoryTTL))
-
 		return false, nil
 	default:
 		return false, fmt.Errorf("%s: %s", errUnableToProbeRepository, res.Status)

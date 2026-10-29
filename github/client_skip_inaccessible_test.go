@@ -305,31 +305,49 @@ func TestClient_Token_UninstalledRepositoryCache(t *testing.T) {
 	client, err := NewClient(&Config{AppID: testAppID1, PrvKey: testPrvKeyValid, BaseURL: ts.URL})
 	assert.NilError(t, err)
 
-	mint := func() {
+	mint := func(repos ...string) (*logical.Response, error) {
 		t.Helper()
 
-		res, err := client.Token(context.Background(), &tokenRequest{
+		return client.Token(context.Background(), &tokenRequest{
 			OrgName:          testOrgName1,
 			InstallationID:   testInsID1,
-			tokenConstraints: tokenConstraints{Repositories: []string{"alpha", "gone"}},
+			tokenConstraints: tokenConstraints{Repositories: repos},
 
 			SkipInaccessibleRepositories: true,
 		})
-		assert.NilError(t, err)
-		assert.DeepEqual(t, res.Data["skipped_repositories"], []string{"gone"})
 	}
 
-	mint()
-	assert.Equal(t, fixture.probeCalls.Load(), int32(2))
+	counts := func(tokens, probes int32) {
+		t.Helper()
 
-	// Within the TTL only the repository not known to be uninstalled is probed.
-	mint()
-	assert.Equal(t, fixture.probeCalls.Load(), int32(3))
+		assert.Equal(t, fixture.tokenCalls.Load(), tokens)
+		assert.Equal(t, fixture.probeCalls.Load(), probes)
+	}
 
-	client.uninstalledRepos.Store(testOrgName1+"/gone", time.Now().Add(-time.Second))
+	res, err := mint("alpha", "gone")
+	assert.NilError(t, err)
+	assert.DeepEqual(t, res.Data["skipped_repositories"], []string{"gone"})
+	counts(2, 2)
 
-	mint()
-	assert.Equal(t, fixture.probeCalls.Load(), int32(5))
+	// Within the TTL the repository is dropped before the first mint: one token
+	// request, no probes.
+	res, err = mint("alpha", "gone")
+	assert.NilError(t, err)
+	assert.DeepEqual(t, res.Data["skipped_repositories"], []string{"gone"})
+	assert.DeepEqual(t, fixture.lastRequests[len(fixture.lastRequests)-1], []string{"alpha"})
+	counts(3, 2)
+
+	// Nothing left to request must not become an unconstrained token request.
+	_, err = mint("gone")
+	assert.Equal(t, err, error(errNoAccessibleRepositories))
+	counts(3, 2)
+
+	client.uninstalledRepos.Store(uninstalledKey(testInsID1, "gone"), time.Now().Add(-time.Second))
+
+	res, err = mint("alpha", "gone")
+	assert.NilError(t, err)
+	assert.DeepEqual(t, res.Data["skipped_repositories"], []string{"gone"})
+	counts(5, 4)
 }
 
 func TestPermissionSet_SkipInaccessibleRepositories(t *testing.T) {
