@@ -138,6 +138,10 @@ func (b *backend) pathPermissionSet() *framework.Path {
 				Type:        framework.TypeKVPairs,
 				Description: descPerms,
 			},
+			keySkipInaccessibleRepositories: {
+				Type:        framework.TypeBool,
+				Description: descSkipInaccessibleRepositories,
+			},
 		},
 		ExistenceCheck: b.pathPermissionSetExistenceCheck,
 		Operations: map[logical.Operation]framework.OperationHandler{
@@ -193,6 +197,8 @@ func (b *backend) pathPermissionSetRead(
 		keyRepos:          ps.TokenRequest.Repositories,
 		keyRepoIDs:        ps.TokenRequest.RepositoryIDs,
 		keyPerms:          ps.TokenRequest.Permissions,
+
+		keySkipInaccessibleRepositories: ps.TokenRequest.SkipInaccessibleRepositories,
 	}
 
 	return &logical.Response{
@@ -241,6 +247,7 @@ func (b *backend) pathPermissionSetCreateUpdate(
 
 	ps.TokenRequest.InstallationID = d.Get(keyInstallationID).(int)
 	ps.TokenRequest.OrgName = d.Get(keyOrgName).(string)
+	ps.TokenRequest.SkipInaccessibleRepositories = d.Get(keySkipInaccessibleRepositories).(bool)
 
 	if ps.TokenRequest.InstallationID == 0 && ps.TokenRequest.OrgName == "" {
 		return logical.ErrorResponse(

@@ -39,8 +39,10 @@ In addition to standard Go metrics, the following custom metrics are exposed:
 - %s_request_duration_seconds: a summary of token request latency and status
 - %s_installations_duration_seconds: a summary of installations request latency and status
 - %s_revocation_request_duration_seconds: a summary of token revocation request latency and status
+- %s_skipped_repositories_total: a counter of repositories dropped from token
+  requests because the installation could not access them
 - %s_build_info: a constant with useful build information
-`, prefixMetrics, prefixMetrics, prefixMetrics, prefixMetrics)
+`, prefixMetrics, prefixMetrics, prefixMetrics, prefixMetrics, prefixMetrics)
 
 // requestDuration records useful metric data about backend token requests.
 var requestDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
@@ -48,6 +50,13 @@ var requestDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 	Help:       "Total duration of Vault GitHub token requests in seconds.",
 	Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 }, []string{labelSuccess, keyInstallationID, keyOrgName, keyPerms, keyRepoIDs, keyRepos})
+
+// skippedRepositories counts repositories dropped from token requests because
+// GitHub reported them as nonexistent or inaccessible to the installation.
+var skippedRepositories = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Name: fmt.Sprintf("%s_skipped_repositories_total", prefixMetrics),
+	Help: "Total repositories dropped from Vault GitHub token requests as inaccessible.",
+}, []string{keyInstallationID})
 
 // installationsDuration records useful metric data about installation requests.
 var installationsDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
@@ -70,6 +79,7 @@ func init() {
 		collectors.NewBuildInfoCollector(),
 		requestDuration,
 		installationsDuration,
+		skippedRepositories,
 		revokeDuration,
 	)
 }
